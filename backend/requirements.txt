@@ -1,0 +1,30 @@
+# FieldPack AI — Backend Dependencies
+
+# === LLM Orchestration ===
+langgraph>=0.4.0
+langchain-core>=0.3.0
+langchain-google-genai>=2.1.0      # Google AI Studio (Gemma 4 31B/26B)
+langchain-ollama>=0.3.0            # Ollama (Gemma 4 E4B offline)
+langchain-community>=0.3.0         # Community integrations (ChromaDB, etc.)
+
+# === Vector DB & Embeddings ===
+chromadb>=1.0.0                    # Persistent vector store, metadata filtering
+sentence-transformers>=3.4.0       # all-MiniLM-L6-v2 (384-dim embeddings)
+
+# === Backend API ===
+fastapi>=0.115.0
+uvicorn[standard]>=0.34.0          # ASGI server with websocket support
+websockets>=14.0                   # WebSocket protocol
+python-multipart>=0.0.18           # File uploads (plant photos)
+
+# === Utilities ===
+python-dotenv>=1.1.0               # .env loading
+httpx>=0.28.0                      # Async HTTP client (Phase 1 web fetch)
+beautifulsoup4>=4.13.0             # HTML parsing (Phase 1 web scraping)
+Pillow>=11.0.0                     # Image processing / resizing
+pydantic>=2.10.0                   # Data validation (FastAPI models)
+pydantic-settings>=2.8.0           # Settings management
+
+# === Dev / Testing ===
+pytest>=8.3.0
+pytest-asyncio>=0.25.0

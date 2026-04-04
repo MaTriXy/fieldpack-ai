@@ -1,0 +1,44 @@
+from pathlib import Path
+
+from pydantic_settings import BaseSettings
+
+
+class Settings(BaseSettings):
+    # Google AI Studio (Phase 1)
+    google_ai_studio_api_key: str = ""
+    online_model_large: str = "gemma-4-31b-it"
+    online_model_research: str = "gemma-4-26b-a4b-it"
+
+    # Ollama (Phase 2)
+    ollama_base_url: str = "http://localhost:11434"
+    ollama_model: str = "gemma4-e4b:q8"
+
+    # Embeddings
+    embedding_model: str = "all-MiniLM-L6-v2"
+    embedding_dimensions: int = 384
+
+    # Paths
+    knowledge_pack_dir: Path = Path("../packs")
+    upload_dir: Path = Path("../uploads")
+
+    # Server
+    host: str = "0.0.0.0"
+    port: int = 8000
+    debug: bool = True
+
+    model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}
+
+    @property
+    def packs_path(self) -> Path:
+        path = Path(__file__).resolve().parent.parent / self.knowledge_pack_dir
+        path.mkdir(parents=True, exist_ok=True)
+        return path
+
+    @property
+    def uploads_path(self) -> Path:
+        path = Path(__file__).resolve().parent.parent / self.upload_dir
+        path.mkdir(parents=True, exist_ok=True)
+        return path
+
+
+settings = Settings()

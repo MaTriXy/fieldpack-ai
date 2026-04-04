@@ -1,0 +1,46 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+*.egg
+
+# Virtual environment
+venv/
+.venv/
+
+# Environment variables
+.env
+!.env.example
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Knowledge Packs (large, generated artifacts)
+packs/*/chroma_db/
+packs/*/knowledge.db
+packs/*/images/
+*.fieldpack
+
+# Uploads
+uploads/
+
+# Node / Frontend
+node_modules/
+frontend/dist/
+frontend/build/
+.next/
+
+# Misc
+*.log
+.pytest_cache/
+.coverage
+htmlcov/
