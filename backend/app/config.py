@@ -21,12 +21,23 @@ class Settings(BaseSettings):
     knowledge_pack_dir: Path = Path("../packs")
     upload_dir: Path = Path("../uploads")
 
+    # Logging
+    log_dir: Path = Path("../logs")
+    log_level: str = "DEBUG"
+    log_buffer_size: int = 500  # In-memory ring buffer entries
+
     # Server
     host: str = "0.0.0.0"
     port: int = 8000
     debug: bool = True
 
     model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}
+
+    @property
+    def logs_path(self) -> Path:
+        path = Path(__file__).resolve().parent.parent / self.log_dir
+        path.mkdir(parents=True, exist_ok=True)
+        return path
 
     @property
     def packs_path(self) -> Path:

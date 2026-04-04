@@ -274,16 +274,27 @@ def init_sqlite_db(db_path: Path) -> sqlite3.Connection:
     Creates all tables, indexes, FTS5 virtual tables, and sync triggers.
     Enables WAL mode for better concurrent read performance.
     """
-    conn = sqlite3.connect(str(db_path))
-    conn.execute("PRAGMA journal_mode=WAL")
-    conn.execute("PRAGMA foreign_keys=ON")
+    from app.logger import Step, pipeline_logger as log
 
-    conn.executescript(SQLITE_SCHEMA_DDL)
-    conn.executescript(INDEXES_DDL)
-    conn.executescript(FTS5_DDL)
-    conn.executescript(FTS5_TRIGGERS_DDL)
+    with log.timed(Step.PACK_BUILD, "init_sqlite") as t:
+        conn = sqlite3.connect(str(db_path))
+        conn.execute("PRAGMA journal_mode=WAL")
+        conn.execute("PRAGMA foreign_keys=ON")
 
-    conn.commit()
+        conn.executescript(SQLITE_SCHEMA_DDL)
+        conn.executescript(INDEXES_DDL)
+        conn.executescript(FTS5_DDL)
+        conn.executescript(FTS5_TRIGGERS_DDL)
+
+        conn.commit()
+
+        schema = verify_sqlite_schema(conn)
+        t.set(details={
+            "db_path": str(db_path),
+            "tables": len([k for k in schema if not k.endswith("_fts")]),
+            "fts_tables": len([k for k in schema if k.endswith("_fts")]),
+        })
+
     return conn
 
 
