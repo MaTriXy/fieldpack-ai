@@ -37,7 +37,7 @@ class ResultType(StrEnum):
 
 class ClassifyExtractOutput(BaseModel):
     """Structured output from the classification LLM call."""
-    intent: IntentType
+    intent: IntentType = IntentType.GENERAL_QUESTION
     crop: str | None = None
     disease_name: str | None = None
     keywords: list[str] = Field(default_factory=list)

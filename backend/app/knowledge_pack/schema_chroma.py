@@ -23,14 +23,14 @@ CHROMA_COLLECTIONS = {
     "disease_knowledge": {
         "description": "Disease descriptions, symptoms, visual markers, progression",
         "metadata_fields": [
-            "disease_id", "crop", "type", "severity",
+            "disease_id", "disease_name", "crop", "type", "severity",
             "topic_id", "chunk_type",  # "child" or "parent"
         ],
     },
     "treatment_guides": {
         "description": "Treatment protocols, materials, application steps",
         "metadata_fields": [
-            "disease_id", "treatment_id", "is_organic", "difficulty",
+            "disease_id", "disease_name", "treatment_id", "is_organic", "difficulty",
             "topic_id", "chunk_type",
         ],
     },

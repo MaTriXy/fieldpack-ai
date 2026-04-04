@@ -48,6 +48,7 @@ def _get_disease_chunks() -> dict[str, list[dict]]:
             "content": symptoms_child_text,
             "metadata": {
                 "disease_id": str(d_id),
+                "disease_name": disease["name"],
                 "crop": crop,
                 "type": d_type,
                 "severity": severity,
@@ -71,6 +72,7 @@ def _get_disease_chunks() -> dict[str, list[dict]]:
             "content": symptoms_parent_text,
             "metadata": {
                 "disease_id": str(d_id),
+                "disease_name": disease["name"],
                 "crop": crop,
                 "type": d_type,
                 "severity": severity,
@@ -92,6 +94,7 @@ def _get_disease_chunks() -> dict[str, list[dict]]:
                 "content": prevention_child_text,
                 "metadata": {
                     "disease_id": str(d_id),
+                    "disease_name": disease["name"],
                     "crop": crop,
                     "type": d_type,
                     "severity": severity,
@@ -113,6 +116,7 @@ def _get_disease_chunks() -> dict[str, list[dict]]:
                 "content": prevention_parent_text,
                 "metadata": {
                     "disease_id": str(d_id),
+                    "disease_name": disease["name"],
                     "crop": crop,
                     "type": d_type,
                     "severity": severity,
@@ -137,6 +141,7 @@ def _get_disease_chunks() -> dict[str, list[dict]]:
                 "content": treatment_child_text,
                 "metadata": {
                     "disease_id": str(d_id),
+                    "disease_name": disease["name"],
                     "treatment_id": str(t_id),
                     "is_organic": str(treat.get("is_organic", True)).lower(),
                     "difficulty": treat.get("difficulty", "medium"),
@@ -163,6 +168,7 @@ def _get_disease_chunks() -> dict[str, list[dict]]:
                 "content": treatment_parent_text,
                 "metadata": {
                     "disease_id": str(d_id),
+                    "disease_name": disease["name"],
                     "treatment_id": str(t_id),
                     "is_organic": str(treat.get("is_organic", True)).lower(),
                     "difficulty": treat.get("difficulty", "medium"),

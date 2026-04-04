@@ -67,9 +67,12 @@ def test_classify_invalid_intent():
         ClassifyExtractOutput(intent="not_a_real_intent")
 
 
-def test_classify_missing_required_field():
-    with pytest.raises(ValidationError):
-        ClassifyExtractOutput()
+def test_classify_defaults():
+    """ClassifyExtractOutput has safe defaults for all fields (fallback-friendly)."""
+    output = ClassifyExtractOutput()
+    assert output.intent == IntentType.GENERAL_QUESTION
+    assert output.crop is None
+    assert output.confidence == 0.5
 
 
 # --- SearchRoute ---
