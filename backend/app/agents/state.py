@@ -57,6 +57,8 @@ def trim_conversation_history(
     max_messages: int = 10,
 ) -> list[dict]:
     """Keep only the most recent messages (sliding window)."""
+    if max_messages <= 0:
+        return []
     if len(history) <= max_messages:
         return list(history)
     return list(history[-max_messages:])
