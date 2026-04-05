@@ -263,8 +263,9 @@ class TestDiagnosisPath:
         result = _run_async(run_field_assistant(
             message="My cassava leaves have yellow patches and they are curling up",
         ))
-        # Rerank was called → search must have returned results for it to score
-        mock_all_llms["rerank"].return_value.invoke.assert_called()
+        # Heuristic rerank processes results without LLM — verify results came through
+        assert result["retrieval_attempts"] >= 1
+        assert len(result["ranked_results"]) >= 1
 
     def test_diagnosis_history_updated(self, mock_all_llms):
         """Conversation history should contain the user message and assistant reply."""
@@ -730,9 +731,7 @@ class TestMultiEngine:
 
         assert result["final_answer"]
         assert result["retrieval_attempts"] >= 1
-        # Rerank was called → execute_search returned results from real pack
-        mock_all_llms["rerank"].return_value.invoke.assert_called()
-        # Ranked results should exist (rerank mock keeps 3)
+        # Heuristic rerank processes results without LLM — verify results came through
         assert len(result["ranked_results"]) >= 1
 
 
