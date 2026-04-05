@@ -154,13 +154,13 @@ def expand_route(current_route: SearchRoute) -> SearchRoute:
     Adds all engines, all collections, and key tables.
     Used when is_sufficient=False after first retry.
     """
-    new_engines = list(set(
+    new_engines = list(dict.fromkeys(
         list(current_route.engines) + EXPANDED_ROUTE["engines"]
     ))
-    new_collections = list(set(
+    new_collections = list(dict.fromkeys(
         current_route.collections + EXPANDED_ROUTE["collections"]
     ))
-    new_tables = list(set(
+    new_tables = list(dict.fromkeys(
         current_route.tables + EXPANDED_ROUTE["tables"]
     ))
 

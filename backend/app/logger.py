@@ -18,6 +18,7 @@ Two audiences:
 
 import json
 import logging
+import threading
 import time
 from collections import deque
 from datetime import datetime, timezone
@@ -25,6 +26,8 @@ from pathlib import Path
 from typing import Any
 
 from app.config import settings
+
+_handler_lock = threading.Lock()
 
 
 # ============================================================
@@ -34,9 +37,11 @@ from app.config import settings
 class Step:
     CLASSIFY = "classify"
     ROUTE = "route"
+    NEEDS_SEARCH = "needs_search"
     CRAFT_QUERY = "craft_query"
     SEARCH = "search"
     RERANK = "rerank"
+    EXPAND_ROUTE = "expand_route"
     GENERATE = "generate"
     IMAGE_ANALYSIS = "image_analysis"
     OBSERVATION = "observation"
@@ -86,9 +91,11 @@ def _make_entry(
 _STEP_COLORS = {
     Step.CLASSIFY: "\033[36m",       # cyan
     Step.ROUTE: "\033[33m",          # yellow
+    Step.NEEDS_SEARCH: "\033[33m",   # yellow
     Step.CRAFT_QUERY: "\033[35m",    # magenta
     Step.SEARCH: "\033[32m",         # green
     Step.RERANK: "\033[34m",         # blue
+    Step.EXPAND_ROUTE: "\033[33m",   # yellow
     Step.GENERATE: "\033[97m",       # bright white
     Step.IMAGE_ANALYSIS: "\033[95m", # bright magenta
     Step.OBSERVATION: "\033[90m",    # gray
@@ -177,24 +184,27 @@ class PipelineLogger:
         self._file_logger.setLevel(getattr(logging, level.upper(), logging.DEBUG))
         self._file_logger.propagate = False
 
-        if log_dir:
-            log_dir.mkdir(parents=True, exist_ok=True)
-            fh = logging.FileHandler(
-                log_dir / "pipeline.jsonl",
-                encoding="utf-8",
-            )
-            fh.setFormatter(logging.Formatter("%(message)s"))
-            self._file_logger.addHandler(fh)
+        with _handler_lock:
+            if log_dir:
+                log_dir.mkdir(parents=True, exist_ok=True)
+                target_path = str(log_dir / "pipeline.jsonl")
+                existing = [h for h in self._file_logger.handlers
+                            if isinstance(h, logging.FileHandler)
+                            and h.baseFilename == str(Path(target_path).resolve())]
+                if not existing:
+                    fh = logging.FileHandler(target_path, encoding="utf-8")
+                    fh.setFormatter(logging.Formatter("%(message)s"))
+                    self._file_logger.addHandler(fh)
 
-        # Console logger (pretty)
-        self._console_logger = logging.getLogger("fieldpack.pipeline.console")
-        self._console_logger.setLevel(getattr(logging, level.upper(), logging.DEBUG))
-        self._console_logger.propagate = False
+            # Console logger (pretty)
+            self._console_logger = logging.getLogger("fieldpack.pipeline.console")
+            self._console_logger.setLevel(getattr(logging, level.upper(), logging.DEBUG))
+            self._console_logger.propagate = False
 
-        if not self._console_logger.handlers:
-            ch = logging.StreamHandler()
-            ch.setFormatter(logging.Formatter("%(message)s"))
-            self._console_logger.addHandler(ch)
+            if not self._console_logger.handlers:
+                ch = logging.StreamHandler()
+                ch.setFormatter(logging.Formatter("%(message)s"))
+                self._console_logger.addHandler(ch)
 
     # --- Core logging ---
 
@@ -224,9 +234,9 @@ class PipelineLogger:
             entry["session_id"] = self._session_id
 
         # Track totals
-        if tokens_in:
+        if tokens_in is not None:
             self._total_tokens_in += tokens_in
-        if tokens_out:
+        if tokens_out is not None:
             self._total_tokens_out += tokens_out
 
         self._buffer.append(entry)
@@ -535,14 +545,20 @@ _USER_STEP_LABELS = {
     (Step.SYSTEM, "pipeline_start"): "Starting analysis...",
     (Step.CLASSIFY, "llm_call"): "Understanding your question...",
     (Step.ROUTE, "route_decision"): "Planning search strategy...",
+    (Step.NEEDS_SEARCH, "decision"): "Deciding if search is needed...",
+    (Step.NEEDS_SEARCH, "llm_call"): "Evaluating search necessity...",
     (Step.CRAFT_QUERY, "llm_call"): "Preparing search query...",
+    (Step.CRAFT_QUERY, "retry_variants"): "Generating alternative queries...",
     (Step.SEARCH, "search_chroma"): "Searching knowledge base...",
     (Step.SEARCH, "search_fts"): "Searching by keywords...",
     (Step.SEARCH, "search_structured"): "Looking up database...",
     (Step.IMAGE_ANALYSIS, "llm_call"): "Analyzing plant image...",
     (Step.RERANK, "rerank_complete"): "Evaluating relevance...",
+    (Step.EXPAND_ROUTE, "expanding"): "Broadening search strategy...",
     (Step.GENERATE, "llm_call"): "Generating answer...",
+    (Step.OBSERVATION, "llm_call"): "Parsing observation details...",
     (Step.OBSERVATION, "logged"): "Observation saved.",
+    (Step.OBSERVATION, "stats"): "Gathering observation stats...",
     (Step.SYSTEM, "pipeline_end"): "Done!",
 }
 

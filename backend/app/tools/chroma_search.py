@@ -3,7 +3,7 @@
 Searches child chunks by semantic similarity, resolves parent chunks
 for full context. Supports single-collection and multi-collection search.
 
-Score conversion: cosine distance → relevance = max(0.0, 1.0 - distance).
+Score conversion: cosine distance → relevance = min(1.0, max(0.0, 1.0 - distance)).
 Child→parent resolution: search hits children, LLM receives parents.
 """
 
@@ -19,7 +19,7 @@ from app.logger import Step, pipeline_logger as log
 
 def _distance_to_score(distance: float) -> float:
     """Convert ChromaDB cosine distance to relevance score [0, 1]."""
-    return max(0.0, 1.0 - distance)
+    return min(1.0, max(0.0, 1.0 - distance))
 
 
 def _resolve_parent(collection, child_id: str, child_metadata: dict) -> tuple[str | None, str | None]:
@@ -42,8 +42,9 @@ def _resolve_parent(collection, child_id: str, child_metadata: dict) -> tuple[st
         )
         if parent_results and parent_results["ids"]:
             return parent_results["ids"][0], parent_results["documents"][0]
-    except Exception:
-        pass
+    except Exception as e:
+        log.log_step(Step.SEARCH, "resolve_parent_error", level="WARNING",
+                     details={"child_id": child_id, "topic_id": topic_id, "error": str(e)})
 
     return None, None
 
@@ -86,9 +87,14 @@ def chroma_search(
         # Build where clause: always filter for child chunks + optional user filters
         where_clause: dict | None = None
         if filters:
+            rejected = [k for k in filters if k.startswith("$")]
+            if rejected:
+                log.log_step(Step.SEARCH, "filter_keys_rejected",
+                             level="WARNING", details={"keys": rejected})
+            safe_filters = {k: v for k, v in filters.items() if not k.startswith("$")}
             where_clause = {"$and": [
                 {"chunk_type": {"$eq": "child"}},
-                *[{k: {"$eq": v}} for k, v in filters.items()],
+                *[{k: {"$eq": v}} for k, v in safe_filters.items()],
             ]}
         else:
             where_clause = {"chunk_type": {"$eq": "child"}}
@@ -185,6 +191,7 @@ def multi_collection_search(
     with log.timed(Step.SEARCH, "multi_collection_search") as t:
         all_results: list[SearchResult] = []
         seen_sources: set[str] = set()
+        per_collection: dict[str, int] = {c: 0 for c in collections}
 
         for collection_name in collections:
             results = chroma_search(
@@ -197,6 +204,7 @@ def multi_collection_search(
                 if r.source not in seen_sources:
                     seen_sources.add(r.source)
                     all_results.append(r)
+                    per_collection[collection_name] += 1
 
         all_results.sort(key=lambda r: r.score, reverse=True)
 
@@ -204,8 +212,7 @@ def multi_collection_search(
             "collections": collections,
             "query_preview": query[:200],
             "total_results": len(all_results),
-            "per_collection": {c: sum(1 for r in all_results if r.metadata.get("topic_id", "").startswith(c[:3]) or True)
-                               for c in collections},
+            "per_collection": per_collection,
         })
 
     return all_results

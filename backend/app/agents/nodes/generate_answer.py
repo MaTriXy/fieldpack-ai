@@ -6,6 +6,9 @@ only (not child chunks) for clean, detailed context.
 
 RAG-grounded persona: answers ONLY from provided context.
 Explicitly told it's OK not to know. Never hallucinate.
+
+Token streaming is handled by LangGraph's astream_events in
+field_assistant.py — this node returns the full answer synchronously.
 """
 
 from datetime import datetime, timezone
@@ -14,6 +17,7 @@ from langchain_core.messages import HumanMessage, SystemMessage
 
 from app.agents.models import ScoredResult
 from app.agents.state import FieldAssistantState, trim_conversation_history
+from app.agents.history import history_to_nl
 from app.logger import Step, pipeline_logger as log
 from app.models.offline_llm import get_field_llm
 
@@ -68,19 +72,13 @@ def _assemble_context(
     return "\n\n---\n\n".join(context_parts)
 
 
-def _format_conversation(history: list[dict], max_messages: int = 10) -> str:
-    """Format conversation history for the LLM prompt."""
-    trimmed = trim_conversation_history(history, max_messages)
-    if not trimmed:
-        return ""
-
-    lines = []
-    for msg in trimmed:
-        role = msg.get("role", "user").capitalize()
-        content = msg.get("content", "")
-        lines.append(f"{role}: {content}")
-
-    return "\n".join(lines)
+def _format_conversation(
+    history: list[dict],
+    summary: str = "",
+    max_messages: int = 10,
+) -> str:
+    """Format conversation history as natural language for the LLM."""
+    return history_to_nl(history, summary=summary, max_recent=max_messages)
 
 
 def generate_answer(state: FieldAssistantState) -> dict:
@@ -119,8 +117,9 @@ def generate_answer(state: FieldAssistantState) -> dict:
             "conversation_history": trim_conversation_history(updated_history),
         }
 
-    # Format conversation history
-    history_text = _format_conversation(history)
+    # Format conversation history as natural language
+    summary = state.get("conversation_summary", "")
+    history_text = _format_conversation(history, summary=summary)
 
     # Build prompt
     messages = [SystemMessage(content=GENERATE_SYSTEM_PROMPT)]
@@ -142,6 +141,7 @@ def generate_answer(state: FieldAssistantState) -> dict:
         except Exception as e:
             log.log_step(Step.GENERATE, "llm_error", level="ERROR",
                          details={"error": str(e)})
+            t.set(level="ERROR")
             answer = (
                 "I encountered an error generating an answer. "
                 "Please try again or rephrase your question."
@@ -161,13 +161,6 @@ def generate_answer(state: FieldAssistantState) -> dict:
         {"role": "assistant", "content": answer,
          "timestamp": datetime.now(timezone.utc).isoformat()},
     ]
-
-    log.log_llm_call(
-        step=Step.GENERATE,
-        prompt=user_message[:300],
-        response=answer[:300],
-        duration_ms=0,
-    )
 
     return {
         "final_answer": answer,

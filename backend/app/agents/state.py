@@ -15,17 +15,12 @@ from app.agents.models import (
 )
 
 
-class ConversationMessage(TypedDict):
-    role: str       # "user" or "assistant"
-    content: str
-    timestamp: str  # ISO format
-
-
 class FieldAssistantState(TypedDict, total=False):
     # Input
     user_message: str
     image_path: str | None
     conversation_history: list[dict]
+    conversation_summary: str
 
     # Step 1: Classify + Extract
     classify_result: ClassifyExtractOutput | None
@@ -33,8 +28,12 @@ class FieldAssistantState(TypedDict, total=False):
     # Step 2: Route
     route: SearchRoute | None
 
+    # Step 2.5: Needs Search (hybrid gate)
+    needs_search: bool
+
     # Step 3: Craft Search Query
     crafted_query: CraftedQuery | None
+    crafted_queries: list[CraftedQuery]
 
     # Step 4: Execute Searches
     search_results: list[SearchResult]
@@ -46,6 +45,9 @@ class FieldAssistantState(TypedDict, total=False):
 
     # Step 6: Generate Answer
     final_answer: str
+
+    # Observation logging
+    observation_stats: dict | None
 
     # Observability
     tool_calls_log: list[dict]

@@ -90,7 +90,7 @@ class TestFormatConversation:
             {"role": "assistant", "content": "Hi there"},
         ]
         result = _format_conversation(history)
-        assert "User: Hello" in result
+        assert "Farmer: Hello" in result
         assert "Assistant: Hi there" in result
 
     def test_empty_history(self):
@@ -101,6 +101,14 @@ class TestFormatConversation:
         result = _format_conversation(history, max_messages=10)
         lines = [l for l in result.split("\n") if l.strip()]
         assert len(lines) == 10
+
+    def test_trims_to_max_with_summary(self):
+        history = [{"role": "user", "content": f"msg {i}"} for i in range(15)]
+        result = _format_conversation(history, max_messages=10, summary="discussing cassava disease")
+        lines = [l for l in result.split("\n") if l.strip()]
+        # 10 messages + 1 summary context line
+        assert len(lines) == 11
+        assert "Previous conversation" in lines[0] or "cassava" in lines[0]
 
 
 # ============================================================

@@ -44,14 +44,13 @@ def _normalize_bm25_scores(results: list[SearchResult]) -> list[SearchResult]:
 
 
 def _deduplicate_results(results: list[SearchResult]) -> list[SearchResult]:
-    """Deduplicate results by source ID. Keep first occurrence (higher score)."""
-    seen: set[str] = set()
-    deduped = []
+    """Deduplicate results by source ID. Keep highest score on collision."""
+    best: dict[str, SearchResult] = {}
     for r in results:
-        if r.source not in seen:
-            seen.add(r.source)
-            deduped.append(r)
-    return deduped
+        existing = best.get(r.source)
+        if existing is None or r.score > existing.score:
+            best[r.source] = r
+    return list(best.values())
 
 
 def _get_fts_keywords(state: FieldAssistantState) -> list[str]:
@@ -137,17 +136,59 @@ def _run_structured_searches(
     return all_results
 
 
+def _collect_embedding_queries(state: FieldAssistantState) -> list[str]:
+    """Collect all embedding queries from crafted_queries or single crafted_query."""
+    queries = []
+
+    # Prefer multi-query list (retry path)
+    crafted_queries = state.get("crafted_queries", [])
+    if crafted_queries:
+        for cq in crafted_queries:
+            if cq.embedding_query:
+                queries.append(cq.embedding_query)
+
+    # Fall back to single query
+    if not queries:
+        crafted_query = state.get("crafted_query")
+        if crafted_query and crafted_query.embedding_query:
+            queries.append(crafted_query.embedding_query)
+
+    # Last resort: user message
+    if not queries and state.get("user_message"):
+        queries.append(state["user_message"])
+
+    return queries
+
+
+def _collect_fts_keywords(state: FieldAssistantState) -> list[str]:
+    """Collect FTS keywords from all crafted queries, deduplicated."""
+    keywords: list[str] = []
+    seen: set[str] = set()
+
+    crafted_queries = state.get("crafted_queries", [])
+    if crafted_queries:
+        for cq in crafted_queries:
+            for kw in cq.fts_keywords:
+                if kw.lower() not in seen:
+                    seen.add(kw.lower())
+                    keywords.append(kw)
+
+    if not keywords:
+        keywords = _get_fts_keywords(state)
+
+    return keywords
+
+
 async def execute_searches(state: FieldAssistantState) -> dict:
     """Execute search tools in parallel based on the route.
 
-    Runs ChromaDB, FTS5, and structured queries concurrently
-    using asyncio.gather. Normalizes scores, deduplicates,
-    and sorts results.
+    Supports multiple crafted queries (retry variants). Runs all
+    queries across all engines concurrently, deduplicates with
+    highest-score-wins, normalizes BM25 scores, and sorts.
 
     Returns dict with: search_results, tool_calls_log updates.
     """
     route = state.get("route")
-    crafted_query = state.get("crafted_query")
     existing_log = state.get("tool_calls_log", [])
 
     if route is None or not route.engines:
@@ -155,86 +196,89 @@ async def execute_searches(state: FieldAssistantState) -> dict:
                      details={"reason": "No route or empty engines"})
         return {"search_results": [], "tool_calls_log": existing_log}
 
-    embedding_query = ""
-    if crafted_query and crafted_query.embedding_query:
-        embedding_query = crafted_query.embedding_query
-    elif state.get("user_message"):
-        embedding_query = state["user_message"]
-
-    fts_keywords = _get_fts_keywords(state)
+    embedding_queries = _collect_embedding_queries(state)
+    fts_keywords = _collect_fts_keywords(state)
     metadata_filters = route.metadata_filters or {}
 
+    log.log_step(Step.SEARCH, "execute_start", details={
+        "query_count": len(embedding_queries),
+        "fts_keyword_count": len(fts_keywords),
+        "engines": [e.value for e in route.engines],
+    })
+
     with log.timed(Step.SEARCH, "execute_searches") as t:
-        # Build search coroutines
         tasks = []
+        task_labels = []
 
-        if SearchEngineType.CHROMA_EMBEDDING in route.engines and embedding_query:
-            tasks.append(asyncio.to_thread(
-                _run_chroma_searches,
-                embedding_query,
-                route.collections,
-                metadata_filters,
-            ))
+        # ChromaDB: one search task per query per collection
+        if SearchEngineType.CHROMA_EMBEDDING in route.engines:
+            for eq in embedding_queries:
+                tasks.append(asyncio.to_thread(
+                    _run_chroma_searches,
+                    eq,
+                    route.collections,
+                    metadata_filters,
+                ))
+                task_labels.append(f"chroma:{','.join(route.collections)}")
 
+        # FTS: combined keywords, single search
         if SearchEngineType.SQLITE_FTS in route.engines and fts_keywords:
-            # FTS uses tables that have FTS mirrors
-            fts_tables = [t for t in route.tables if t in FTS_TABLE_MAP]
-            if not fts_tables:
-                # Default FTS tables based on collections
-                fts_tables = ["diseases"]
-            tasks.append(asyncio.to_thread(
-                _run_fts_searches,
-                fts_keywords,
-                fts_tables,
-            ))
+            fts_tables = [tb for tb in route.tables if tb in FTS_TABLE_MAP]
+            if fts_tables:
+                tasks.append(asyncio.to_thread(
+                    _run_fts_searches,
+                    fts_keywords,
+                    fts_tables,
+                ))
+                task_labels.append(f"fts:{','.join(fts_tables)}")
+            else:
+                log.log_step(Step.SEARCH, "fts_skipped", level="WARNING",
+                             details={"reason": "no FTS-capable tables in route",
+                                      "route_tables": route.tables})
 
+        # Structured: unchanged
         if SearchEngineType.SQLITE_STRUCTURED in route.engines:
             tasks.append(asyncio.to_thread(
                 _run_structured_searches,
                 route.tables,
                 metadata_filters,
             ))
+            task_labels.append(f"structured:{','.join(route.tables)}")
 
-        # Execute all in parallel
         if tasks:
             results_lists = await asyncio.gather(*tasks, return_exceptions=True)
         else:
             results_lists = []
 
-        # Flatten, skip exceptions
         all_results: list[SearchResult] = []
-        for result_or_error in results_lists:
+        for i, result_or_error in enumerate(results_lists):
             if isinstance(result_or_error, Exception):
+                label = task_labels[i] if i < len(task_labels) else "unknown"
                 log.log_step(Step.SEARCH, "search_engine_error", level="ERROR",
-                             details={"error": str(result_or_error)})
+                             details={"engine": label, "error": str(result_or_error)})
             elif isinstance(result_or_error, list):
                 all_results.extend(result_or_error)
 
-        # Normalize BM25 scores
         all_results = _normalize_bm25_scores(all_results)
-
-        # Deduplicate by source ID
         all_results = _deduplicate_results(all_results)
-
-        # Sort by score descending
         all_results.sort(key=lambda r: r.score, reverse=True)
 
-        # Build tool calls log entry
         engine_counts = {}
         for r in all_results:
             engine_counts[r.result_type.value] = engine_counts.get(r.result_type.value, 0) + 1
 
         t.set(details={
             "total_results": len(all_results),
+            "query_count": len(embedding_queries),
             "engines_used": [e.value for e in route.engines],
             "engine_counts": engine_counts,
             "top_scores": [round(r.score, 3) for r in all_results[:5]],
         })
 
-    # Update tool_calls_log
     new_log_entry = {
         "step": "search",
         "engines": [e.value for e in route.engines],
+        "query_count": len(embedding_queries),
         "total_results": len(all_results),
         "engine_counts": engine_counts,
     }
@@ -249,5 +293,17 @@ def execute_searches_sync(state: FieldAssistantState) -> dict:
     """Synchronous wrapper for execute_searches.
 
     Use this when calling from synchronous code or tests.
+    Note: blocks the calling thread. Do NOT call from async contexts
+    (FastAPI routes, etc.) — use the async execute_searches directly.
     """
+    try:
+        loop = asyncio.get_running_loop()
+    except RuntimeError:
+        loop = None
+
+    if loop and loop.is_running():
+        import concurrent.futures
+        with concurrent.futures.ThreadPoolExecutor() as pool:
+            future = pool.submit(asyncio.run, execute_searches(state))
+            return future.result()
     return asyncio.run(execute_searches(state))

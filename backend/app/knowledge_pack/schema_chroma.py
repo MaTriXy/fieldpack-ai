@@ -30,7 +30,7 @@ CHROMA_COLLECTIONS = {
     "treatment_guides": {
         "description": "Treatment protocols, materials, application steps",
         "metadata_fields": [
-            "disease_id", "disease_name", "treatment_id", "is_organic", "difficulty",
+            "disease_id", "disease_name", "crop", "treatment_id", "is_organic", "difficulty",
             "topic_id", "chunk_type",
         ],
     },

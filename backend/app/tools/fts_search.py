@@ -178,9 +178,10 @@ def _like_fallback(
     params = []
     for word in query_words[:_MAX_QUERY_WORDS]:
         col_conditions = []
+        escaped = word.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
         for col in text_cols:
-            col_conditions.append(f"{col} LIKE ?")
-            params.append(f"%{word}%")
+            col_conditions.append(f'"{col}" LIKE ? ESCAPE \'\\\'')
+            params.append(f"%{escaped}%")
         conditions.append(f"({' OR '.join(col_conditions)})")
 
     where = " OR ".join(conditions)
@@ -359,13 +360,12 @@ def fuzzy_fts_search(
             "results_count": len(results),
         })
 
-    if results:
-        log.log_search(
-            engine="fts_fuzzy",
-            query=query,
-            collection_or_table=table,
-            results_count=len(results),
-        )
+    log.log_search(
+        engine="fts_fuzzy",
+        query=query,
+        collection_or_table=table,
+        results_count=len(results),
+    )
 
     return results
 

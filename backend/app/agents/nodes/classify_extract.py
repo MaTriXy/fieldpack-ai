@@ -10,10 +10,11 @@ Includes image analysis when image_path is present.
 import json
 import re
 
-from langchain_core.messages import HumanMessage, SystemMessage
+from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 
 from app.agents.models import ClassifyExtractOutput, IntentType
 from app.agents.state import FieldAssistantState
+from app.agents.history import history_to_nl
 from app.logger import Step, pipeline_logger as log
 from app.models.offline_llm import get_field_llm
 
@@ -77,6 +78,7 @@ def _build_classify_prompt(
     user_message: str,
     image_description: str | None,
     history: list[dict],
+    summary: str = "",
 ) -> list:
     """Build the message list for the classify LLM call.
 
@@ -88,25 +90,22 @@ def _build_classify_prompt(
     # Few-shot examples
     for ex in FEW_SHOT_EXAMPLES:
         messages.append(HumanMessage(content=ex["user"]))
-        messages.append(SystemMessage(content=json.dumps(ex["output"])))
+        messages.append(AIMessage(content=json.dumps(ex["output"])))
 
-    # Recent conversation history (last 2 messages for follow-up context)
+    # Build user message with optional history and image context
+    user_parts = []
+
     if history:
-        recent = history[-2:] if len(history) > 2 else history
-        history_text = "\n".join(
-            f"{msg.get('role', 'user')}: {msg.get('content', '')}"
-            for msg in recent
-        )
-        messages.append(SystemMessage(
-            content=f"Recent conversation for context:\n{history_text}"
-        ))
+        history_text = history_to_nl(history, summary=summary, max_recent=2)
+        if history_text:
+            user_parts.append(f"Recent conversation:\n{history_text}\n")
 
-    # Current user message
-    user_text = user_message
+    user_parts.append(user_message)
+
     if image_description:
-        user_text += f"\n\n[Image analysis: {image_description}]"
+        user_parts.append(f"\n[Image analysis: {image_description}]")
 
-    messages.append(HumanMessage(content=user_text))
+    messages.append(HumanMessage(content="\n".join(user_parts)))
 
     return messages
 
@@ -188,7 +187,8 @@ def classify_and_extract(state: FieldAssistantState) -> dict:
                          details={"error": str(e)})
 
     # Build prompt and call LLM
-    messages = _build_classify_prompt(user_message, image_description, history)
+    summary = state.get("conversation_summary", "")
+    messages = _build_classify_prompt(user_message, image_description, history, summary=summary)
 
     with log.timed(Step.CLASSIFY, "llm_call") as t:
         try:
@@ -216,13 +216,5 @@ def classify_and_extract(state: FieldAssistantState) -> dict:
             "confidence": result.confidence,
             "has_image_description": image_description is not None,
         })
-
-    log.log_llm_call(
-        step=Step.CLASSIFY,
-        prompt=user_message[:300],
-        response=response_text[:300],
-        duration_ms=0,  # logged by timed context
-        details={"intent": result.intent.value},
-    )
 
     return {"classify_result": result}

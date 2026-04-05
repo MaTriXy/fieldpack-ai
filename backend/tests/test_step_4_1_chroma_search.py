@@ -57,8 +57,8 @@ class TestDistanceToScore:
         assert _distance_to_score(0.5) == 0.5
 
     def test_negative_clamps_to_one(self):
-        # Shouldn't happen with cosine, but handle gracefully
-        assert _distance_to_score(-0.1) == 1.1 or _distance_to_score(-0.1) > 1.0
+        # Negative distances clamped to 1.0 (upper bound)
+        assert _distance_to_score(-0.1) == 1.0
 
     def test_above_one_clamps_to_zero(self):
         assert _distance_to_score(1.5) == 0.0

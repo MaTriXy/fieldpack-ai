@@ -208,10 +208,10 @@ class TestStructuredQuery:
         for r in results:
             assert r.source.startswith("crops:")
 
-    def test_score_is_one(self):
+    def test_score_is_neutral(self):
         results = structured_query("crops")
         for r in results:
-            assert r.score == 1.0
+            assert r.score == 0.7
 
     def test_no_pack_returns_empty(self, pack_path):
         unload_pack()

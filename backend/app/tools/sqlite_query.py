@@ -29,6 +29,11 @@ _OPERATORS = {
 }
 
 
+def _escape_like(value: str) -> str:
+    """Escape LIKE wildcard metacharacters."""
+    return value.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+
+
 def _get_table_columns(conn: sqlite3.Connection, table: str) -> list[str]:
     """Get column names for a table via PRAGMA table_info."""
     try:
@@ -56,19 +61,31 @@ def _build_where_clause(
     clauses = []
     params = []
 
+    dropped = []
     for key, value in conditions.items():
         if isinstance(value, dict):
             # Operator condition: {"$gte": "medium"}
             for op_key, op_value in value.items():
                 sql_op = _OPERATORS.get(op_key)
                 if sql_op and key in valid_columns:
-                    clauses.append(f"{key} {sql_op} ?")
+                    if sql_op == "LIKE":
+                        clauses.append(f"{key} {sql_op} ? ESCAPE '\\'")
+                    else:
+                        clauses.append(f"{key} {sql_op} ?")
                     params.append(op_value)
+                elif key not in valid_columns:
+                    dropped.append(key)
         else:
             # Simple equality
             if key in valid_columns:
                 clauses.append(f"{key} = ?")
                 params.append(value)
+            else:
+                dropped.append(key)
+
+    if dropped:
+        log.log_step(Step.SEARCH, "where_clause_dropped_columns", level="WARNING",
+                     details={"dropped": list(set(dropped)), "valid": valid_columns})
 
     if not clauses:
         return "", []
@@ -116,7 +133,7 @@ def _rows_to_search_results(
             content=content,
             source=f"{source_table}:{row.get('id', '?')}",
             metadata=metadata,
-            score=1.0,  # Structured queries are exact matches
+            score=0.7,  # Neutral score — reranker decides actual relevance
             result_type=ResultType.STRUCTURED,
         ))
 
@@ -268,7 +285,7 @@ def fuzzy_structured_query(
         # Tier 2: LIKE %query%
         results = structured_query(
             table,
-            {name_column: {"$like": f"%{name_query}%"}},
+            {name_column: {"$like": f"%{_escape_like(name_query)}%"}},
             limit=limit,
         )
         if results:
@@ -282,7 +299,7 @@ def fuzzy_structured_query(
                 if len(word) >= 3:
                     results = structured_query(
                         table,
-                        {name_column: {"$like": f"%{word}%"}},
+                        {name_column: {"$like": f"%{_escape_like(word)}%"}},
                         limit=limit,
                     )
                     if results:

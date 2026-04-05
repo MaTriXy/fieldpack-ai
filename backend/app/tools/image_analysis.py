@@ -171,7 +171,10 @@ def analyze_plant_image(
 
     with log.timed(Step.IMAGE_ANALYSIS, "analyze_image") as t:
         # Resize and encode
-        image_bytes = _resize_image(image_path)
+        try:
+            image_bytes = _resize_image(image_path)
+        except Exception as e:
+            raise ValueError(f"Could not read image: {e}") from e
         image_b64 = _encode_image_base64(image_bytes)
 
         # Build prompt
@@ -258,7 +261,7 @@ def analyze_plant_image_tool(
 
     try:
         analysis = analyze_plant_image(image_path, hint)
-    except (FileNotFoundError, ValueError) as e:
+    except (FileNotFoundError, ValueError, OSError) as e:
         return f"Error: {e}"
 
     parts = [f"Visual description: {analysis['visual_description']}"]

@@ -7,7 +7,6 @@ from app.agents.models import (
     SearchRoute,
 )
 from app.agents.state import (
-    ConversationMessage,
     FieldAssistantState,
     trim_conversation_history,
 )
@@ -20,20 +19,28 @@ def test_state_all_fields():
         "user_message": "My cassava has brown spots",
         "image_path": None,
         "conversation_history": [],
+        "conversation_summary": "",
         "classify_result": ClassifyExtractOutput(intent=IntentType.DIAGNOSE_DISEASE),
         "route": SearchRoute(),
+        "needs_search": True,
         "crafted_query": CraftedQuery(),
+        "crafted_queries": [CraftedQuery()],
         "search_results": [],
         "ranked_results": [],
         "is_sufficient": False,
         "retrieval_attempts": 0,
         "final_answer": "",
+        "observation_stats": None,
         "tool_calls_log": [],
         "error": None,
     }
     assert state["user_message"] == "My cassava has brown spots"
     assert state["retrieval_attempts"] == 0
     assert state["error"] is None
+    assert state["conversation_summary"] == ""
+    assert state["needs_search"] is True
+    assert len(state["crafted_queries"]) == 1
+    assert state["observation_stats"] is None
 
 
 def test_state_partial():
@@ -50,18 +57,6 @@ def test_state_with_image():
         "image_path": "/uploads/plant_photo.jpg",
     }
     assert state["image_path"] == "/uploads/plant_photo.jpg"
-
-
-# --- ConversationMessage ---
-
-def test_conversation_message():
-    msg: ConversationMessage = {
-        "role": "user",
-        "content": "What diseases affect cassava?",
-        "timestamp": "2026-04-04T10:00:00Z",
-    }
-    assert msg["role"] == "user"
-    assert "cassava" in msg["content"]
 
 
 # --- trim_conversation_history ---
