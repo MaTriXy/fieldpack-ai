@@ -171,7 +171,7 @@ def needs_search_node(state: FieldAssistantState) -> dict:
 
     with log.timed(Step.NEEDS_SEARCH, "llm_call") as t:
         try:
-            llm = get_field_llm(temperature=0.1)
+            llm = get_field_llm(temperature=0.1, num_predict=32)
             response = llm.invoke(messages)
             response_text = response.content if hasattr(response, "content") else str(response)
             result = _parse_needs_search_response(response_text)

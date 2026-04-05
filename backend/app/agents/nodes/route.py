@@ -34,9 +34,13 @@ ROUTING_RULES: dict[IntentType, dict] = {
         "tables": ["treatments"],
     },
     IntentType.FARMING_ADVICE: {
-        "engines": [SearchEngineType.CHROMA_EMBEDDING],
+        "engines": [
+            SearchEngineType.CHROMA_EMBEDDING,
+            SearchEngineType.SQLITE_STRUCTURED,
+            SearchEngineType.SQLITE_FTS,
+        ],
         "collections": ["farming_practices", "regional_context"],
-        "tables": [],
+        "tables": ["crops", "climate"],
     },
     IntentType.IDENTIFY_IMAGE: {
         "engines": [SearchEngineType.CHROMA_EMBEDDING, SearchEngineType.SQLITE_FTS],
@@ -79,7 +83,7 @@ EXPANDED_ROUTE = {
         "disease_knowledge", "treatment_guides",
         "farming_practices", "regional_context",
     ],
-    "tables": ["diseases", "treatments", "crops"],
+    "tables": ["diseases", "treatments", "crops", "climate"],
 }
 
 
@@ -96,6 +100,15 @@ def _build_metadata_filters(classify_result: ClassifyExtractOutput) -> dict:
 
     if classify_result.disease_name:
         filters["disease_name"] = classify_result.disease_name
+
+    if classify_result.season:
+        filters["season"] = classify_result.season.value
+
+    if classify_result.growth_stage:
+        filters["growth_stage"] = classify_result.growth_stage.value
+
+    if classify_result.topic_subtype:
+        filters["practice_type"] = classify_result.topic_subtype.value
 
     return filters
 

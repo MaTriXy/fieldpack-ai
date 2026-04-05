@@ -28,6 +28,15 @@ from app.knowledge_pack.seed_data import (
     DISEASES,
     TREATMENTS,
 )
+from app.knowledge_pack.seed_farming import (
+    CROPS_EXTRA,
+    FERTILIZATION_SCHEDULE,
+    PESTS,
+    PLANTING_CALENDAR,
+    SOIL_REQUIREMENTS,
+    STORAGE_GUIDELINES,
+    VARIETIES,
+)
 from app.logger import Step, pipeline_logger as log
 
 
@@ -60,6 +69,8 @@ def build_pack(pack_name: str, base_path: Path | None = None) -> Path:
         "diseases": len(DISEASES),
         "treatments": len(TREATMENTS),
         "climate_records": len(CLIMATE),
+        "pests": len(PESTS),
+        "varieties": len(VARIETIES),
     })
 
     # ChromaDB
@@ -115,6 +126,9 @@ def build_pack(pack_name: str, base_path: Path | None = None) -> Path:
         f"- **{len(CROPS)} crops**: {', '.join(c['name'] for c in CROPS)}\n"
         f"- **{len(DISEASES)} diseases** with visual identification guides\n"
         f"- **{len(TREATMENTS)} treatment protocols** (organic and conventional)\n"
+        f"- **{len(PESTS)} pests** with identification and control methods\n"
+        f"- **{len(VARIETIES)} crop varieties** with local adaptation data\n"
+        f"- **{len(PLANTING_CALENDAR)} planting calendar** entries\n"
         f"- **12 months** of Casamance climate data\n"
         f"- **{total_chunks} knowledge chunks** for semantic search\n\n"
         f"## Usage\n\n"
@@ -145,16 +159,21 @@ def _insert_sqlite_data(conn: sqlite3.Connection):
     with log.timed(Step.PACK_BUILD, "sqlite_insert") as t:
         cursor = conn.cursor()
 
-        # Crops
+        # Crops (base + extra columns)
         for crop in CROPS:
+            extra = CROPS_EXTRA.get(crop["id"], {})
             cursor.execute(
                 "INSERT INTO crops (id, name, scientific_name, family, growing_season, "
                 "water_needs_mm_per_week, drought_tolerance, region_suitability, "
-                "planting_notes, harvest_notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                "planting_notes, harvest_notes, soil_ph_min, soil_ph_max, "
+                "seed_rate_kg_per_ha, intercrop_companions) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                 (crop["id"], crop["name"], crop["scientific_name"], crop["family"],
                  crop["growing_season"], crop["water_needs_mm_per_week"],
                  crop["drought_tolerance"], crop["region_suitability"],
-                 crop["planting_notes"], crop["harvest_notes"]),
+                 crop["planting_notes"], crop["harvest_notes"],
+                 extra.get("soil_ph_min"), extra.get("soil_ph_max"),
+                 extra.get("seed_rate_kg_per_ha"), extra.get("intercrop_companions")),
             )
 
         # Diseases
@@ -202,10 +221,89 @@ def _insert_sqlite_data(conn: sqlite3.Connection):
                  clim["drought_risk"], clim.get("notes")),
             )
 
+        # Pests
+        for pest in PESTS:
+            cursor.execute(
+                "INSERT INTO pests (id, name, common_names, crop_id, type, "
+                "damage_description, season_peak, identification_notes, "
+                "control_organic, control_chemical, economic_threshold, prevention_notes) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                (pest["id"], pest["name"], pest.get("common_names"),
+                 pest["crop_id"], pest["type"], pest["damage_description"],
+                 pest.get("season_peak"), pest.get("identification_notes"),
+                 pest.get("control_organic"), pest.get("control_chemical"),
+                 pest.get("economic_threshold"), pest.get("prevention_notes")),
+            )
+
+        # Varieties
+        for var in VARIETIES:
+            cursor.execute(
+                "INSERT INTO varieties (id, crop_id, name, local_names, "
+                "days_to_maturity, yield_potential_kg_per_ha, disease_resistance, "
+                "drought_tolerance, seed_source_in_region, planting_density, notes) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                (var["id"], var["crop_id"], var["name"], var.get("local_names"),
+                 var["days_to_maturity"], var["yield_potential_kg_per_ha"],
+                 var.get("disease_resistance"), var.get("drought_tolerance"),
+                 var.get("seed_source_in_region"), var.get("planting_density"),
+                 var.get("notes")),
+            )
+
+        # Fertilization schedule
+        for fert in FERTILIZATION_SCHEDULE:
+            cursor.execute(
+                "INSERT INTO fertilization_schedule (id, crop_id, growth_stage, "
+                "fertilizer_type, dose_per_ha, application_method, timing_notes, "
+                "organic_alternative, cost_estimate_xof) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                (fert["id"], fert["crop_id"], fert["growth_stage"],
+                 fert["fertilizer_type"], fert["dose_per_ha"],
+                 fert.get("application_method"), fert.get("timing_notes"),
+                 fert.get("organic_alternative"), fert.get("cost_estimate_xof")),
+            )
+
+        # Planting calendar
+        for cal in PLANTING_CALENDAR:
+            cursor.execute(
+                "INSERT INTO planting_calendar (id, crop_id, month, activity, "
+                "details, is_critical) VALUES (?, ?, ?, ?, ?, ?)",
+                (cal["id"], cal["crop_id"], cal["month"], cal["activity"],
+                 cal.get("details"), cal.get("is_critical", 0)),
+            )
+
+        # Storage guidelines
+        for stor in STORAGE_GUIDELINES:
+            cursor.execute(
+                "INSERT INTO storage_guidelines (id, crop_id, method, optimal_temp_c, "
+                "moisture_target_pct, max_duration_months, pest_risks, "
+                "quality_indicators, local_materials) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                (stor["id"], stor["crop_id"], stor["method"],
+                 stor.get("optimal_temp_c"), stor.get("moisture_target_pct"),
+                 stor.get("max_duration_months"), stor.get("pest_risks"),
+                 stor.get("quality_indicators"), stor.get("local_materials")),
+            )
+
+        # Soil requirements
+        for soil in SOIL_REQUIREMENTS:
+            cursor.execute(
+                "INSERT INTO soil_requirements (id, crop_id, ph_min, ph_max, "
+                "preferred_texture, drainage_needs, amendments_needed, preparation_notes) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                (soil["id"], soil["crop_id"], soil["ph_min"], soil["ph_max"],
+                 soil.get("preferred_texture"), soil.get("drainage_needs"),
+                 soil.get("amendments_needed"), soil.get("preparation_notes")),
+            )
+
         conn.commit()
-        t.set(details={
-            "rows_inserted": len(CROPS) + len(DISEASES) + len(CROP_DISEASES) + len(TREATMENTS) + len(CLIMATE),
-        })
+
+        total_rows = (
+            len(CROPS) + len(DISEASES) + len(CROP_DISEASES) + len(TREATMENTS)
+            + len(CLIMATE) + len(PESTS) + len(VARIETIES)
+            + len(FERTILIZATION_SCHEDULE) + len(PLANTING_CALENDAR)
+            + len(STORAGE_GUIDELINES) + len(SOIL_REQUIREMENTS)
+        )
+        t.set(details={"rows_inserted": total_rows})
 
 
 def _insert_chroma_chunks(client, chunks_by_collection: dict):

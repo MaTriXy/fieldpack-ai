@@ -11,7 +11,14 @@ class Settings(BaseSettings):
 
     # Ollama (Phase 2)
     ollama_base_url: str = "http://localhost:11434"
-    ollama_model: str = "gemma4-e4b:q8"
+    ollama_model: str = "gemma4:e2b-it-q4_K_M"
+    ollama_tunnel_token: str = ""  # Auth token for remote Ollama (Colab GPU tunnel)
+    ollama_num_ctx: int = 4096
+    ollama_keep_alive: int = -1
+
+    # Field LLM provider: "ollama" for local, "google" for AI Studio API
+    field_llm_provider: str = "ollama"
+    field_llm_google_model: str = "gemma-4-27b-it"
 
     # Embeddings
     embedding_model: str = "all-MiniLM-L6-v2"

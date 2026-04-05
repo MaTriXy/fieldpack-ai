@@ -1,0 +1,6 @@
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+markers = [
+    "live: tests that require a running Ollama instance (deselected by default)",
+    "integration: tests that use real ChromaDB/SQLite but mock LLM calls",
+]

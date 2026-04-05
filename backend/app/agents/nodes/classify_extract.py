@@ -32,6 +32,9 @@ Analyze the user's message and output JSON with these fields:
 - "keywords": list of 3-5 important search terms from the message
 - "needs_image": true if the user is describing visual symptoms that would benefit from a photo
 - "confidence": 0.0 to 1.0, how confident you are in the classification
+- "season": "wet", "dry", or "all" if the question relates to a specific season, or null
+- "growth_stage": one of: nursery, seedling, vegetative, flowering, grain_fill, harvest, post_harvest, planning — or null if not applicable
+- "topic_subtype": one of: planting, irrigation, soil, pest, harvest, post_harvest, fertilization, varieties — or null if not a farming question
 
 If this is a follow-up to a previous conversation, determine what the user is actually asking about and classify as that intent (not as follow_up).
 
@@ -47,6 +50,9 @@ FEW_SHOT_EXAMPLES = [
             "keywords": ["cassava", "yellow", "patches", "curling", "leaves"],
             "needs_image": True,
             "confidence": 0.85,
+            "season": None,
+            "growth_stage": None,
+            "topic_subtype": None,
         },
     },
     {
@@ -58,6 +64,9 @@ FEW_SHOT_EXAMPLES = [
             "keywords": ["rice", "blast", "treatment", "local", "materials"],
             "needs_image": False,
             "confidence": 0.9,
+            "season": None,
+            "growth_stage": None,
+            "topic_subtype": None,
         },
     },
     {
@@ -69,6 +78,65 @@ FEW_SHOT_EXAMPLES = [
             "keywords": ["sick", "plant", "photo", "identify"],
             "needs_image": True,
             "confidence": 0.8,
+            "season": None,
+            "growth_stage": None,
+            "topic_subtype": None,
+        },
+    },
+    {
+        "user": "When should I plant rice in Casamance?",
+        "output": {
+            "intent": "farming_advice",
+            "crop": "rice",
+            "disease_name": None,
+            "keywords": ["rice", "planting", "timing", "Casamance", "season"],
+            "needs_image": False,
+            "confidence": 0.9,
+            "season": "wet",
+            "growth_stage": "planning",
+            "topic_subtype": "planting",
+        },
+    },
+    {
+        "user": "How much water does cassava need per week?",
+        "output": {
+            "intent": "farming_advice",
+            "crop": "cassava",
+            "disease_name": None,
+            "keywords": ["cassava", "water", "irrigation", "weekly", "needs"],
+            "needs_image": False,
+            "confidence": 0.85,
+            "season": None,
+            "growth_stage": "vegetative",
+            "topic_subtype": "irrigation",
+        },
+    },
+    {
+        "user": "What is the best fertilizer for tomatoes at flowering?",
+        "output": {
+            "intent": "farming_advice",
+            "crop": "tomato",
+            "disease_name": None,
+            "keywords": ["tomato", "fertilizer", "flowering", "nutrients", "application"],
+            "needs_image": False,
+            "confidence": 0.9,
+            "season": None,
+            "growth_stage": "flowering",
+            "topic_subtype": "fertilization",
+        },
+    },
+    {
+        "user": "How do I store rice after harvest to prevent insects?",
+        "output": {
+            "intent": "farming_advice",
+            "crop": "rice",
+            "disease_name": None,
+            "keywords": ["rice", "storage", "harvest", "insects", "preservation"],
+            "needs_image": False,
+            "confidence": 0.9,
+            "season": None,
+            "growth_stage": "post_harvest",
+            "topic_subtype": "post_harvest",
         },
     },
 ]
@@ -192,7 +260,7 @@ def classify_and_extract(state: FieldAssistantState) -> dict:
 
     with log.timed(Step.CLASSIFY, "llm_call") as t:
         try:
-            llm = get_field_llm(temperature=0.1)
+            llm = get_field_llm(temperature=0.1, num_predict=128, format="json")
             response = llm.invoke(messages)
             response_text = response.content if hasattr(response, "content") else str(response)
         except Exception as e:

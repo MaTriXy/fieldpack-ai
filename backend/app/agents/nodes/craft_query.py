@@ -32,7 +32,7 @@ Given a user question, write:
 Output JSON:
 {"embedding_query": "your search query here", "fts_keywords": ["keyword1", "keyword2", "keyword3"], "reasoning": "brief explanation"}
 
-Focus on: crop names, visual symptoms, treatment materials, local conditions."""
+Focus on: crop names, visual symptoms, treatment materials, local conditions, farming practices, planting techniques, soil management, harvest and storage."""
 
 FEW_SHOT_EXAMPLES = [
     {
@@ -49,6 +49,22 @@ FEW_SHOT_EXAMPLES = [
             "embedding_query": "rice blast treatment organic local materials neem copper fungicide spray application method Casamance",
             "fts_keywords": ["rice", "blast", "organic", "treatment", "neem"],
             "reasoning": "Searching for organic treatment methods for rice blast using locally available materials.",
+        },
+    },
+    {
+        "user": "When should I plant cassava in Casamance?",
+        "output": {
+            "embedding_query": "cassava planting time season Casamance land preparation stem cuttings spacing rainy season start June July",
+            "fts_keywords": ["cassava", "planting", "season", "Casamance", "calendar"],
+            "reasoning": "Farming advice about planting timing. Query uses season and preparation terms.",
+        },
+    },
+    {
+        "user": "How do I store rice after harvest to avoid pests?",
+        "output": {
+            "embedding_query": "rice post harvest storage techniques pest prevention drying moisture grain weevil hermetic bags local methods Senegal",
+            "fts_keywords": ["rice", "storage", "harvest", "pest", "drying"],
+            "reasoning": "Post-harvest question about storage and pest prevention. Query covers methods and local materials.",
         },
     },
 ]
@@ -218,7 +234,7 @@ def craft_search_query(state: FieldAssistantState) -> dict:
 
         with log.timed(Step.CRAFT_QUERY, "retry_variants") as t:
             try:
-                llm = get_field_llm(temperature=0.5)
+                llm = get_field_llm(temperature=0.5, num_predict=256, format="json")
                 response = llm.invoke(messages)
                 response_text = response.content if hasattr(response, "content") else str(response)
                 fts_fallback = classify_result.keywords if classify_result else []
@@ -274,7 +290,7 @@ def craft_search_query(state: FieldAssistantState) -> dict:
 
     with log.timed(Step.CRAFT_QUERY, "llm_call") as t:
         try:
-            llm = get_field_llm(temperature=0.3)
+            llm = get_field_llm(temperature=0.3, num_predict=256, format="json")
             response = llm.invoke(messages)
             response_text = response.content if hasattr(response, "content") else str(response)
         except Exception as e:

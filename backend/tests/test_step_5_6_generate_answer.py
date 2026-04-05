@@ -156,7 +156,7 @@ class TestGenerateAnswer:
         assert history[-1]["role"] == "assistant"
         assert history[-1]["content"] == "Test answer"
 
-    def test_history_trimmed_to_10(self):
+    def test_history_trimmed_to_max(self):
         existing = [{"role": "user", "content": f"msg {i}"} for i in range(9)]
         mock_response = MagicMock()
         mock_response.content = "Answer"
@@ -165,8 +165,8 @@ class TestGenerateAnswer:
             mock_llm.return_value.invoke.return_value = mock_response
             result = generate_answer(self._make_state(history=existing))
 
-        # 9 existing + 2 new = 11, trimmed to 10
-        assert len(result["conversation_history"]) <= 10
+        # 9 existing + 2 new = 11, trimmed to 5 (default max_messages)
+        assert len(result["conversation_history"]) <= 5
 
     def test_empty_results_honest_answer(self):
         result = generate_answer(self._make_state(results=[]))
@@ -212,9 +212,9 @@ class TestGenerateAnswer:
             generate_answer(self._make_state())
 
         system_prompt = captured_messages[0].content
-        assert "ONLY" in system_prompt
-        assert "don't know" in system_prompt.lower() or "not sure" in system_prompt.lower()
-        assert "hallucinate" not in system_prompt.lower() or "do NOT invent" in system_prompt
+        assert "context" in system_prompt.lower()
+        assert "don't have" in system_prompt.lower() or "not sure" in system_prompt.lower()
+        assert "Do NOT invent" in system_prompt
 
     def test_with_conversation_history(self):
         captured_messages = []

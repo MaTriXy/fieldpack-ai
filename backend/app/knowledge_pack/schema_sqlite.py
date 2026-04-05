@@ -27,7 +27,11 @@ CREATE TABLE IF NOT EXISTS crops (
     drought_tolerance TEXT CHECK(drought_tolerance IN ('low', 'medium', 'high')),
     region_suitability TEXT,
     planting_notes TEXT,
-    harvest_notes TEXT
+    harvest_notes TEXT,
+    soil_ph_min REAL,
+    soil_ph_max REAL,
+    seed_rate_kg_per_ha REAL,
+    intercrop_companions TEXT
 );
 
 -- Diseases
@@ -40,7 +44,9 @@ CREATE TABLE IF NOT EXISTS diseases (
     visual_markers TEXT NOT NULL,
     severity_scale TEXT CHECK(severity_scale IN ('low', 'medium', 'high', 'critical')),
     spread_mechanism TEXT,
-    prevention_notes TEXT
+    prevention_notes TEXT,
+    affected_growth_stage TEXT,
+    season_risk_peak TEXT
 );
 
 -- Crop-Disease relationship (many-to-many)
@@ -63,7 +69,9 @@ CREATE TABLE IF NOT EXISTS treatments (
     local_availability TEXT,
     effectiveness TEXT CHECK(effectiveness IN ('low', 'medium', 'high')),
     application_timing TEXT,
-    safety_notes TEXT
+    safety_notes TEXT,
+    cost_estimate_xof INTEGER,
+    treatment_type TEXT CHECK(treatment_type IN ('preventive', 'curative', 'cultural'))
 );
 
 -- Climate data
@@ -75,7 +83,9 @@ CREATE TABLE IF NOT EXISTS climate (
     temperature_avg_c REAL,
     humidity_pct REAL,
     drought_risk TEXT CHECK(drought_risk IN ('low', 'medium', 'high', 'severe')),
-    notes TEXT
+    notes TEXT,
+    evapotranspiration_mm REAL,
+    flooding_risk TEXT CHECK(flooding_risk IN ('none', 'low', 'moderate', 'high'))
 );
 
 -- Image references
@@ -97,7 +107,88 @@ CREATE TABLE IF NOT EXISTS field_observations (
     location TEXT,
     details TEXT,
     image_path TEXT,
-    synced BOOLEAN DEFAULT 0
+    synced BOOLEAN DEFAULT 0,
+    crop_id INTEGER REFERENCES crops(id),
+    severity_observed TEXT CHECK(severity_observed IN ('mild', 'moderate', 'severe'))
+);
+
+-- Pests
+CREATE TABLE IF NOT EXISTS pests (
+    id INTEGER PRIMARY KEY,
+    name TEXT NOT NULL UNIQUE,
+    common_names TEXT,
+    crop_id INTEGER REFERENCES crops(id),
+    type TEXT CHECK(type IN ('insect', 'rodent', 'bird', 'nematode', 'mollusk')),
+    damage_description TEXT,
+    season_peak TEXT,
+    identification_notes TEXT,
+    control_organic TEXT,
+    control_chemical TEXT,
+    economic_threshold TEXT,
+    prevention_notes TEXT
+);
+
+-- Crop varieties
+CREATE TABLE IF NOT EXISTS varieties (
+    id INTEGER PRIMARY KEY,
+    crop_id INTEGER REFERENCES crops(id),
+    name TEXT NOT NULL,
+    local_names TEXT,
+    days_to_maturity INTEGER,
+    yield_potential_kg_per_ha REAL,
+    disease_resistance TEXT,
+    drought_tolerance TEXT CHECK(drought_tolerance IN ('low', 'medium', 'high')),
+    seed_source_in_region TEXT,
+    planting_density TEXT,
+    notes TEXT
+);
+
+-- Fertilization schedule
+CREATE TABLE IF NOT EXISTS fertilization_schedule (
+    id INTEGER PRIMARY KEY,
+    crop_id INTEGER REFERENCES crops(id),
+    growth_stage TEXT NOT NULL,
+    fertilizer_type TEXT NOT NULL,
+    dose_per_ha TEXT,
+    application_method TEXT,
+    timing_notes TEXT,
+    organic_alternative TEXT,
+    cost_estimate_xof INTEGER
+);
+
+-- Planting calendar (month-by-activity)
+CREATE TABLE IF NOT EXISTS planting_calendar (
+    id INTEGER PRIMARY KEY,
+    crop_id INTEGER REFERENCES crops(id),
+    month INTEGER NOT NULL CHECK(month >= 1 AND month <= 12),
+    activity TEXT NOT NULL,
+    details TEXT,
+    is_critical BOOLEAN DEFAULT 0
+);
+
+-- Storage guidelines (post-harvest)
+CREATE TABLE IF NOT EXISTS storage_guidelines (
+    id INTEGER PRIMARY KEY,
+    crop_id INTEGER REFERENCES crops(id),
+    method TEXT NOT NULL,
+    optimal_temp_c TEXT,
+    moisture_target_pct REAL,
+    max_duration_months INTEGER,
+    pest_risks TEXT,
+    quality_indicators TEXT,
+    local_materials TEXT
+);
+
+-- Soil requirements
+CREATE TABLE IF NOT EXISTS soil_requirements (
+    id INTEGER PRIMARY KEY,
+    crop_id INTEGER REFERENCES crops(id),
+    ph_min REAL,
+    ph_max REAL,
+    preferred_texture TEXT,
+    drainage_needs TEXT,
+    amendments_needed TEXT,
+    preparation_notes TEXT
 );
 """
 
@@ -122,6 +213,16 @@ CREATE INDEX IF NOT EXISTS idx_climate_region_month ON climate(region, month);
 
 -- Field observations by sync status
 CREATE INDEX IF NOT EXISTS idx_observations_synced ON field_observations(synced);
+CREATE INDEX IF NOT EXISTS idx_observations_crop_id ON field_observations(crop_id);
+
+-- New table indexes
+CREATE INDEX IF NOT EXISTS idx_pests_crop_id ON pests(crop_id);
+CREATE INDEX IF NOT EXISTS idx_varieties_crop_id ON varieties(crop_id);
+CREATE INDEX IF NOT EXISTS idx_fertilization_crop_id ON fertilization_schedule(crop_id);
+CREATE INDEX IF NOT EXISTS idx_planting_calendar_crop_id ON planting_calendar(crop_id);
+CREATE INDEX IF NOT EXISTS idx_planting_calendar_month ON planting_calendar(month);
+CREATE INDEX IF NOT EXISTS idx_storage_crop_id ON storage_guidelines(crop_id);
+CREATE INDEX IF NOT EXISTS idx_soil_crop_id ON soil_requirements(crop_id);
 """
 
 # ============================================================
@@ -163,6 +264,33 @@ CREATE VIRTUAL TABLE IF NOT EXISTS crops_fts USING fts5(
     planting_notes,
     harvest_notes,
     content='crops',
+    content_rowid='id',
+    tokenize='unicode61',
+    prefix='2,3'
+);
+
+-- Pests full-text search
+CREATE VIRTUAL TABLE IF NOT EXISTS pests_fts USING fts5(
+    name,
+    common_names,
+    damage_description,
+    identification_notes,
+    control_organic,
+    prevention_notes,
+    content='pests',
+    content_rowid='id',
+    tokenize='unicode61',
+    prefix='2,3'
+);
+
+-- Varieties full-text search
+CREATE VIRTUAL TABLE IF NOT EXISTS varieties_fts USING fts5(
+    name,
+    local_names,
+    disease_resistance,
+    seed_source_in_region,
+    notes,
+    content='varieties',
     content_rowid='id',
     tokenize='unicode61',
     prefix='2,3'
@@ -227,6 +355,42 @@ CREATE TRIGGER IF NOT EXISTS crops_au AFTER UPDATE ON crops BEGIN
     INSERT INTO crops_fts(rowid, name, scientific_name, region_suitability, planting_notes, harvest_notes)
     VALUES (new.id, new.name, new.scientific_name, new.region_suitability, new.planting_notes, new.harvest_notes);
 END;
+
+-- Pests triggers
+CREATE TRIGGER IF NOT EXISTS pests_ai AFTER INSERT ON pests BEGIN
+    INSERT INTO pests_fts(rowid, name, common_names, damage_description, identification_notes, control_organic, prevention_notes)
+    VALUES (new.id, new.name, new.common_names, new.damage_description, new.identification_notes, new.control_organic, new.prevention_notes);
+END;
+
+CREATE TRIGGER IF NOT EXISTS pests_ad AFTER DELETE ON pests BEGIN
+    INSERT INTO pests_fts(pests_fts, rowid, name, common_names, damage_description, identification_notes, control_organic, prevention_notes)
+    VALUES ('delete', old.id, old.name, old.common_names, old.damage_description, old.identification_notes, old.control_organic, old.prevention_notes);
+END;
+
+CREATE TRIGGER IF NOT EXISTS pests_au AFTER UPDATE ON pests BEGIN
+    INSERT INTO pests_fts(pests_fts, rowid, name, common_names, damage_description, identification_notes, control_organic, prevention_notes)
+    VALUES ('delete', old.id, old.name, old.common_names, old.damage_description, old.identification_notes, old.control_organic, old.prevention_notes);
+    INSERT INTO pests_fts(rowid, name, common_names, damage_description, identification_notes, control_organic, prevention_notes)
+    VALUES (new.id, new.name, new.common_names, new.damage_description, new.identification_notes, new.control_organic, new.prevention_notes);
+END;
+
+-- Varieties triggers
+CREATE TRIGGER IF NOT EXISTS varieties_ai AFTER INSERT ON varieties BEGIN
+    INSERT INTO varieties_fts(rowid, name, local_names, disease_resistance, seed_source_in_region, notes)
+    VALUES (new.id, new.name, new.local_names, new.disease_resistance, new.seed_source_in_region, new.notes);
+END;
+
+CREATE TRIGGER IF NOT EXISTS varieties_ad AFTER DELETE ON varieties BEGIN
+    INSERT INTO varieties_fts(varieties_fts, rowid, name, local_names, disease_resistance, seed_source_in_region, notes)
+    VALUES ('delete', old.id, old.name, old.local_names, old.disease_resistance, old.seed_source_in_region, old.notes);
+END;
+
+CREATE TRIGGER IF NOT EXISTS varieties_au AFTER UPDATE ON varieties BEGIN
+    INSERT INTO varieties_fts(varieties_fts, rowid, name, local_names, disease_resistance, seed_source_in_region, notes)
+    VALUES ('delete', old.id, old.name, old.local_names, old.disease_resistance, old.seed_source_in_region, old.notes);
+    INSERT INTO varieties_fts(rowid, name, local_names, disease_resistance, seed_source_in_region, notes)
+    VALUES (new.id, new.name, new.local_names, new.disease_resistance, new.seed_source_in_region, new.notes);
+END;
 """
 
 # ============================================================
@@ -241,12 +405,20 @@ VALID_TABLES = [
     "climate",
     "image_refs",
     "field_observations",
+    "pests",
+    "varieties",
+    "fertilization_schedule",
+    "planting_calendar",
+    "storage_guidelines",
+    "soil_requirements",
 ]
 
 FTS_TABLE_MAP = {
     "diseases": "diseases_fts",
     "treatments": "treatments_fts",
     "crops": "crops_fts",
+    "pests": "pests_fts",
+    "varieties": "varieties_fts",
 }
 
 TABLE_JOINS = {
@@ -260,6 +432,27 @@ TABLE_JOINS = {
     "image_refs": {
         "diseases": {"on": "image_refs.disease_id = diseases.id"},
         "crops": {"on": "image_refs.crop_id = crops.id"},
+    },
+    "pests": {
+        "crops": {"on": "pests.crop_id = crops.id"},
+    },
+    "varieties": {
+        "crops": {"on": "varieties.crop_id = crops.id"},
+    },
+    "fertilization_schedule": {
+        "crops": {"on": "fertilization_schedule.crop_id = crops.id"},
+    },
+    "planting_calendar": {
+        "crops": {"on": "planting_calendar.crop_id = crops.id"},
+    },
+    "storage_guidelines": {
+        "crops": {"on": "storage_guidelines.crop_id = crops.id"},
+    },
+    "soil_requirements": {
+        "crops": {"on": "soil_requirements.crop_id = crops.id"},
+    },
+    "field_observations": {
+        "crops": {"on": "field_observations.crop_id = crops.id"},
     },
 }
 

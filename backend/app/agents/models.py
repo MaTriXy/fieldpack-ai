@@ -35,6 +35,34 @@ class ResultType(StrEnum):
 
 # --- LLM Call #1: Classify + Extract ---
 
+class SeasonType(StrEnum):
+    WET = "wet"
+    DRY = "dry"
+    ALL = "all"
+
+
+class GrowthStage(StrEnum):
+    NURSERY = "nursery"
+    SEEDLING = "seedling"
+    VEGETATIVE = "vegetative"
+    FLOWERING = "flowering"
+    GRAIN_FILL = "grain_fill"
+    HARVEST = "harvest"
+    POST_HARVEST = "post_harvest"
+    PLANNING = "planning"
+
+
+class TopicSubtype(StrEnum):
+    PLANTING = "planting"
+    IRRIGATION = "irrigation"
+    SOIL = "soil"
+    PEST = "pest"
+    HARVEST = "harvest"
+    POST_HARVEST = "post_harvest"
+    FERTILIZATION = "fertilization"
+    VARIETIES = "varieties"
+
+
 class ClassifyExtractOutput(BaseModel):
     """Structured output from the classification LLM call."""
     intent: IntentType = IntentType.GENERAL_QUESTION
@@ -43,6 +71,9 @@ class ClassifyExtractOutput(BaseModel):
     keywords: list[str] = Field(default_factory=list)
     needs_image: bool = False
     confidence: float = Field(default=0.5, ge=0.0, le=1.0)
+    season: SeasonType | None = None
+    growth_stage: GrowthStage | None = None
+    topic_subtype: TopicSubtype | None = None
 
 
 # --- Routing (Python, no LLM) ---

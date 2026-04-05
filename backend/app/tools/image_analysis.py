@@ -136,6 +136,48 @@ def _parse_analysis_response(response_text: str) -> dict:
     }
 
 
+def _call_ollama_vision(prompt: str, image_b64: str) -> str:
+    """Send image to Ollama vision API."""
+    headers = {}
+    if settings.ollama_tunnel_token:
+        headers["Authorization"] = f"Bearer {settings.ollama_tunnel_token}"
+    response = httpx.post(
+        f"{settings.ollama_base_url}/api/generate",
+        headers=headers,
+        json={
+            "model": settings.ollama_model,
+            "prompt": prompt,
+            "images": [image_b64],
+            "stream": False,
+            "options": {
+                "temperature": 0.3,
+                "num_predict": 512,
+                "num_ctx": settings.ollama_num_ctx,
+            },
+        },
+        timeout=120.0,
+    )
+    response.raise_for_status()
+    return response.json().get("response", "")
+
+
+def _call_google_vision(prompt: str, image_bytes: bytes) -> str:
+    """Send image to Google AI Studio vision API."""
+    from google import genai
+    from google.genai.types import Part
+
+    client = genai.Client(api_key=settings.google_ai_studio_api_key)
+    response = client.models.generate_content(
+        model=settings.field_llm_google_model,
+        contents=[
+            Part.from_bytes(data=image_bytes, mime_type="image/jpeg"),
+            prompt,
+        ],
+        config={"temperature": 0.3},
+    )
+    return response.text
+
+
 def analyze_plant_image(
     image_path: str | Path,
     crop_hint: str | None = None,
@@ -180,24 +222,15 @@ def analyze_plant_image(
         # Build prompt
         prompt = _build_analysis_prompt(crop_hint)
 
-        # Call E4B vision via Ollama
+        # Call vision model via configured provider
         try:
-            response = httpx.post(
-                f"{settings.ollama_base_url}/api/generate",
-                json={
-                    "model": settings.ollama_model,
-                    "prompt": prompt,
-                    "images": [image_b64],
-                    "stream": False,
-                    "options": {"temperature": 0.3},
-                },
-                timeout=120.0,
-            )
-            response.raise_for_status()
-            result_text = response.json().get("response", "")
+            if settings.field_llm_provider == "google":
+                result_text = _call_google_vision(prompt, image_bytes)
+            else:
+                result_text = _call_ollama_vision(prompt, image_b64)
         except Exception as e:
-            log.log_step(Step.IMAGE_ANALYSIS, "ollama_error", level="ERROR",
-                         details={"error": str(e)})
+            log.log_step(Step.IMAGE_ANALYSIS, "vision_error", level="ERROR",
+                         details={"error": str(e), "provider": settings.field_llm_provider})
             return {
                 "visual_description": f"Image analysis failed: {e}",
                 "suspected_symptoms": [],

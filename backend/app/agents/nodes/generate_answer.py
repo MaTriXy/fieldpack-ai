@@ -24,17 +24,17 @@ from app.models.offline_llm import get_field_llm
 
 MAX_CONTEXT_WORDS = 2000
 
-GENERATE_SYSTEM_PROMPT = """You are a retrieval-augmented generation (RAG) assistant. Your ONLY job is to answer questions using the provided context.
+GENERATE_SYSTEM_PROMPT = """You are a knowledgeable agricultural field assistant for the Casamance region of Senegal. Answer the farmer's question using the context sources provided below.
 
 RULES:
-- Answer ONLY based on the provided context below. Do not use any other knowledge.
-- If the context does not contain enough information to answer, say: "I don't have enough information in the knowledge pack to answer this. Try asking about specific crops or diseases available in the pack."
-- It is perfectly OK to say you don't know. An honest "I'm not sure" is always better than a wrong answer.
+- Use the provided context to construct your answer. The context has been retrieved from a verified knowledge base and is relevant to the question.
+- Synthesize information across multiple sources when they cover different aspects of the question.
 - Be specific, practical, and actionable. Field workers need clear steps they can follow.
 - Reference locally available materials and methods when the context mentions them.
 - Use bullet points for treatment steps or lists of actions.
 - Keep answers concise but complete. Aim for 3-8 sentences for simple questions, longer for detailed treatment plans.
 - When discussing treatments, mention safety precautions if the context includes them.
+- If the context truly contains nothing related to the question, say: "I don't have information on this topic in the knowledge pack."
 - Do NOT invent disease names, treatment methods, or statistics not in the context."""
 
 
@@ -75,7 +75,7 @@ def _assemble_context(
 def _format_conversation(
     history: list[dict],
     summary: str = "",
-    max_messages: int = 10,
+    max_messages: int = 5,
 ) -> str:
     """Format conversation history as natural language for the LLM."""
     return history_to_nl(history, summary=summary, max_recent=max_messages)
@@ -135,7 +135,7 @@ def generate_answer(state: FieldAssistantState) -> dict:
 
     with log.timed(Step.GENERATE, "llm_call") as t:
         try:
-            llm = get_field_llm(temperature=0.4)
+            llm = get_field_llm(temperature=0.4, num_predict=1024)
             response = llm.invoke(messages)
             answer = response.content if hasattr(response, "content") else str(response)
         except Exception as e:

@@ -4,9 +4,12 @@ import pytest
 
 from app.agents.models import (
     ClassifyExtractOutput,
+    GrowthStage,
     IntentType,
+    SeasonType,
     SearchEngineType,
     SearchRoute,
+    TopicSubtype,
 )
 from app.agents.nodes.route import (
     EXPANDED_ROUTE,
@@ -48,6 +51,44 @@ class TestBuildMetadataFilters:
         filters = _build_metadata_filters(classify)
         assert filters["crop"] == "rice"
         assert filters["disease_name"] == "Rice Blast"
+
+    def test_with_season(self):
+        classify = ClassifyExtractOutput(
+            intent=IntentType.FARMING_ADVICE,
+            season=SeasonType.WET,
+        )
+        filters = _build_metadata_filters(classify)
+        assert filters["season"] == "wet"
+
+    def test_with_growth_stage(self):
+        classify = ClassifyExtractOutput(
+            intent=IntentType.FARMING_ADVICE,
+            growth_stage=GrowthStage.FLOWERING,
+        )
+        filters = _build_metadata_filters(classify)
+        assert filters["growth_stage"] == "flowering"
+
+    def test_with_topic_subtype(self):
+        classify = ClassifyExtractOutput(
+            intent=IntentType.FARMING_ADVICE,
+            topic_subtype=TopicSubtype.FERTILIZATION,
+        )
+        filters = _build_metadata_filters(classify)
+        assert filters["practice_type"] == "fertilization"
+
+    def test_farming_full_filters(self):
+        classify = ClassifyExtractOutput(
+            intent=IntentType.FARMING_ADVICE,
+            crop="rice",
+            season=SeasonType.WET,
+            growth_stage=GrowthStage.PLANNING,
+            topic_subtype=TopicSubtype.PLANTING,
+        )
+        filters = _build_metadata_filters(classify)
+        assert filters["crop"] == "rice"
+        assert filters["season"] == "wet"
+        assert filters["growth_stage"] == "planning"
+        assert filters["practice_type"] == "planting"
 
     def test_no_filters(self):
         classify = ClassifyExtractOutput(intent=IntentType.GENERAL_QUESTION)
@@ -92,9 +133,12 @@ class TestRouteIntent:
         result = route_intent(self._make_state(IntentType.FARMING_ADVICE))
         route = result["route"]
         assert SearchEngineType.CHROMA_EMBEDDING in route.engines
+        assert SearchEngineType.SQLITE_STRUCTURED in route.engines
+        assert SearchEngineType.SQLITE_FTS in route.engines
         assert "farming_practices" in route.collections
         assert "regional_context" in route.collections
-        assert route.tables == []
+        assert "crops" in route.tables
+        assert "climate" in route.tables
 
     def test_identify_image(self):
         result = route_intent(self._make_state(IntentType.IDENTIFY_IMAGE))

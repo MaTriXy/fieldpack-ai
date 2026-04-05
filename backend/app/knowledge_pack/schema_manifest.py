@@ -46,7 +46,7 @@ class ManifestSchema(BaseModel):
     crops: list[str] = Field(default_factory=list)
     statistics: Statistics = Field(default_factory=Statistics)
     models_used: ModelsUsed = Field(default_factory=ModelsUsed)
-    recommended_edge_model: str = "gemma-4-e4b-it"
+    recommended_edge_model: str = "gemma-4-e2b-it"
     created_at: str = ""
     sources: list[str] = Field(default_factory=list)
     license: str = "CC-BY-SA-4.0"

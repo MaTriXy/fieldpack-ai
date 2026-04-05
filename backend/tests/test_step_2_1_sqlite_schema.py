@@ -31,7 +31,12 @@ def test_all_tables_created(db):
         "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'"
     ).fetchall()
     table_names = {t[0] for t in tables}
-    expected = {"crops", "diseases", "crop_diseases", "treatments", "climate", "image_refs", "field_observations"}
+    expected = {
+        "crops", "diseases", "crop_diseases", "treatments", "climate",
+        "image_refs", "field_observations",
+        "pests", "varieties", "fertilization_schedule",
+        "planting_calendar", "storage_guidelines", "soil_requirements",
+    }
     assert expected.issubset(table_names)
 
 
@@ -68,7 +73,11 @@ def test_crops_table_columns(db):
     assert "name" in col_names
     assert "scientific_name" in col_names
     assert "drought_tolerance" in col_names
-    assert len(cols) == 10
+    assert "soil_ph_min" in col_names
+    assert "soil_ph_max" in col_names
+    assert "seed_rate_kg_per_ha" in col_names
+    assert "intercrop_companions" in col_names
+    assert len(cols) == 14
 
 
 def test_diseases_table_columns(db):
@@ -76,7 +85,9 @@ def test_diseases_table_columns(db):
     col_names = [c[1] for c in cols]
     assert "visual_markers" in col_names
     assert "common_names" in col_names
-    assert len(cols) == 9
+    assert "affected_growth_stage" in col_names
+    assert "season_risk_peak" in col_names
+    assert len(cols) == 11
 
 
 def test_treatments_table_columns(db):
@@ -84,7 +95,9 @@ def test_treatments_table_columns(db):
     col_names = [c[1] for c in cols]
     assert "materials_needed" in col_names
     assert "is_organic" in col_names
-    assert len(cols) == 11
+    assert "cost_estimate_xof" in col_names
+    assert "treatment_type" in col_names
+    assert len(cols) == 13
 
 
 # --- Unique constraints ---
@@ -266,8 +279,8 @@ def test_verify_schema(db):
     assert "crops" in schema
     assert "diseases" in schema
     assert "treatments" in schema
-    assert schema["crops"] == 10
-    assert schema["diseases"] == 9
+    assert schema["crops"] == 14
+    assert schema["diseases"] == 11
 
 
 # --- Constants ---
@@ -275,7 +288,13 @@ def test_verify_schema(db):
 def test_valid_tables_list():
     assert "crops" in VALID_TABLES
     assert "diseases" in VALID_TABLES
-    assert len(VALID_TABLES) == 7
+    assert "pests" in VALID_TABLES
+    assert "varieties" in VALID_TABLES
+    assert "fertilization_schedule" in VALID_TABLES
+    assert "planting_calendar" in VALID_TABLES
+    assert "storage_guidelines" in VALID_TABLES
+    assert "soil_requirements" in VALID_TABLES
+    assert len(VALID_TABLES) == 13
 
 
 def test_fts_table_map():
@@ -287,3 +306,145 @@ def test_fts_table_map():
 def test_table_joins():
     assert "diseases" in TABLE_JOINS["treatments"]
     assert "crops" in TABLE_JOINS["crop_diseases"]
+    assert "crops" in TABLE_JOINS["pests"]
+    assert "crops" in TABLE_JOINS["varieties"]
+    assert "crops" in TABLE_JOINS["fertilization_schedule"]
+    assert "crops" in TABLE_JOINS["planting_calendar"]
+    assert "crops" in TABLE_JOINS["storage_guidelines"]
+    assert "crops" in TABLE_JOINS["soil_requirements"]
+    assert "crops" in TABLE_JOINS["field_observations"]
+
+
+# --- New table structure ---
+
+def test_pests_table_columns(db):
+    cols = db.execute("PRAGMA table_info(pests)").fetchall()
+    col_names = [c[1] for c in cols]
+    assert "name" in col_names
+    assert "crop_id" in col_names
+    assert "damage_description" in col_names
+    assert "control_organic" in col_names
+    assert len(cols) == 12
+
+
+def test_varieties_table_columns(db):
+    cols = db.execute("PRAGMA table_info(varieties)").fetchall()
+    col_names = [c[1] for c in cols]
+    assert "crop_id" in col_names
+    assert "days_to_maturity" in col_names
+    assert "yield_potential_kg_per_ha" in col_names
+    assert "disease_resistance" in col_names
+    assert len(cols) == 11
+
+
+def test_fertilization_schedule_columns(db):
+    cols = db.execute("PRAGMA table_info(fertilization_schedule)").fetchall()
+    col_names = [c[1] for c in cols]
+    assert "crop_id" in col_names
+    assert "growth_stage" in col_names
+    assert "fertilizer_type" in col_names
+    assert "organic_alternative" in col_names
+    assert len(cols) == 9
+
+
+def test_planting_calendar_columns(db):
+    cols = db.execute("PRAGMA table_info(planting_calendar)").fetchall()
+    col_names = [c[1] for c in cols]
+    assert "crop_id" in col_names
+    assert "month" in col_names
+    assert "activity" in col_names
+    assert "is_critical" in col_names
+    assert len(cols) == 6
+
+
+def test_storage_guidelines_columns(db):
+    cols = db.execute("PRAGMA table_info(storage_guidelines)").fetchall()
+    col_names = [c[1] for c in cols]
+    assert "crop_id" in col_names
+    assert "method" in col_names
+    assert "max_duration_months" in col_names
+    assert "local_materials" in col_names
+    assert len(cols) == 9
+
+
+def test_soil_requirements_columns(db):
+    cols = db.execute("PRAGMA table_info(soil_requirements)").fetchall()
+    col_names = [c[1] for c in cols]
+    assert "crop_id" in col_names
+    assert "ph_min" in col_names
+    assert "ph_max" in col_names
+    assert "preferred_texture" in col_names
+    assert len(cols) == 8
+
+
+# --- New FTS5 tables ---
+
+def test_pests_fts_trigger(db):
+    db.execute("INSERT INTO crops (id, name) VALUES (1, 'cassava')")
+    db.execute(
+        "INSERT INTO pests (id, name, crop_id, damage_description, control_organic) "
+        "VALUES (1, 'Cassava Whitefly', 1, 'Transmits mosaic virus', 'Yellow sticky traps')"
+    )
+    db.commit()
+    results = db.execute(
+        "SELECT * FROM pests_fts WHERE pests_fts MATCH 'whitefly'"
+    ).fetchall()
+    assert len(results) >= 1
+
+
+def test_varieties_fts_trigger(db):
+    db.execute("INSERT INTO crops (id, name) VALUES (1, 'cassava')")
+    db.execute(
+        "INSERT INTO varieties (id, crop_id, name, local_names, disease_resistance) "
+        "VALUES (1, 1, 'TME 419', 'Improved variety', 'CMD resistant')"
+    )
+    db.commit()
+    results = db.execute(
+        "SELECT * FROM varieties_fts WHERE varieties_fts MATCH 'TME'"
+    ).fetchall()
+    assert len(results) >= 1
+
+
+# --- New table constraints ---
+
+def test_planting_calendar_month_check(db):
+    db.execute("INSERT INTO crops (id, name) VALUES (1, 'cassava')")
+    with pytest.raises(sqlite3.IntegrityError):
+        db.execute(
+            "INSERT INTO planting_calendar (crop_id, month, activity) "
+            "VALUES (1, 13, 'plant')"
+        )
+
+
+def test_pest_type_check(db):
+    db.execute("INSERT INTO crops (id, name) VALUES (1, 'cassava')")
+    with pytest.raises(sqlite3.IntegrityError):
+        db.execute(
+            "INSERT INTO pests (name, crop_id, type) VALUES ('test', 1, 'invalid')"
+        )
+
+
+def test_treatment_type_check(db):
+    db.execute(
+        "INSERT INTO diseases (id, name, symptoms_text, visual_markers) VALUES (1, 'd1', 's', 'v')"
+    )
+    with pytest.raises(sqlite3.IntegrityError):
+        db.execute(
+            "INSERT INTO treatments (disease_id, method, description, treatment_type) "
+            "VALUES (1, 'm', 'd', 'invalid')"
+        )
+
+
+def test_flooding_risk_check(db):
+    with pytest.raises(sqlite3.IntegrityError):
+        db.execute(
+            "INSERT INTO climate (region, flooding_risk) VALUES ('test', 'extreme')"
+        )
+
+
+def test_severity_observed_check(db):
+    with pytest.raises(sqlite3.IntegrityError):
+        db.execute(
+            "INSERT INTO field_observations (timestamp, severity_observed) "
+            "VALUES ('2026-01-01', 'extreme')"
+        )

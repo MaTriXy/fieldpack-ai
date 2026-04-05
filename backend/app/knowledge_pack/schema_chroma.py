@@ -37,7 +37,7 @@ CHROMA_COLLECTIONS = {
     "farming_practices": {
         "description": "General agriculture advice, drought strategies, planting guides",
         "metadata_fields": [
-            "topic", "crop", "season", "practice_type",
+            "topic", "crop", "season", "practice_type", "growth_stage",
             "topic_id", "chunk_type",
         ],
     },

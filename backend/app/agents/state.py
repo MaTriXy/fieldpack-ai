@@ -56,7 +56,7 @@ class FieldAssistantState(TypedDict, total=False):
 
 def trim_conversation_history(
     history: list[dict],
-    max_messages: int = 10,
+    max_messages: int = 5,
 ) -> list[dict]:
     """Keep only the most recent messages (sliding window)."""
     if max_messages <= 0:

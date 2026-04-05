@@ -121,8 +121,21 @@ def _rows_to_search_results(
     for row in rows:
         # Build readable content from key fields
         content_parts = []
-        for key in ["name", "method", "description", "symptoms_text",
-                     "region", "type", "details"]:
+        for key in [
+            "name", "method", "description", "symptoms_text",
+            "region", "type", "details", "visual_markers",
+            "planting_notes", "harvest_notes", "growing_season",
+            "water_needs_mm_per_week", "region_suitability",
+            "prevention_notes", "local_availability", "materials_needed",
+            "application_timing", "notes", "damage_description",
+            "identification_notes", "control_organic", "control_chemical",
+            "common_names", "local_names", "disease_resistance",
+            "seed_source_in_region", "activity", "fertilizer_type",
+            "dose_per_ha", "organic_alternative", "timing_notes",
+            "optimal_temp_c", "moisture_target_pct", "pest_risks",
+            "quality_indicators", "local_materials", "preferred_texture",
+            "drainage_needs", "amendments_needed", "preparation_notes",
+        ]:
             if key in row and row[key]:
                 content_parts.append(f"{key}: {row[key]}")
         content = " | ".join(content_parts) if content_parts else str(row)
@@ -333,7 +346,9 @@ def structured_query_tool(
 
     Args:
         table: Table to query. One of: crops, diseases, treatments, climate,
-            crop_diseases, image_refs, field_observations.
+            crop_diseases, image_refs, field_observations, pests, varieties,
+            fertilization_schedule, planting_calendar, storage_guidelines,
+            soil_requirements.
         conditions: JSON string of filter conditions.
             Simple: '{"name": "cassava"}'
             Operator: '{"severity_scale": {"$gte": "medium"}}'

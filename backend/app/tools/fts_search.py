@@ -201,7 +201,15 @@ def _rows_to_search_results(rows: list[dict], source_table: str) -> list[SearchR
     for row in rows:
         # Build content from the most informative text fields
         content_parts = []
-        for key in ["name", "method", "description", "symptoms_text", "visual_markers"]:
+        for key in [
+            "name", "method", "description", "symptoms_text", "visual_markers",
+            "planting_notes", "harvest_notes", "growing_season",
+            "water_needs_mm_per_week", "region_suitability",
+            "prevention_notes", "local_availability", "materials_needed",
+            "application_timing", "damage_description", "identification_notes",
+            "control_organic", "control_chemical", "common_names",
+            "local_names", "disease_resistance", "seed_source_in_region",
+        ]:
             if key in row and row[key]:
                 content_parts.append(f"{key}: {row[key]}")
 
@@ -383,11 +391,11 @@ def fts_search_tool(
     """Search by keywords using full-text search with BM25 ranking.
 
     Fast keyword-based search across disease descriptions, treatment info,
-    or crop details. Good for finding specific terms or names.
+    crop details, pest information, or variety data. Good for finding specific terms or names.
 
     Args:
         query: Keywords to search for.
-        table: Which data to search. One of: diseases_fts, treatments_fts, crops_fts.
+        table: Which data to search. One of: diseases_fts, treatments_fts, crops_fts, pests_fts, varieties_fts.
         top_k: Maximum results (default 5).
     """
     results = fts_search(query, table, top_k)
@@ -413,7 +421,7 @@ def fuzzy_fts_search_tool(
 
     Args:
         query: Keywords to search (typos OK).
-        table: Which data to search. One of: diseases_fts, treatments_fts, crops_fts.
+        table: Which data to search. One of: diseases_fts, treatments_fts, crops_fts, pests_fts, varieties_fts.
         top_k: Maximum results (default 5).
     """
     results = fuzzy_fts_search(query, table, top_k)

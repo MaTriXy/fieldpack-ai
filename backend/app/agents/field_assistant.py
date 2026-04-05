@@ -19,10 +19,12 @@ Retry: max 3 attempts. Attempt 1 = same route new query.
        Attempt 2 = expanded route new query variants.
 """
 
+import time
 from datetime import datetime
 
 from langgraph.graph import END, StateGraph
 
+from app.config import settings
 from app.agents.history import build_conversation_summary
 from app.agents.models import IntentType
 from app.agents.nodes import (
@@ -286,13 +288,21 @@ async def run_field_assistant_stream(
     try:
         graph = _get_graph()
         final_state = {}
+        node_timings: dict[str, float] = {}
+        llm_call_count = 0
+        _LLM_NODES = {
+            "classify_and_extract", "craft_search_query",
+            "rerank_results", "generate_answer", "needs_search_node",
+        }
+        pipeline_start = time.perf_counter()
 
         async for event in graph.astream_events(initial_state, version="v2"):
             kind = event.get("event", "")
             name = event.get("name", "")
 
-            # Node start → status event
+            # Node start → status event + record start time
             if kind == "on_chain_start" and name in _NODE_STATUS_MAP:
+                node_timings[name] = time.perf_counter()
                 step, detail = _NODE_STATUS_MAP[name]
                 tcl = log.to_tool_calls_log()
                 yield {
@@ -302,8 +312,14 @@ async def run_field_assistant_stream(
                     "tool_calls_log_entry": tcl[-1:] if tcl else None,
                 }
 
-            # Node end → emit tool_calls_log update
+            # Node end → emit tool_calls_log + node_stats with latency
             if kind == "on_chain_end" and name in _NODE_STATUS_MAP:
+                latency_ms = None
+                if name in node_timings:
+                    latency_ms = round((time.perf_counter() - node_timings[name]) * 1000)
+                    if name in _LLM_NODES:
+                        llm_call_count += 1
+
                 entries = log.to_tool_calls_log()
                 if entries:
                     yield {
@@ -311,6 +327,13 @@ async def run_field_assistant_stream(
                         "node": name,
                         "tool_calls_log_entry": entries[-1],
                     }
+
+                yield {
+                    "type": "node_stats",
+                    "node": name,
+                    "latency_ms": latency_ms,
+                    "model": settings.ollama_model,
+                }
 
             # Accumulate all node outputs into final_state
             if kind == "on_chain_end" and name in _NODE_STATUS_MAP:
@@ -347,6 +370,8 @@ async def run_field_assistant_stream(
 
             log.pipeline_end(success=True)
 
+            total_latency_ms = round((time.perf_counter() - pipeline_start) * 1000)
+
             yield _json_safe({
                 "type": "done",
                 "final_answer": final_state.get("final_answer", ""),
@@ -354,6 +379,9 @@ async def run_field_assistant_stream(
                 "conversation_summary": summary,
                 "observation_stats": final_state.get("observation_stats"),
                 "tool_calls_log": log.to_tool_calls_log(),
+                "total_latency_ms": total_latency_ms,
+                "llm_calls": llm_call_count,
+                "model": settings.ollama_model,
             })
         else:
             log.pipeline_end(success=False, error="No final state produced")
