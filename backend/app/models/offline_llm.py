@@ -39,26 +39,34 @@ def _make_ollama(
         kwargs["num_predict"] = num_predict
     if format is not None:
         kwargs["format"] = format
+    client_kwargs = {"timeout": settings.ollama_timeout}
     if token:
-        kwargs["client_kwargs"] = {
-            "headers": {"Authorization": f"Bearer {token}"}
-        }
+        client_kwargs["headers"] = {"Authorization": f"Bearer {token}"}
+    kwargs["client_kwargs"] = client_kwargs
     return ChatOllama(**kwargs)
 
 
-def _make_google(temperature: float) -> BaseChatModel:
+def _make_google(
+    temperature: float,
+    max_output_tokens: int | None = None,
+) -> BaseChatModel:
     from langchain_google_genai import ChatGoogleGenerativeAI
 
-    return ChatGoogleGenerativeAI(
+    kwargs = dict(
         model=settings.field_llm_google_model,
         google_api_key=settings.google_ai_studio_api_key,
         temperature=temperature,
         convert_system_message_to_human=True,
     )
+    if max_output_tokens is not None:
+        kwargs["max_output_tokens"] = max_output_tokens
+    return ChatGoogleGenerativeAI(**kwargs)
 
 
 # Cache resolved provider so we only probe once per process
 _resolved_provider: str | None = None
+_resolved_at: float = 0.0
+_RESOLVE_TTL: float = 300.0  # Re-probe every 5 minutes
 
 
 def get_field_llm(
@@ -80,7 +88,7 @@ def get_field_llm(
 
     if settings.field_llm_provider == "google":
         log.info("field_llm_provider=google, using Google AI Studio")
-        return _make_google(temperature)
+        return _make_google(temperature, max_output_tokens=num_predict)
     if settings.field_llm_provider == "ollama-local":
         log.info("field_llm_provider=ollama-local, using local Ollama")
         return _make_ollama(
@@ -88,8 +96,9 @@ def get_field_llm(
             num_predict=num_predict, format=format,
         )
 
-    # Auto-resolve: probe once, cache result
-    if _resolved_provider is None:
+    # Auto-resolve: probe once, cache with TTL
+    import time as _time
+    if _resolved_provider is None or (_time.monotonic() - _resolved_at) > _RESOLVE_TTL:
         _resolve_provider()
 
     if _resolved_provider == "tunnel":
@@ -98,7 +107,7 @@ def get_field_llm(
             num_predict=num_predict, format=format,
         )
     if _resolved_provider == "google":
-        return _make_google(temperature)
+        return _make_google(temperature, max_output_tokens=num_predict)
     if _resolved_provider == "local":
         return _make_ollama(
             "http://localhost:11434", temperature,
@@ -110,15 +119,33 @@ def get_field_llm(
     )
 
 
+def get_resolved_provider() -> str:
+    """Return the currently resolved provider name.
+
+    Respects explicit settings before falling back to auto-resolve.
+    Possible values: "tunnel", "google", "local", "none".
+    """
+    if settings.field_llm_provider == "google":
+        return "google"
+    if settings.field_llm_provider == "ollama-local":
+        return "local"
+    import time as _time
+    if _resolved_provider is None or (_time.monotonic() - _resolved_at) > _RESOLVE_TTL:
+        _resolve_provider()
+    return _resolved_provider or "none"
+
+
 def _resolve_provider():
-    """Probe available providers once and cache the result."""
-    global _resolved_provider
+    """Probe available providers and cache the result with TTL."""
+    global _resolved_provider, _resolved_at
+    import time as _time
 
     # 1. Tunnel Ollama
     if settings.ollama_tunnel_token:
         if _ollama_reachable(settings.ollama_base_url, settings.ollama_tunnel_token):
             log.info("Resolved LLM: tunnel Ollama at %s", settings.ollama_base_url)
             _resolved_provider = "tunnel"
+            _resolved_at = _time.monotonic()
             return
         log.warning("Tunnel Ollama unreachable")
 
@@ -126,13 +153,16 @@ def _resolve_provider():
     if settings.google_ai_studio_api_key:
         log.info("Resolved LLM: Google AI Studio API")
         _resolved_provider = "google"
+        _resolved_at = _time.monotonic()
         return
 
     # 3. Local Ollama
     if _ollama_reachable("http://localhost:11434"):
         log.info("Resolved LLM: local Ollama at localhost:11434")
         _resolved_provider = "local"
+        _resolved_at = _time.monotonic()
         return
 
     _resolved_provider = "none"
+    _resolved_at = _time.monotonic()
     log.error("No LLM provider available")

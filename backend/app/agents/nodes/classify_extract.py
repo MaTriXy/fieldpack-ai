@@ -11,6 +11,7 @@ import json
 import re
 
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
+from pydantic import ValidationError
 
 from app.agents.models import ClassifyExtractOutput, IntentType
 from app.agents.state import FieldAssistantState
@@ -135,7 +136,7 @@ def _parse_classify_response(response_text: str) -> ClassifyExtractOutput:
     try:
         data = json.loads(response_text.strip())
         return ClassifyExtractOutput.model_validate(data)
-    except (json.JSONDecodeError, Exception):
+    except (json.JSONDecodeError, ValidationError):
         pass
 
     # Tier 2: JSON in code block
@@ -144,7 +145,7 @@ def _parse_classify_response(response_text: str) -> ClassifyExtractOutput:
         try:
             data = json.loads(code_block.group(1))
             return ClassifyExtractOutput.model_validate(data)
-        except (json.JSONDecodeError, Exception):
+        except (json.JSONDecodeError, ValidationError):
             pass
 
     # Tier 3: Regex JSON extraction
@@ -153,7 +154,7 @@ def _parse_classify_response(response_text: str) -> ClassifyExtractOutput:
         try:
             data = json.loads(json_match.group())
             return ClassifyExtractOutput.model_validate(data)
-        except (json.JSONDecodeError, Exception):
+        except (json.JSONDecodeError, ValidationError):
             pass
 
     # Tier 4: Safe defaults
@@ -204,7 +205,7 @@ def classify_and_extract(state: FieldAssistantState) -> dict:
 
     with log.timed(Step.CLASSIFY, "llm_call") as t:
         try:
-            llm = get_field_llm(temperature=0.1, num_predict=128, format="json")
+            llm = get_field_llm(temperature=0.1, num_predict=256, format="json")
             response = llm.invoke(messages)
             response_text = response.content if hasattr(response, "content") else str(response)
         except Exception as e:

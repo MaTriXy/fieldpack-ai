@@ -13,12 +13,16 @@ class Settings(BaseSettings):
     ollama_base_url: str = "http://localhost:11434"
     ollama_model: str = "gemma4:e2b-it-q4_K_M"
     ollama_tunnel_token: str = ""  # Auth token for remote Ollama (Colab GPU tunnel)
-    ollama_num_ctx: int = 4096
+    ollama_num_ctx: int = 8192
     ollama_keep_alive: int = -1
+    ollama_timeout: int = 120
 
     # Field LLM provider: "ollama" for local, "google" for AI Studio API
     field_llm_provider: str = "ollama"
     field_llm_google_model: str = "gemma-4-27b-it"
+
+    # Tavily (Phase 1 gap analysis)
+    tavily_api_key: str = ""
 
     # Embeddings
     embedding_model: str = "all-MiniLM-L6-v2"
@@ -55,6 +59,12 @@ class Settings(BaseSettings):
     @property
     def uploads_path(self) -> Path:
         path = Path(__file__).resolve().parent.parent / self.upload_dir
+        path.mkdir(parents=True, exist_ok=True)
+        return path
+
+    @property
+    def data_path(self) -> Path:
+        path = Path(__file__).resolve().parent.parent / "data"
         path.mkdir(parents=True, exist_ok=True)
         return path
 

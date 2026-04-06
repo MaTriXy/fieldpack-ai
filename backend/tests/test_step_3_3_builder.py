@@ -111,28 +111,31 @@ class TestSQLiteContent:
 
 class TestChromaDBContent:
 
-    @pytest.fixture(scope="class")
-    def chroma_client(self, built_pack):
-        """Single ChromaDB client for all tests — avoids HNSW segment conflicts."""
+    def test_four_collections(self, built_pack):
         import chromadb
-        return chromadb.PersistentClient(path=str(built_pack / "chroma_db"))
-
-    def test_four_collections(self, chroma_client):
-        collections = chroma_client.list_collections()
+        client = chromadb.PersistentClient(path=str(built_pack / "chroma_db"))
+        collections = client.list_collections()
         names = {c.name for c in collections}
         assert names == {"disease_knowledge", "treatment_guides", "farming_practices", "regional_context"}
 
-    def test_disease_knowledge_has_docs(self, chroma_client):
-        col = chroma_client.get_collection("disease_knowledge")
+    def test_disease_knowledge_has_docs(self, built_pack):
+        import chromadb
+        client = chromadb.PersistentClient(path=str(built_pack / "chroma_db"))
+        col = client.get_collection("disease_knowledge")
         assert col.count() >= 50
 
-    def test_treatment_guides_has_docs(self, chroma_client):
-        col = chroma_client.get_collection("treatment_guides")
+    def test_treatment_guides_has_docs(self, built_pack):
+        import chromadb
+        client = chromadb.PersistentClient(path=str(built_pack / "chroma_db"))
+        col = client.get_collection("treatment_guides")
         assert col.count() >= 60
 
-    def test_can_query_disease_knowledge(self, chroma_client):
+    def test_can_query_disease_knowledge(self, built_pack):
+        import chromadb
         from app.knowledge_pack.schema_chroma import get_embedding_function
-        col = chroma_client.get_collection("disease_knowledge", embedding_function=get_embedding_function())
+        ef = get_embedding_function()
+        client = chromadb.PersistentClient(path=str(built_pack / "chroma_db"))
+        col = client.get_collection("disease_knowledge", embedding_function=ef)
         results = col.query(
             query_texts=["cassava yellow mosaic curling leaves"],
             n_results=3,

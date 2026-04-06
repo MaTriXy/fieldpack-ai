@@ -135,7 +135,7 @@ def generate_answer(state: FieldAssistantState) -> dict:
 
     with log.timed(Step.GENERATE, "llm_call") as t:
         try:
-            llm = get_field_llm(temperature=0.4, num_predict=1024)
+            llm = get_field_llm(temperature=0.4, num_predict=512)
             response = llm.invoke(messages)
             answer = response.content if hasattr(response, "content") else str(response)
         except Exception as e:

@@ -19,6 +19,7 @@ from PIL import Image
 
 from app.config import settings
 from app.logger import Step, pipeline_logger as log
+from app.models.offline_llm import get_resolved_provider
 
 
 # Supported image formats
@@ -26,6 +27,9 @@ _SUPPORTED_FORMATS = {".jpg", ".jpeg", ".png", ".webp"}
 
 # Maximum dimension for resize (saves CPU inference time)
 _MAX_IMAGE_DIM = 1024
+
+# Maximum file size (20 MB) to prevent OOM on edge devices
+_MAX_FILE_SIZE = 20 * 1024 * 1024
 
 # Symptom vocabulary hints — matches our child chunk keywords
 _SYMPTOM_HINTS = (
@@ -136,13 +140,20 @@ def _parse_analysis_response(response_text: str) -> dict:
     }
 
 
-def _call_ollama_vision(prompt: str, image_b64: str) -> str:
+def _call_ollama_vision(prompt: str, image_b64: str, resolved: str = "") -> str:
     """Send image to Ollama vision API."""
+    if not resolved:
+        resolved = get_resolved_provider()
+    if resolved == "local":
+        base_url = "http://localhost:11434"
+    else:
+        base_url = settings.ollama_base_url
+
     headers = {}
-    if settings.ollama_tunnel_token:
+    if settings.ollama_tunnel_token and resolved != "local":
         headers["Authorization"] = f"Bearer {settings.ollama_tunnel_token}"
     response = httpx.post(
-        f"{settings.ollama_base_url}/api/generate",
+        f"{base_url}/api/generate",
         headers=headers,
         json={
             "model": settings.ollama_model,
@@ -204,6 +215,13 @@ def analyze_plant_image(
                      details={"path": str(image_path)})
         raise FileNotFoundError(f"Image not found: {image_path}")
 
+    # Validate file size
+    file_size = image_path.stat().st_size
+    if file_size > _MAX_FILE_SIZE:
+        log.log_step(Step.IMAGE_ANALYSIS, "file_too_large", level="ERROR",
+                     details={"size_mb": round(file_size / 1024 / 1024, 1), "max_mb": 20})
+        raise ValueError(f"Image too large ({file_size // 1024 // 1024}MB). Max: 20MB.")
+
     # Validate format
     suffix = image_path.suffix.lower()
     if suffix not in _SUPPORTED_FORMATS:
@@ -222,15 +240,16 @@ def analyze_plant_image(
         # Build prompt
         prompt = _build_analysis_prompt(crop_hint)
 
-        # Call vision model via configured provider
+        # Call vision model via configured/resolved provider
         try:
-            if settings.field_llm_provider == "google":
+            resolved = get_resolved_provider()
+            if settings.field_llm_provider == "google" or resolved == "google":
                 result_text = _call_google_vision(prompt, image_bytes)
             else:
-                result_text = _call_ollama_vision(prompt, image_b64)
+                result_text = _call_ollama_vision(prompt, image_b64, resolved=resolved)
         except Exception as e:
             log.log_step(Step.IMAGE_ANALYSIS, "vision_error", level="ERROR",
-                         details={"error": str(e), "provider": settings.field_llm_provider})
+                         details={"error": str(e), "provider": resolved})
             return {
                 "visual_description": f"Image analysis failed: {e}",
                 "suspected_symptoms": [],

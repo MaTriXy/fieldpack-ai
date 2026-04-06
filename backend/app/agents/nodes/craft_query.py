@@ -13,6 +13,7 @@ import json
 import re
 
 from langchain_core.messages import HumanMessage, SystemMessage
+from pydantic import ValidationError
 
 from app.agents.models import ClassifyExtractOutput, CraftedQuery, SearchEngineType
 from app.agents.state import FieldAssistantState
@@ -91,7 +92,7 @@ def _parse_craft_response(response_text: str) -> CraftedQuery:
     try:
         data = json.loads(response_text.strip())
         return CraftedQuery.model_validate(data)
-    except (json.JSONDecodeError, Exception):
+    except (json.JSONDecodeError, ValidationError):
         pass
 
     # Tier 2: Code block
@@ -100,7 +101,7 @@ def _parse_craft_response(response_text: str) -> CraftedQuery:
         try:
             data = json.loads(code_block.group(1))
             return CraftedQuery.model_validate(data)
-        except (json.JSONDecodeError, Exception):
+        except (json.JSONDecodeError, ValidationError):
             pass
 
     # Tier 3: Regex JSON
@@ -109,7 +110,7 @@ def _parse_craft_response(response_text: str) -> CraftedQuery:
         try:
             data = json.loads(json_match.group())
             return CraftedQuery.model_validate(data)
-        except (json.JSONDecodeError, Exception):
+        except (json.JSONDecodeError, ValidationError):
             pass
 
     # Tier 4: Use raw text as embedding query

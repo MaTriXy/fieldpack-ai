@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@600;700;800&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              primary: "#1B4332", // Forest Green
+              secondary: "#D4A017", // Amber Gold
+              tertiary: "#C44536", // Muted Red
+              neutral: "#F5F1EB", // Off-white
+              heading: "#2D2D2D"
+            },
+            borderRadius: {
+              "DEFAULT": "0.5rem",
+              "lg": "1rem",
+              "xl": "1.5rem",
+              "full": "9999px"
+            },
+            fontFamily: {
+              headline: ["Plus Jakarta Sans", "sans-serif"],
+              body: ["Inter", "sans-serif"],
+              label: ["Inter", "sans-serif"]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+      .material-symbols-outlined {
+        font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      }
+      .chat-scroll-area {
+        height: calc(100vh - 144px);
+      }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-neutral font-body text-heading antialiased">
+<!-- TopAppBar Execution from JSON -->
+<header class="fixed top-0 left-0 w-full z-50 flex items-center justify-between px-4 h-16 bg-[#1B4332] dark:bg-emerald-950 shadow-sm">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-white cursor-pointer">arrow_back</span>
+<span class="material-symbols-outlined text-white">agriculture</span>
+<h1 class="font-['Plus_Jakarta_Sans'] font-bold text-lg text-white dark:text-emerald-50">Plan Your Mission</h1>
+</div>
+<div class="bg-[#D4A017] px-2.5 py-0.5 rounded-full">
+<span class="text-white text-[10px] font-bold tracking-wider uppercase">Online</span>
+</div>
+</header>
+<!-- Main Chat Content -->
+<main class="pt-20 pb-24 px-4 flex flex-col gap-6 overflow-y-auto chat-scroll-area">
+<!-- Assistant Message 1 -->
+<div class="flex flex-col items-start max-w-[85%]">
+<div class="bg-white border-l-4 border-primary p-4 rounded-xl shadow-sm">
+<p class="text-sm leading-relaxed">Welcome! I'll help you prepare a Knowledge Pack for your deployment. Where are you headed and what crops will you be working with?</p>
+</div>
+<span class="text-[10px] text-stone-400 mt-1 ml-1">FieldPack AI • Just now</span>
+</div>
+<!-- User Message 1 -->
+<div class="flex flex-col items-end self-end max-w-[85%]">
+<div class="bg-primary text-white p-4 rounded-xl shadow-sm">
+<p class="text-sm leading-relaxed">I'm going to Casamance, Senegal. Farmers there grow cassava and rice mostly. They've been having disease problems.</p>
+</div>
+<span class="text-[10px] text-stone-400 mt-1 mr-1 text-right">You • Just now</span>
+</div>
+<!-- Assistant Message 2 -->
+<div class="flex flex-col items-start max-w-[85%]">
+<div class="bg-white border-l-4 border-primary p-4 rounded-xl shadow-sm">
+<p class="text-sm leading-relaxed">Great — Casamance is a key agricultural region. I'll focus on cassava and rice diseases. Are there any specific conditions you've heard about, like cassava mosaic or rice blast? And what time of year will you be there?</p>
+</div>
+</div>
+<!-- User Message 2 -->
+<div class="flex flex-col items-end self-end max-w-[85%]">
+<div class="bg-primary text-white p-4 rounded-xl shadow-sm">
+<p class="text-sm leading-relaxed">Rainy season, around July. I've heard mosaic is a big problem.</p>
+</div>
+</div>
+<!-- Assistant Message 3 with Summary Card -->
+<div class="flex flex-col items-start max-w-[90%]">
+<div class="bg-white border-l-4 border-primary p-4 rounded-xl shadow-sm w-full">
+<p class="text-sm leading-relaxed mb-4">Here's what I'll research for you:</p>
+<!-- Mission Summary Card -->
+<div class="bg-neutral/50 border border-stone-200 rounded-lg p-3 overflow-hidden relative">
+<div class="absolute top-0 right-0 w-24 h-24 -mr-8 -mt-8 opacity-10">
+<span class="material-symbols-outlined text-6xl text-primary">psychology</span>
+</div>
+<div class="space-y-3 relative z-10">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-sm text-primary">location_on</span>
+<div>
+<p class="text-[10px] uppercase tracking-wider text-stone-500 font-bold">Region</p>
+<p class="text-xs font-semibold">Casamance, Senegal</p>
+</div>
+</div>
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-sm text-primary">potted_plant</span>
+<div>
+<p class="text-[10px] uppercase tracking-wider text-stone-500 font-bold">Crops</p>
+<p class="text-xs font-semibold">Cassava, Rice</p>
+</div>
+</div>
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-sm text-primary">calendar_today</span>
+<div>
+<p class="text-[10px] uppercase tracking-wider text-stone-500 font-bold">Season</p>
+<p class="text-xs font-semibold">Rainy (Jul-Oct)</p>
+</div>
+</div>
+<div class="pt-2 border-t border-stone-200">
+<p class="text-[10px] uppercase tracking-wider text-stone-500 font-bold mb-1">Focus Areas</p>
+<div class="flex flex-wrap gap-1">
+<span class="bg-white border border-stone-200 text-[10px] px-2 py-0.5 rounded-full">Disease ID</span>
+<span class="bg-white border border-stone-200 text-[10px] px-2 py-0.5 rounded-full">Treatment Protocols</span>
+<span class="bg-white border border-stone-200 text-[10px] px-2 py-0.5 rounded-full">Farming Calendar</span>
+</div>
+</div>
+</div>
+</div>
+<p class="text-sm leading-relaxed mt-4">Should I dispatch the research agents now?</p>
+<div class="mt-4 flex flex-col gap-2">
+<button class="bg-primary text-white py-3 px-4 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-transform active:scale-95">
+                        Dispatch Agents 
+                        <span class="material-symbols-outlined text-sm">arrow_forward</span>
+</button>
+<button class="border border-primary text-primary py-2.5 px-4 rounded-xl text-sm font-semibold transition-colors hover:bg-stone-50">
+                        Edit details
+                    </button>
+</div>
+</div>
+</div>
+</main>
+<!-- Message Input Bar -->
+<footer class="fixed bottom-0 left-0 w-full bg-white px-4 py-4 border-t border-stone-100 flex items-center gap-3">
+<div class="flex-1 relative">
+<input class="w-full bg-neutral border-none focus:ring-2 focus:ring-primary/20 rounded-xl py-3 px-4 text-sm placeholder:text-stone-400" placeholder="Describe your mission..." type="text"/>
+</div>
+<button class="bg-primary text-white h-11 w-11 rounded-xl flex items-center justify-center transition-transform active:scale-90">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">send</span>
+</button>
+</footer>
+<!-- BottomNavBar Execution from JSON (Only rendering if required by structure, showing active state for 'Mission') -->
+<!-- Suppression Logic: Suppressed as per "Contextual FAB Suppression" & Task focus on the chat journey. 
+         However, keeping semantic structure if user needs global context. 
+         Active tab: Mission. -->
+<nav class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-4 pb-safe h-20 bg-[#F5F1EB] dark:bg-stone-900 border-t border-stone-200 dark:border-stone-800 shadow-[0_-2px_10px_rgba(0,0,0,0.05)] hidden">
+<div class="flex flex-col items-center justify-center text-stone-500 dark:text-stone-400">
+<span class="material-symbols-outlined">chat_bubble</span>
+<span class="font-['Inter'] text-xs font-medium">Chat</span>
+</div>
+<div class="flex flex-col items-center justify-center text-stone-500 dark:text-stone-400">
+<span class="material-symbols-outlined">psychology</span>
+<span class="font-['Inter'] text-xs font-medium">Crops</span>
+</div>
+<div class="flex flex-col items-center justify-center bg-[#1B4332] text-white rounded-2xl px-4 py-1">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">assignment</span>
+<span class="font-['Inter'] text-xs font-medium">Mission</span>
+</div>
+<div class="flex flex-col items-center justify-center text-stone-500 dark:text-stone-400">
+<span class="material-symbols-outlined">psychology_alt</span>
+<span class="font-['Inter'] text-xs font-medium">Expert</span>
+</div>
+</nav>
+</body></html>

@@ -22,31 +22,65 @@ def _distance_to_score(distance: float) -> float:
     return min(1.0, max(0.0, 1.0 - distance))
 
 
-def _resolve_parent(collection, child_id: str, child_metadata: dict) -> tuple[str | None, str | None]:
-    """Fetch parent document for a child chunk.
+def _resolve_parents_batch(
+    collection,
+    child_ids: list[str],
+    child_metadatas: list[dict],
+) -> dict[str, tuple[str | None, str | None]]:
+    """Batch-fetch parent documents for a list of child chunks.
 
-    Returns (parent_id, parent_content). If parent not found,
-    returns (None, None).
+    Returns a dict mapping topic_id -> (parent_id, parent_content).
+    Falls back to per-item queries if batch fails.
+    """
+    # Collect unique topic_ids
+    topic_ids = list({
+        m.get("topic_id") for m in child_metadatas if m.get("topic_id")
+    })
+
+    if not topic_ids:
+        return {}
+
+    parent_map: dict[str, tuple[str | None, str | None]] = {}
+
+    try:
+        if len(topic_ids) == 1:
+            where = {"$and": [
+                {"topic_id": {"$eq": topic_ids[0]}},
+                {"chunk_type": {"$eq": "parent"}},
+            ]}
+        else:
+            where = {"$and": [
+                {"topic_id": {"$in": topic_ids}},
+                {"chunk_type": {"$eq": "parent"}},
+            ]}
+
+        parent_results = collection.get(
+            where=where,
+            include=["documents", "metadatas"],
+        )
+        if parent_results and parent_results["ids"]:
+            for i, pid in enumerate(parent_results["ids"]):
+                meta = parent_results["metadatas"][i] or {}
+                tid = meta.get("topic_id")
+                if tid:
+                    parent_map[tid] = (pid, parent_results["documents"][i])
+    except Exception as e:
+        log.log_step(Step.SEARCH, "resolve_parents_batch_error", level="WARNING",
+                     details={"topic_ids_count": len(topic_ids), "error": str(e)})
+
+    return parent_map
+
+
+def _resolve_parent(collection, child_id: str, child_metadata: dict) -> tuple[str | None, str | None]:
+    """Fetch parent document for a single child chunk.
+
+    Thin wrapper around _resolve_parents_batch for backward compat.
     """
     topic_id = child_metadata.get("topic_id")
     if not topic_id:
         return None, None
-
-    try:
-        parent_results = collection.get(
-            where={"$and": [
-                {"topic_id": {"$eq": topic_id}},
-                {"chunk_type": {"$eq": "parent"}},
-            ]},
-            include=["documents"],
-        )
-        if parent_results and parent_results["ids"]:
-            return parent_results["ids"][0], parent_results["documents"][0]
-    except Exception as e:
-        log.log_step(Step.SEARCH, "resolve_parent_error", level="WARNING",
-                     details={"child_id": child_id, "topic_id": topic_id, "error": str(e)})
-
-    return None, None
+    parent_map = _resolve_parents_batch(collection, [child_id], [child_metadata])
+    return parent_map.get(topic_id, (None, None))
 
 
 def chroma_search(
@@ -120,14 +154,16 @@ def chroma_search(
             metadatas = results["metadatas"][0]
             distances = results["distances"][0]
 
+            # Batch-resolve parents in one call
+            parent_map = _resolve_parents_batch(collection, ids, metadatas)
+
             for i, doc_id in enumerate(ids):
                 score = _distance_to_score(distances[i])
                 metadata = metadatas[i] or {}
 
-                # Resolve parent
-                parent_id, parent_content = _resolve_parent(
-                    collection, doc_id, metadata,
-                )
+                # Look up parent from batch result
+                topic_id = metadata.get("topic_id")
+                parent_id, parent_content = parent_map.get(topic_id, (None, None)) if topic_id else (None, None)
 
                 # Fallback: if parent missing, use child content as parent
                 if parent_content is None:

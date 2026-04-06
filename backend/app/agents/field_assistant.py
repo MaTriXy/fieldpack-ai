@@ -389,4 +389,6 @@ async def run_field_assistant_stream(
 
     except Exception as e:
         log.pipeline_end(success=False, error=str(e))
-        yield {"type": "error", "message": str(e)}
+        log.log_step(Step.GENERATE, "streaming_error", level="ERROR",
+                     details={"error": str(e)})
+        yield {"type": "error", "message": "Pipeline error. Please try again."}

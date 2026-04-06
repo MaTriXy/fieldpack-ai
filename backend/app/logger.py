@@ -48,6 +48,11 @@ class Step:
     PACK_LOAD = "pack_load"
     PACK_BUILD = "pack_build"
     SYSTEM = "system"
+    # Phase 1 Agent Farm
+    AGENT_FARM_GATHER = "agent_farm_gather"
+    AGENT_FARM_EXTRACT = "agent_farm_extract"
+    AGENT_FARM_GAP = "agent_farm_gap"
+    AGENT_FARM_COMPILE = "agent_farm_compile"
 
 
 # ============================================================

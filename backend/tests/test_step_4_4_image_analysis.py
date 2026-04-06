@@ -196,7 +196,8 @@ class TestAnalyzePlantImage:
         mock_resp.json.return_value = {"response": json.dumps(mock_ollama_response)}
         mock_resp.raise_for_status = MagicMock()
 
-        with patch("app.tools.image_analysis.httpx.post", return_value=mock_resp):
+        with patch("app.tools.image_analysis.httpx.post", return_value=mock_resp), \
+             patch("app.tools.image_analysis.get_resolved_provider", return_value="local"):
             result = analyze_plant_image(sample_image, crop_hint="cassava")
 
         assert result["visual_description"] == mock_ollama_response["visual_description"]
@@ -210,7 +211,8 @@ class TestAnalyzePlantImage:
         mock_resp.json.return_value = {"response": json.dumps(mock_ollama_response)}
         mock_resp.raise_for_status = MagicMock()
 
-        with patch("app.tools.image_analysis.httpx.post", return_value=mock_resp):
+        with patch("app.tools.image_analysis.httpx.post", return_value=mock_resp), \
+             patch("app.tools.image_analysis.get_resolved_provider", return_value="local"):
             result = analyze_plant_image(sample_image)
 
         required_keys = [
@@ -232,7 +234,8 @@ class TestAnalyzePlantImage:
 
     def test_ollama_error_returns_graceful_result(self, sample_image):
         with patch("app.tools.image_analysis.httpx.post",
-                   side_effect=Exception("Connection refused")):
+                   side_effect=Exception("Connection refused")), \
+             patch("app.tools.image_analysis.get_resolved_provider", return_value="local"):
             result = analyze_plant_image(sample_image)
 
         assert "error" in result
@@ -244,7 +247,8 @@ class TestAnalyzePlantImage:
         mock_resp.json.return_value = {"response": '{"crop_guess": "rice"}'}
         mock_resp.raise_for_status = MagicMock()
 
-        with patch("app.tools.image_analysis.httpx.post", return_value=mock_resp):
+        with patch("app.tools.image_analysis.httpx.post", return_value=mock_resp), \
+             patch("app.tools.image_analysis.get_resolved_provider", return_value="local"):
             result = analyze_plant_image(sample_image, crop_hint="rice")
 
         assert result["crop_guess"] == "rice"
@@ -268,7 +272,8 @@ class TestToolWrapper:
         mock_resp.json.return_value = {"response": json.dumps(mock_ollama_response)}
         mock_resp.raise_for_status = MagicMock()
 
-        with patch("app.tools.image_analysis.httpx.post", return_value=mock_resp):
+        with patch("app.tools.image_analysis.httpx.post", return_value=mock_resp), \
+             patch("app.tools.image_analysis.get_resolved_provider", return_value="local"):
             result = analyze_plant_image_tool.invoke({
                 "image_path": str(sample_image),
                 "crop_hint": "cassava",

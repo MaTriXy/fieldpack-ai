@@ -457,6 +457,48 @@ END;
 # Valid tables for the structured query builder (allowlist)
 # ============================================================
 
+# ============================================================
+# Conversation tables (runtime, not part of core knowledge schema)
+# ============================================================
+
+CONVERSATIONS_DDL = """
+CREATE TABLE IF NOT EXISTS conversations (
+    id TEXT PRIMARY KEY,
+    type TEXT NOT NULL CHECK(type IN ('field', 'mission')),
+    title TEXT NOT NULL DEFAULT 'New conversation',
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    message_count INTEGER NOT NULL DEFAULT 0,
+    summary TEXT DEFAULT ''
+);
+
+CREATE TABLE IF NOT EXISTS conversation_messages (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    conversation_id TEXT NOT NULL REFERENCES conversations(id),
+    role TEXT NOT NULL CHECK(role IN ('user', 'assistant')),
+    content TEXT NOT NULL,
+    image_path TEXT,
+    metadata TEXT,
+    created_at TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_conv_type_updated ON conversations(type, updated_at DESC);
+CREATE INDEX IF NOT EXISTS idx_conv_messages_conv_id ON conversation_messages(conversation_id, created_at);
+"""
+
+
+def ensure_conversations_tables(db_path: Path) -> None:
+    """Create conversation tables if they don't exist yet (idempotent)."""
+    conn = sqlite3.connect(str(db_path))
+    try:
+        conn.execute("PRAGMA journal_mode=WAL")
+        conn.execute("PRAGMA foreign_keys=ON")
+        conn.executescript(CONVERSATIONS_DDL)
+        conn.commit()
+    finally:
+        conn.close()
+
+
 VALID_TABLES = [
     "crops",
     "diseases",

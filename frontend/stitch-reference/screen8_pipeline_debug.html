@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=390, height=844, initial-scale=1.0" name="viewport"/>
+<title>Pipeline Debug - FieldPack AI</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&amp;family=Inter:wght@400;500;600&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .mono { font-family: 'JetBrains Mono', monospace; }
+        body { background-color: #1A1A2E; color: #F5F1EB; font-family: 'Inter', sans-serif; }
+    </style>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        primary: "#1B4332",
+                        secondary: "#D4A017",
+                        tertiary: "#C44536",
+                        neutral: "#F5F1EB",
+                        surface: "#2D2D2D",
+                        darkest: "#1A1A2E"
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.5rem",
+                        "lg": "1rem",
+                        "xl": "1.5rem",
+                        "full": "9999px"
+                    },
+                    fontFamily: {
+                        headline: ["Plus Jakarta Sans"],
+                        body: ["Inter"],
+                        label: ["Inter"]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="antialiased overflow-x-hidden">
+<!-- TopAppBar -->
+<header class="fixed top-0 left-0 w-full z-50 flex items-center px-4 h-16 bg-[#1A1A2E] border-b border-gray-800">
+<div class="flex items-center w-full gap-3">
+<button class="hover:bg-gray-800/50 transition-colors p-2 rounded-full">
+<span class="material-symbols-outlined text-emerald-500">arrow_back</span>
+</button>
+<div class="flex flex-col">
+<div class="flex items-center gap-2">
+<h1 class="font-['Plus_Jakarta_Sans'] font-bold text-lg text-emerald-500">Pipeline Debug</h1>
+<span class="flex items-center gap-1 bg-emerald-500/10 text-emerald-500 text-[10px] px-1.5 py-0.5 rounded-full font-bold uppercase tracking-wider">
+<span class="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></span>
+                        Live
+                    </span>
+</div>
+<p class="text-[10px] text-gray-400 font-medium truncate max-w-[200px]">Query: What's wrong with my cassava?</p>
+</div>
+</div>
+</header>
+<main class="mt-16 pb-32 p-4 flex flex-col gap-4">
+<!-- LLM Provider Card -->
+<section class="bg-surface border border-gray-700/50 rounded-xl p-4 shadow-lg">
+<div class="flex justify-between items-start mb-3">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-secondary" style="font-variation-settings: 'FILL' 1;">neurology</span>
+<h2 class="font-headline font-bold text-sm text-neutral">Gemma 4 E2B Q4 via Ollama (local)</h2>
+</div>
+<span class="text-[10px] font-bold text-emerald-400 bg-emerald-400/10 px-2 py-0.5 rounded">Connected</span>
+</div>
+<div class="grid grid-cols-2 gap-2">
+<div class="bg-darkest/50 p-2 rounded border border-gray-800">
+<p class="text-[9px] text-gray-500 uppercase tracking-tighter mb-1">IP Address</p>
+<p class="mono text-xs text-emerald-500">localhost:11434</p>
+</div>
+<div class="bg-darkest/50 p-2 rounded border border-gray-800">
+<p class="text-[9px] text-gray-500 uppercase tracking-tighter mb-1">Model Size</p>
+<p class="mono text-xs text-emerald-500">4.9GB</p>
+</div>
+</div>
+</section>
+<!-- Pipeline Timeline -->
+<section class="flex flex-col relative pl-4 ml-2">
+<!-- Timeline Line -->
+<div class="absolute left-0 top-0 bottom-0 w-[2px] bg-gray-800"></div>
+<!-- Node 1 -->
+<div class="relative pl-8 pb-8">
+<div class="absolute left-[-5px] top-1 w-[10px] h-[10px] rounded-full bg-emerald-500 border-2 border-darkest"></div>
+<div class="flex justify-between items-center mb-1">
+<h3 class="mono text-xs font-bold text-emerald-400">classify_and_extract</h3>
+<span class="bg-secondary/20 text-secondary text-[10px] font-bold px-1.5 py-0.5 rounded">4,200ms</span>
+</div>
+<p class="text-[11px] text-gray-300 leading-relaxed">Intent: <span class="text-emerald-500">diagnose_disease</span>, Crop: <span class="text-emerald-500">cassava</span>, Confidence: 0.95</p>
+<div class="mt-1 mono text-[10px] text-gray-500">in:380 out:128</div>
+</div>
+<!-- Node 2 -->
+<div class="relative pl-8 pb-8">
+<div class="absolute left-[-5px] top-1 w-[10px] h-[10px] rounded-full bg-emerald-500 border-2 border-darkest"></div>
+<div class="flex justify-between items-center mb-1">
+<h3 class="mono text-xs font-bold text-emerald-400">route_intent</h3>
+<span class="bg-emerald-500/20 text-emerald-500 text-[10px] font-bold px-1.5 py-0.5 rounded">2ms</span>
+</div>
+<p class="text-[11px] text-gray-300 leading-relaxed">Route: <span class="text-emerald-500 italic font-medium">disease_knowledge + treatment_guides</span></p>
+<div class="mt-1 mono text-[10px] text-gray-500">No LLM call</div>
+</div>
+<!-- Node 3 -->
+<div class="relative pl-8 pb-8">
+<div class="absolute left-[-5px] top-1 w-[10px] h-[10px] rounded-full bg-emerald-500 border-2 border-darkest"></div>
+<div class="flex justify-between items-center mb-1">
+<h3 class="mono text-xs font-bold text-emerald-400">craft_search_query</h3>
+<span class="bg-emerald-500/20 text-emerald-500 text-[10px] font-bold px-1.5 py-0.5 rounded">1ms</span>
+</div>
+<div class="bg-darkest/30 p-2 rounded-lg border border-gray-800 mt-1">
+<p class="text-[10px] text-gray-400 mb-1">Template query (no LLM)</p>
+<p class="text-[11px] text-secondary italic">"cassava mosaic yellow leaves curling Casamance"</p>
+</div>
+</div>
+<!-- Node 4 -->
+<div class="relative pl-8 pb-8">
+<div class="absolute left-[-5px] top-1 w-[10px] h-[10px] rounded-full bg-emerald-500 border-2 border-darkest"></div>
+<div class="flex justify-between items-center mb-1">
+<h3 class="mono text-xs font-bold text-emerald-400">execute_searches</h3>
+<span class="bg-emerald-500/20 text-emerald-500 text-[10px] font-bold px-1.5 py-0.5 rounded">120ms</span>
+</div>
+<p class="text-[11px] text-gray-300">Chroma: <span class="text-white">8</span>, FTS: <span class="text-white">5</span>, SQLite: <span class="text-white">3 results</span></p>
+</div>
+<!-- Node 5 -->
+<div class="relative pl-8 pb-8">
+<div class="absolute left-[-5px] top-1 w-[10px] h-[10px] rounded-full bg-emerald-500 border-2 border-darkest"></div>
+<div class="flex justify-between items-center mb-1">
+<h3 class="mono text-xs font-bold text-emerald-400">rerank_results</h3>
+<span class="bg-emerald-500/20 text-emerald-500 text-[10px] font-bold px-1.5 py-0.5 rounded">5ms</span>
+</div>
+<p class="text-[11px] text-gray-300">Heuristic rerank (no LLM). <span class="text-emerald-500">Top score: 0.92</span>, Sufficient: yes</p>
+</div>
+<!-- Node 6 -->
+<div class="relative pl-8">
+<div class="absolute left-[-5px] top-1 w-[10px] h-[10px] rounded-full bg-secondary border-2 border-darkest animate-pulse"></div>
+<div class="flex justify-between items-center mb-1">
+<h3 class="mono text-xs font-bold text-secondary">generate_answer</h3>
+<span class="bg-secondary/20 text-secondary text-[10px] font-bold px-1.5 py-0.5 rounded italic">8,400ms...</span>
+</div>
+<div class="flex flex-col gap-2">
+<p class="text-[11px] text-gray-300">Streaming tokens...</p>
+<div class="w-full bg-gray-800 h-1.5 rounded-full overflow-hidden">
+<div class="bg-secondary h-full" style="width: 34%;"></div>
+</div>
+<div class="flex justify-between items-center">
+<span class="mono text-[10px] text-secondary">Token: 347/1024</span>
+<span class="mono text-[10px] text-gray-500">41 t/s</span>
+</div>
+</div>
+</div>
+</section>
+<!-- Summary Footer Card -->
+<section class="bg-surface/50 border border-emerald-500/20 rounded-xl p-4 mt-4">
+<div class="flex items-center gap-2 mb-3">
+<span class="material-symbols-outlined text-emerald-500 text-lg">assessment</span>
+<h4 class="font-headline font-bold text-xs uppercase tracking-widest text-emerald-500">Job Summary</h4>
+</div>
+<div class="space-y-2 mono text-[11px]">
+<div class="flex justify-between border-b border-gray-800 pb-1">
+<span class="text-gray-500 uppercase">Total Latency</span>
+<span class="text-secondary font-bold">12,728ms</span>
+</div>
+<div class="flex justify-between border-b border-gray-800 pb-1">
+<span class="text-gray-500 uppercase">LLM Calls</span>
+<span class="text-white">2</span>
+</div>
+<div class="flex justify-between border-b border-gray-800 pb-1">
+<span class="text-gray-500 uppercase">Search Results</span>
+<span class="text-white">16 raw / 5 reranked</span>
+</div>
+<div class="flex justify-between">
+<span class="text-gray-500 uppercase">Provider</span>
+<span class="text-emerald-500">Ollama local</span>
+</div>
+</div>
+</section>
+</main>
+<!-- Bottom Controls Shell -->
+<div class="fixed bottom-0 left-0 w-full bg-[#1A1A2E]/90 backdrop-blur-md border-t border-gray-800 px-6 pt-4 pb-8 z-50">
+<div class="flex flex-col gap-4">
+<div class="flex items-center justify-between">
+<span class="text-xs font-medium text-gray-400">Auto-scroll debug log</span>
+<button class="relative inline-flex h-5 w-10 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none bg-emerald-600">
+<span class="translate-x-5 pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"></span>
+</button>
+</div>
+<button class="w-full bg-emerald-500 hover:bg-emerald-600 text-darkest font-bold py-3 rounded-xl flex items-center justify-center gap-2 transition-all active:scale-95">
+<span class="material-symbols-outlined text-xl">content_copy</span>
+<span class="font-headline">Copy Debug Log</span>
+</button>
+<div class="flex justify-center">
+<a class="text-gray-500 text-xs font-medium hover:text-emerald-500 transition-colors underline underline-offset-4" href="#">Back to Chat</a>
+</div>
+</div>
+</div>
+<!-- Background Decorative Element -->
+<div class="fixed inset-0 pointer-events-none -z-10 opacity-10">
+<div class="absolute top-1/4 -right-20 w-64 h-64 bg-emerald-500 rounded-full blur-[120px]"></div>
+<div class="absolute bottom-1/4 -left-20 w-64 h-64 bg-secondary rounded-full blur-[120px]"></div>
+</div>
+</body></html>

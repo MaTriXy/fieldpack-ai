@@ -4,7 +4,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
-from app.routers import chat, health, mission, pack
+from app.routers import chat, conversations, health, mission, pack
 
 
 @asynccontextmanager
@@ -27,11 +27,12 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:3000", "http://localhost:5173"],
     allow_credentials=True,
-    allow_methods=["GET", "POST"],
+    allow_methods=["GET", "POST", "PUT"],
     allow_headers=["Content-Type", "Upgrade", "Connection"],
 )
 
 app.include_router(health.router)
 app.include_router(chat.router)
+app.include_router(conversations.router)
 app.include_router(mission.router)
 app.include_router(pack.router)

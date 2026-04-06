@@ -2,6 +2,7 @@ import httpx
 from fastapi import APIRouter
 
 from app.config import settings
+from app.knowledge_pack.loader import get_active_pack
 
 router = APIRouter(tags=["health"])
 
@@ -83,6 +84,18 @@ async def health_check():
 
     except (httpx.TimeoutException, httpx.ConnectError, httpx.RequestError):
         result["ollama"] = "unreachable"
+
+    # Pack status
+    pack = get_active_pack()
+    if pack is not None:
+        try:
+            pack_info = pack.health_check()
+            pack_info["loaded"] = True
+            result["pack"] = pack_info
+        except Exception:
+            result["pack"] = {"loaded": True, "error": "health_check failed"}
+    else:
+        result["pack"] = {"loaded": False}
 
     result["status"] = "ok" if result["ollama"] == "ok" else "degraded"
     return result

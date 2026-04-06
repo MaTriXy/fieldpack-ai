@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>FieldPack AI - Home</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;family=Inter:wght@400;500;600&amp;family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        primary: "#1B4332",
+                        secondary: "#D4A017",
+                        tertiary: "#C44536",
+                        neutral: "#F5F1EB",
+                        textDark: "#2D2D2D"
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.5rem",
+                        "lg": "1rem",
+                        "xl": "1.5rem",
+                        "full": "9999px"
+                    },
+                    fontFamily: {
+                        "headline": ["Plus Jakarta Sans"],
+                        "body": ["Inter"],
+                        "label": ["Inter"]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        body {
+            background-color: #F5F1EB;
+            color: #2D2D2D;
+            font-family: 'Inter', sans-serif;
+            width: 390px;
+            height: 844px;
+            margin: 0 auto;
+            overflow-x: hidden;
+            position: relative;
+        }
+        /* Mobile Viewport Container */
+        .viewport-container {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            background-color: #F5F1EB;
+        }
+    </style>
+</head>
+<body class="bg-neutral">
+<div class="viewport-container overflow-y-auto">
+<!-- TopAppBar -->
+<header class="fixed top-0 left-0 w-[390px] z-50 flex justify-between items-center px-4 h-16 bg-[#F5F1EB] border-b border-stone-200">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[#1B4332] text-2xl" data-icon="agriculture">agriculture</span>
+<div class="flex flex-col">
+<h1 class="font-['Plus_Jakarta_Sans'] font-black text-xl text-[#1B4332]">FieldPack AI</h1>
+<p class="text-[10px] font-body text-stone-500 -mt-1 uppercase tracking-wider">Offline intelligence for the field</p>
+</div>
+</div>
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-[#1B4332]" data-icon="wifi_off">wifi_off</span>
+</div>
+</header>
+<main class="pt-20 px-4 pb-32 flex-grow">
+<!-- Hero Section -->
+<section class="relative h-64 w-full rounded-xl overflow-hidden mb-6 shadow-sm">
+<div class="absolute inset-0 bg-gradient-to-t from-[#1B4332]/60 to-transparent z-10"></div>
+<img alt="Farmer in African field" class="absolute inset-0 w-full h-full object-cover" data-alt="A sun-drenched close-up of an African farmer holding a modern smartphone in a lush maize field during golden hour" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDQqo3g1hpLvYwdvczPKTsYSZAGdWio656pVsIs7hvJNgEaNr6nbV26zoWAiA7WY8NzjI4BtR13dwwWnG7CsT3l4ZyyIS_jU6flulGsYsnec_uWQPstQaOWRgFbnX_sBDkDkYA0F9GG3sjKHRfGhfAtbOhwKeTDUWh4EWE1JihyVHiK1adrCBNbnTr-i9xek9GvoW-fReYeCCUxSMPeClIuUylE15RiJaE_npqQMO8ymESPnYJP6f1EyQV5joHamELcEmVzhapwLsPj"/>
+<div class="absolute bottom-4 left-4 z-20">
+<span class="bg-[#D4A017] text-white text-[10px] font-bold px-2 py-1 rounded-full uppercase tracking-tighter mb-2 inline-block">Active Region: Sub-Saharan Africa</span>
+<h2 class="text-white font-headline font-bold text-2xl leading-tight">Ready for the Earth.</h2>
+</div>
+</section>
+<!-- Bento Grid Actions -->
+<div class="flex flex-col gap-4">
+<!-- Create New Knowledge Pack -->
+<div class="bg-white p-5 rounded-xl border border-stone-100 shadow-sm flex flex-col gap-4">
+<div class="flex items-start justify-between">
+<div class="bg-[#1B4332]/10 p-3 rounded-lg">
+<span class="material-symbols-outlined text-[#1B4332] text-3xl" data-icon="database">database</span>
+</div>
+<span class="material-symbols-outlined text-stone-300" data-icon="cloud_download">cloud_download</span>
+</div>
+<div>
+<h3 class="font-headline font-bold text-lg text-textDark">Create New Knowledge Pack</h3>
+<p class="text-stone-500 text-sm mt-1">Dispatch AI agents to gather crop knowledge for your region</p>
+</div>
+<button class="w-full bg-[#1B4332] text-white font-headline font-bold py-3 px-6 rounded-lg transition-all duration-200 active:scale-[0.98] flex items-center justify-center gap-2">
+                        Start Mission
+                        <span class="material-symbols-outlined text-sm" data-icon="arrow_forward">arrow_forward</span>
+</button>
+</div>
+<!-- Start Field Session -->
+<div class="bg-white p-5 rounded-xl border border-stone-100 shadow-sm flex flex-col gap-4">
+<div class="flex items-start justify-between">
+<div class="bg-[#D4A017]/10 p-3 rounded-lg">
+<span class="material-symbols-outlined text-[#D4A017] text-3xl" data-icon="psychology_alt">psychology_alt</span>
+</div>
+<span class="material-symbols-outlined text-stone-300" data-icon="eco">eco</span>
+</div>
+<div>
+<h3 class="font-headline font-bold text-lg text-textDark">Start Field Session</h3>
+<p class="text-stone-500 text-sm mt-1">Use an existing pack to get offline crop diagnosis and advice</p>
+</div>
+<button class="w-full bg-[#D4A017] text-white font-headline font-bold py-3 px-6 rounded-lg transition-all duration-200 active:scale-[0.98] flex items-center justify-center gap-2">
+                        Select Pack
+                        <span class="material-symbols-outlined text-sm" data-icon="arrow_forward">arrow_forward</span>
+</button>
+</div>
+</div>
+<!-- Status Bar -->
+<div class="mt-8 mb-4 flex items-center justify-between gap-3 p-3 bg-stone-100/50 rounded-lg">
+<div class="flex gap-3">
+<div class="flex items-center gap-1.5">
+<span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+<span class="text-[9px] font-bold text-stone-600 uppercase tracking-tight">Offline Ready</span>
+</div>
+<div class="flex items-center gap-1.5">
+<span class="w-2 h-2 rounded-full bg-[#D4A017]"></span>
+<span class="text-[9px] font-bold text-stone-600 uppercase tracking-tight">No Pack Loaded</span>
+</div>
+</div>
+<span class="text-[9px] font-medium text-stone-400">v1.0.2-beta</span>
+</div>
+</main>
+<!-- BottomNavBar -->
+<nav class="fixed bottom-0 left-0 w-[390px] z-50 flex justify-around items-center px-4 pb-6 pt-3 bg-white border-t border-stone-200 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] rounded-t-2xl">
+<!-- Active Tab: Home -->
+<a class="flex flex-col items-center justify-center bg-[#1B4332] text-white rounded-xl px-4 py-2 transition-transform duration-150 ease-in-out" href="#">
+<span class="material-symbols-outlined" data-icon="home" style="font-variation-settings: 'FILL' 1;">home</span>
+<span class="font-['Inter'] text-[10px] font-medium tracking-tight">Home</span>
+</a>
+<a class="flex flex-col items-center justify-center text-stone-500 px-3 py-1.5 hover:text-[#1B4332] transition-transform duration-150 ease-in-out" href="#">
+<span class="material-symbols-outlined" data-icon="package_2">package_2</span>
+<span class="font-['Inter'] text-[10px] font-medium tracking-tight">Packs</span>
+</a>
+<a class="flex flex-col items-center justify-center text-stone-500 px-3 py-1.5 hover:text-[#1B4332] transition-transform duration-150 ease-in-out" href="#">
+<span class="material-symbols-outlined" data-icon="psychology_alt">psychology_alt</span>
+<span class="font-['Inter'] text-[10px] font-medium tracking-tight">Sessions</span>
+</a>
+<a class="flex flex-col items-center justify-center text-stone-500 px-3 py-1.5 hover:text-[#1B4332] transition-transform duration-150 ease-in-out" href="#">
+<span class="material-symbols-outlined" data-icon="history">history</span>
+<span class="font-['Inter'] text-[10px] font-medium tracking-tight">History</span>
+</a>
+</nav>
+</div>
+</body></html>
