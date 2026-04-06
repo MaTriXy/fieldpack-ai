@@ -270,7 +270,7 @@ def _get_farming_practice_chunks() -> list[dict]:
             "topic": "integrated_pest_management",
             "crop": "general",
             "season": "all",
-            "practice_type": "pest_control",
+            "practice_type": "pest",
             "growth_stage": "vegetative",
             "child": "Natural pest control methods for Casamance farmers. Neem oil, companion planting, traps, biological control without expensive chemicals.",
             "parent": (

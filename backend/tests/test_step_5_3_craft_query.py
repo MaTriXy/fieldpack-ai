@@ -1,4 +1,7 @@
-"""Tests for Step 5.3: CRAFT SEARCH QUERY node (LLM call #2)."""
+"""Tests for Step 5.3: CRAFT SEARCH QUERY node.
+
+First attempt uses a template (no LLM). Retry uses LLM for variants.
+"""
 
 import json
 from unittest.mock import MagicMock, patch
@@ -8,18 +11,20 @@ import pytest
 from app.agents.models import (
     ClassifyExtractOutput,
     CraftedQuery,
+    GrowthStage,
     IntentType,
     SearchEngineType,
     SearchRoute,
 )
 from app.agents.nodes.craft_query import (
     _parse_craft_response,
+    _template_query,
     craft_search_query,
 )
 
 
 # ============================================================
-# Unit: _parse_craft_response
+# Unit: _parse_craft_response (still used by retry path)
 # ============================================================
 
 class TestParseCraftResponse:
@@ -62,7 +67,73 @@ class TestParseCraftResponse:
 
 
 # ============================================================
-# Integration: craft_search_query (mocked LLM)
+# Unit: _template_query
+# ============================================================
+
+class TestTemplateQuery:
+
+    def test_includes_crop_and_keywords(self):
+        classify = ClassifyExtractOutput(
+            intent=IntentType.DIAGNOSE_DISEASE,
+            crop="cassava",
+            keywords=["yellow", "leaves", "curling"],
+        )
+        result = _template_query("My cassava has yellow leaves", classify)
+        assert "cassava" in result.embedding_query
+        assert "yellow" in result.embedding_query
+        assert "Casamance" in result.embedding_query
+        assert "cassava" in result.fts_keywords
+        assert "yellow" in result.fts_keywords
+        # Raw user message excluded when classify provides fields
+        assert "My cassava has" not in result.embedding_query
+
+    def test_includes_disease_name(self):
+        classify = ClassifyExtractOutput(
+            intent=IntentType.GET_TREATMENT,
+            crop="rice",
+            disease_name="Rice Blast",
+            keywords=["rice", "blast", "treatment"],
+        )
+        result = _template_query("How to treat rice blast?", classify)
+        assert "Rice Blast" in result.embedding_query
+        assert "Rice Blast" in result.fts_keywords
+
+    def test_includes_growth_stage(self):
+        classify = ClassifyExtractOutput(
+            intent=IntentType.FARMING_ADVICE,
+            crop="cassava",
+            keywords=["cassava", "planting"],
+            growth_stage=GrowthStage.VEGETATIVE,
+        )
+        result = _template_query("How much water?", classify)
+        assert "vegetative" in result.embedding_query
+
+    def test_deduplicates_keywords(self):
+        classify = ClassifyExtractOutput(
+            crop="cassava",
+            keywords=["cassava", "yellow", "cassava"],
+        )
+        result = _template_query("cassava problem", classify)
+        assert result.fts_keywords.count("cassava") == 1
+
+    def test_no_classify_result_falls_back_to_user_message(self):
+        result = _template_query("help with my crops", None)
+        assert "help with my crops" in result.embedding_query
+        assert "Casamance" in result.embedding_query
+
+    def test_empty_classify_falls_back_to_user_message(self):
+        classify = ClassifyExtractOutput()
+        result = _template_query("help with my crops", classify)
+        assert "help with my crops" in result.embedding_query
+
+    def test_reasoning_mentions_template(self):
+        classify = ClassifyExtractOutput(crop="rice")
+        result = _template_query("test", classify)
+        assert "template" in result.reasoning.lower()
+
+
+# ============================================================
+# Integration: craft_search_query
 # ============================================================
 
 class TestCraftSearchQuery:
@@ -82,41 +153,23 @@ class TestCraftSearchQuery:
             ),
         }
 
-    def test_basic_craft(self):
-        mock_response = MagicMock()
-        mock_response.content = json.dumps({
-            "embedding_query": "cassava plant sick yellow mosaic leaves curling",
-            "fts_keywords": ["cassava", "mosaic", "yellow"],
-            "reasoning": "Farmer-style description of symptoms",
-        })
-
+    def test_first_attempt_uses_template_not_llm(self):
+        """First attempt should use template — no LLM call."""
         with patch("app.agents.nodes.craft_query.get_field_llm") as mock_llm:
-            mock_llm.return_value.invoke.return_value = mock_response
             result = craft_search_query(self._make_state())
+            mock_llm.assert_not_called()
 
-        assert "crafted_query" in result
         query = result["crafted_query"]
         assert isinstance(query, CraftedQuery)
-        assert len(query.embedding_query) > 0
-        assert len(query.fts_keywords) > 0
+        assert "cassava" in query.embedding_query
+        assert "yellow" in query.fts_keywords
+        assert "template" in query.reasoning.lower()
 
     def test_skipped_when_no_chroma(self):
         result = craft_search_query(self._make_state(has_chroma=False))
         query = result["crafted_query"]
         assert query.embedding_query == ""
         assert "skipped" in query.reasoning.lower()
-        # Should use classify keywords as fts fallback
-        assert query.fts_keywords == ["cassava", "yellow", "leaves"]
-
-    def test_llm_error_fallback(self):
-        with patch("app.agents.nodes.craft_query.get_field_llm") as mock_llm:
-            mock_llm.return_value.invoke.side_effect = Exception("Ollama down")
-            result = craft_search_query(self._make_state())
-
-        query = result["crafted_query"]
-        # Uses user message as embedding query
-        assert "cassava" in query.embedding_query.lower()
-        # Uses classify keywords
         assert query.fts_keywords == ["cassava", "yellow", "leaves"]
 
     def test_no_route_skips(self):
@@ -128,19 +181,6 @@ class TestCraftSearchQuery:
         result = craft_search_query(state)
         assert result["crafted_query"].embedding_query == ""
 
-    def test_includes_classify_context_in_prompt(self):
-        """Verify the LLM receives crop/disease context."""
-        captured_messages = []
-
-        def capture_invoke(messages):
-            captured_messages.extend(messages)
-            mock_resp = MagicMock()
-            mock_resp.content = '{"embedding_query": "test", "fts_keywords": ["test"]}'
-            return mock_resp
-
-        with patch("app.agents.nodes.craft_query.get_field_llm") as mock_llm:
-            mock_llm.return_value.invoke.side_effect = capture_invoke
-            craft_search_query(self._make_state(crop="rice"))
-
-        all_text = " ".join(m.content for m in captured_messages)
-        assert "rice" in all_text.lower()
+    def test_first_attempt_includes_crop_in_query(self):
+        result = craft_search_query(self._make_state(crop="rice"))
+        assert "rice" in result["crafted_query"].embedding_query.lower()

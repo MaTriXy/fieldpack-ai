@@ -223,6 +223,11 @@ async def execute_searches(state: FieldAssistantState) -> dict:
     fts_keywords = _collect_fts_keywords(state)
     metadata_filters = route.metadata_filters or {}
 
+    # Only 'crop' is reliably present on chunks across all collections.
+    # disease_name exists on disease_knowledge/treatment_guides but not
+    # farming_practices/regional_context — would cause 0 results there.
+    chroma_filters = {"crop": metadata_filters["crop"]} if "crop" in metadata_filters else {}
+
     log.log_step(Step.SEARCH, "execute_start", details={
         "query_count": len(embedding_queries),
         "fts_keyword_count": len(fts_keywords),
@@ -240,7 +245,7 @@ async def execute_searches(state: FieldAssistantState) -> dict:
                     _run_chroma_searches,
                     eq,
                     route.collections,
-                    metadata_filters,
+                    chroma_filters,
                 ))
                 task_labels.append(f"chroma:{','.join(route.collections)}")
 

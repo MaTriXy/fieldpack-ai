@@ -1,73 +1,81 @@
-"""Node 3: CRAFT SEARCH QUERY (LLM call #2).
+"""Node 3: CRAFT SEARCH QUERY.
 
-Generates a natural language embedding query matching child chunk style,
-plus FTS keywords for keyword search. Only fires when chroma_embedding
-is in the route engines.
+First attempt: template from classify fields (crop, disease, keywords,
+growth_stage) — no LLM call (~0ms vs ~8s).
 
-On retry (retrieval_attempts >= 1), generates 3 query variants:
+On retry (retrieval_attempts >= 1): LLM call generates 3 query variants:
   - Synonym / alternative phrasing
   - Local terminology (Wolof / French agricultural terms)
   - Broader / adjacent concept
-
-NL + smart parsing approach (no structured output).
 """
 
 import json
 import re
 
-from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
+from langchain_core.messages import HumanMessage, SystemMessage
 
-from app.agents.models import CraftedQuery, SearchEngineType
+from app.agents.models import ClassifyExtractOutput, CraftedQuery, SearchEngineType
 from app.agents.state import FieldAssistantState
 from app.logger import Step, pipeline_logger as log
 from app.models.offline_llm import get_field_llm
 
 
-CRAFT_QUERY_SYSTEM_PROMPT = """You help write search queries for an agricultural knowledge base about crops and diseases in Casamance, Senegal.
 
-Given a user question, write:
-1. A search query (under 50 words) that a farmer might use to describe the situation. Use simple, visual, practical language.
-2. A list of 3-5 keywords for exact text search.
+def _template_query(
+    user_message: str,
+    classify_result: ClassifyExtractOutput | None,
+) -> CraftedQuery:
+    """Build a search query from classify fields without an LLM call.
 
-Output JSON:
-{"embedding_query": "your search query here", "fts_keywords": ["keyword1", "keyword2", "keyword3"], "reasoning": "brief explanation"}
+    Assembles crop, disease_name, keywords, growth_stage into a
+    focused embedding query. Avoids raw user message to prevent
+    filler words from diluting the embedding vector.
+    """
+    parts = []
+    fts_keywords = []
 
-Focus on: crop names, visual symptoms, treatment materials, local conditions, farming practices, planting techniques, soil management, harvest and storage."""
+    if classify_result:
+        if classify_result.crop:
+            parts.append(classify_result.crop)
+            fts_keywords.append(classify_result.crop)
+        if classify_result.disease_name:
+            parts.append(classify_result.disease_name)
+            fts_keywords.append(classify_result.disease_name)
+        if classify_result.keywords:
+            parts.extend(classify_result.keywords)
+            fts_keywords.extend(classify_result.keywords)
+        if classify_result.growth_stage:
+            parts.append(classify_result.growth_stage.value)
 
-FEW_SHOT_EXAMPLES = [
-    {
-        "user": "My cassava leaves have yellow patches and they are curling up",
-        "output": {
-            "embedding_query": "cassava plant sick leaves yellow patches curling edges mosaic pattern young leaves affected wilting",
-            "fts_keywords": ["cassava", "mosaic", "yellow", "curl", "leaves"],
-            "reasoning": "Yellow patches and curling on cassava suggest mosaic disease. Query uses farmer-style descriptions.",
-        },
-    },
-    {
-        "user": "How do I treat rice blast organically?",
-        "output": {
-            "embedding_query": "rice blast treatment organic local materials neem copper fungicide spray application method Casamance",
-            "fts_keywords": ["rice", "blast", "organic", "treatment", "neem"],
-            "reasoning": "Searching for organic treatment methods for rice blast using locally available materials.",
-        },
-    },
-    {
-        "user": "When should I plant cassava in Casamance?",
-        "output": {
-            "embedding_query": "cassava planting time season Casamance land preparation stem cuttings spacing rainy season start June July",
-            "fts_keywords": ["cassava", "planting", "season", "Casamance", "calendar"],
-            "reasoning": "Farming advice about planting timing. Query uses season and preparation terms.",
-        },
-    },
-    {
-        "user": "How do I store rice after harvest to avoid pests?",
-        "output": {
-            "embedding_query": "rice post harvest storage techniques pest prevention drying moisture grain weevil hermetic bags local methods Senegal",
-            "fts_keywords": ["rice", "storage", "harvest", "pest", "drying"],
-            "reasoning": "Post-harvest question about storage and pest prevention. Query covers methods and local materials.",
-        },
-    },
-]
+    # Fall back to user message only when classify gave us nothing
+    if not parts:
+        parts.append(user_message)
+
+    parts.append("Casamance")
+
+    # Deduplicate while preserving order
+    seen: set[str] = set()
+    deduped: list[str] = []
+    for p in parts:
+        low = p.lower()
+        if low not in seen:
+            seen.add(low)
+            deduped.append(p)
+
+    # Deduplicate fts_keywords
+    kw_seen: set[str] = set()
+    unique_kw: list[str] = []
+    for kw in fts_keywords:
+        low = kw.lower()
+        if low not in kw_seen:
+            kw_seen.add(low)
+            unique_kw.append(kw)
+
+    return CraftedQuery(
+        embedding_query=" ".join(deduped),
+        fts_keywords=unique_kw[:7],
+        reasoning="Template from classify fields (no LLM)",
+    )
 
 
 def _parse_craft_response(response_text: str) -> CraftedQuery:
@@ -178,10 +186,10 @@ def _parse_retry_variants(response_text: str, fallback_keywords: list[str]) -> l
 def craft_search_query(state: FieldAssistantState) -> dict:
     """Craft search query/queries optimized for child chunk matching.
 
-    LLM call #2. Skipped entirely when route has no chroma_embedding engine.
+    Skipped entirely when route has no chroma_embedding engine.
 
-    On first attempt: generates a single CraftedQuery.
-    On retry (retrieval_attempts >= 1): generates 3 variant queries.
+    First attempt: template from classify fields (no LLM call).
+    Retry (retrieval_attempts >= 1): LLM generates 3 variant queries.
 
     Returns dict with: crafted_query (primary), crafted_queries (all variants on retry).
     """
@@ -270,45 +278,12 @@ def craft_search_query(state: FieldAssistantState) -> dict:
         )
         return {"crafted_query": modified, "crafted_queries": [modified]}
 
-    # --- FIRST ATTEMPT: single query ---
-    messages = [SystemMessage(content=CRAFT_QUERY_SYSTEM_PROMPT)]
+    # --- FIRST ATTEMPT: template from classify fields (no LLM) ---
+    result = _template_query(user_message, classify_result)
 
-    for ex in FEW_SHOT_EXAMPLES:
-        messages.append(HumanMessage(content=ex["user"]))
-        messages.append(AIMessage(content=json.dumps(ex["output"])))
-
-    context_parts = [user_message]
-    if classify_result:
-        if classify_result.crop:
-            context_parts.append(f"Crop: {classify_result.crop}")
-        if classify_result.disease_name:
-            context_parts.append(f"Disease: {classify_result.disease_name}")
-        if classify_result.keywords:
-            context_parts.append(f"Keywords: {', '.join(classify_result.keywords)}")
-
-    messages.append(HumanMessage(content="\n".join(context_parts)))
-
-    with log.timed(Step.CRAFT_QUERY, "llm_call") as t:
-        try:
-            llm = get_field_llm(temperature=0.3, num_predict=256, format="json")
-            response = llm.invoke(messages)
-            response_text = response.content if hasattr(response, "content") else str(response)
-        except Exception as e:
-            log.log_step(Step.CRAFT_QUERY, "llm_error", level="ERROR",
-                         details={"error": str(e)})
-            fts_keywords = classify_result.keywords if classify_result else []
-            fallback = CraftedQuery(
-                embedding_query=user_message,
-                fts_keywords=fts_keywords,
-                reasoning=f"LLM error fallback: {e}",
-            )
-            return {"crafted_query": fallback, "crafted_queries": [fallback]}
-
-        result = _parse_craft_response(response_text)
-        t.set(details={
-            "embedding_query_preview": result.embedding_query[:200],
-            "fts_keywords": result.fts_keywords,
-            "reasoning": result.reasoning[:200],
-        })
+    log.log_step(Step.CRAFT_QUERY, "template", details={
+        "embedding_query_preview": result.embedding_query[:200],
+        "fts_keywords": result.fts_keywords,
+    })
 
     return {"crafted_query": result, "crafted_queries": [result]}
