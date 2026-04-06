@@ -69,7 +69,7 @@ const latencyColor = (latency: string) => {
 
 export default function PipelineDebugPage() {
   return (
-    <div className="flex flex-col min-h-[calc(100dvh-4rem)] bg-debug-bg">
+    <div className="flex flex-col min-h-[calc(100dvh-4rem)] bg-debug-bg animate-fadeIn">
       <TopBar title="Pipeline Debug" dark badge={{ label: 'Live', variant: 'live' }} back backTo="/field" />
 
       {/* Query */}

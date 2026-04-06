@@ -11,7 +11,7 @@ const tabs = [
 
 export default function BottomNav() {
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-card border-t border-surface-dark z-50">
+    <nav className="fixed bottom-0 left-0 right-0 bg-card border-t border-surface-dark z-50 pb-[env(safe-area-inset-bottom)]" aria-label="Main navigation">
       <div className="max-w-lg mx-auto flex justify-around items-center h-16">
         {tabs.map(({ to, icon: Icon, label }) => (
           <NavLink
@@ -19,15 +19,26 @@ export default function BottomNav() {
             to={to}
             end={to === '/'}
             className={({ isActive }) =>
-              `flex flex-col items-center gap-0.5 px-3 py-2 text-xs font-medium transition-colors ${
+              `relative flex flex-col items-center gap-0.5 px-3 py-2 text-xs transition-all min-w-[44px] min-h-[44px] justify-center active:scale-90 ${
                 isActive
-                  ? 'text-primary'
-                  : 'text-text-muted hover:text-primary-light'
+                  ? 'text-primary font-semibold'
+                  : 'text-text-muted/70 font-medium hover:text-text-muted'
               }`
             }
           >
-            <Icon size={22} />
-            <span>{label}</span>
+            {({ isActive }) => (
+              <>
+                <span
+                  className={`flex items-center justify-center w-9 h-7 rounded-full transition-all ${
+                    isActive ? 'bg-primary/12' : ''
+                  }`}
+                  aria-hidden="true"
+                >
+                  <Icon size={20} aria-hidden="true" />
+                </span>
+                <span>{label}</span>
+              </>
+            )}
           </NavLink>
         ))}
       </div>

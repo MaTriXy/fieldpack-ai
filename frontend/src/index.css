@@ -21,6 +21,14 @@
   --font-mono: 'JetBrains Mono', ui-monospace, monospace;
 }
 
+html.dark {
+  --color-surface: #0F1419 !important;
+  --color-surface-dark: #1A1F2B !important;
+  --color-card: #1E2530 !important;
+  --color-text: #F0EDE8 !important;
+  --color-text-muted: #8B95A5 !important;
+}
+
 body {
   margin: 0;
   font-family: var(--font-body);
@@ -32,4 +40,85 @@ body {
 
 #root {
   min-height: 100dvh;
+}
+
+/* ── Keyframe Animations ── */
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideInLeft {
+  from { opacity: 0; transform: translateX(-16px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes slideInRight {
+  from { opacity: 0; transform: translateX(16px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes bounceTyping {
+  0%, 60%, 100% { transform: translateY(0); }
+  30% { transform: translateY(-6px); }
+}
+
+@keyframes confidenceArc {
+  from { stroke-dashoffset: var(--arc-length, 283); }
+  to { stroke-dashoffset: var(--arc-target, 0); }
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+@keyframes progressFill {
+  from { width: 0%; }
+}
+
+/* ── Tailwind v4 Utility Classes ── */
+
+@utility animate-shimmer {
+  animation: shimmer 2s linear infinite;
+  background-size: 200% 100%;
+}
+
+@utility animate-fadeIn {
+  animation: fadeIn 0.3s ease-out both;
+}
+
+@utility animate-slideUp {
+  animation: slideUp 0.35s ease-out both;
+}
+
+@utility animate-slideInLeft {
+  animation: slideInLeft 0.3s ease-out both;
+}
+
+@utility animate-slideInRight {
+  animation: slideInRight 0.3s ease-out both;
+}
+
+@utility animate-blink {
+  animation: blink 1s step-end infinite;
+}
+
+@utility animate-confidenceArc {
+  animation: confidenceArc 1.2s ease-out both;
+}
+
+@utility animate-bounceTyping {
+  animation: bounceTyping 1.4s ease-in-out infinite;
 }

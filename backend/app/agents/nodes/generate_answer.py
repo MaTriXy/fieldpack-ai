@@ -15,7 +15,7 @@ from datetime import datetime, timezone
 
 from langchain_core.messages import HumanMessage, SystemMessage
 
-from app.agents.models import ScoredResult
+from app.agents.models import ScoredResult, extract_text
 from app.agents.state import FieldAssistantState, trim_conversation_history
 from app.agents.history import history_to_nl
 from app.logger import Step, pipeline_logger as log
@@ -137,7 +137,7 @@ def generate_answer(state: FieldAssistantState) -> dict:
         try:
             llm = get_field_llm(temperature=0.4, num_predict=512)
             response = llm.invoke(messages)
-            answer = response.content if hasattr(response, "content") else str(response)
+            answer = extract_text(response)
         except Exception as e:
             log.log_step(Step.GENERATE, "llm_error", level="ERROR",
                          details={"error": str(e)})

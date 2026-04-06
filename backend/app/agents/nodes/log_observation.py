@@ -14,7 +14,7 @@ from datetime import datetime, timezone
 
 from langchain_core.messages import HumanMessage, SystemMessage
 
-from app.agents.models import IntentType
+from app.agents.models import IntentType, extract_text
 from app.agents.state import FieldAssistantState, trim_conversation_history
 from app.logger import Step, pipeline_logger as log
 from app.models.offline_llm import get_field_llm
@@ -214,7 +214,7 @@ def log_observation_node(state: FieldAssistantState) -> dict:
         try:
             llm = get_field_llm(temperature=0.2, num_predict=256, format="json")
             response = llm.invoke(messages)
-            response_text = response.content if hasattr(response, "content") else str(response)
+            response_text = extract_text(response)
             parsed = _parse_observation_response(response_text, fallback_type, user_message)
         except Exception as e:
             log.log_step(Step.OBSERVATION, "llm_error", level="ERROR",

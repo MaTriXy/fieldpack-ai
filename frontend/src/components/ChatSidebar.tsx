@@ -48,11 +48,14 @@ export default function ChatSidebar({
         className={`fixed top-0 left-0 bottom-0 z-[60] w-72 bg-card shadow-xl flex flex-col transition-transform duration-300 ease-out ${
           isOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Chat history"
       >
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-surface-dark">
           <h2 className="font-heading font-bold text-sm text-text">History</h2>
-          <button onClick={onClose} className="p-1 text-text-muted hover:text-text" aria-label="Close sidebar">
+          <button onClick={onClose} className="p-3 text-text-muted hover:text-text" aria-label="Close sidebar">
             <X size={18} />
           </button>
         </div>

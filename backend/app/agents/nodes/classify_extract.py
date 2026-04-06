@@ -13,7 +13,7 @@ import re
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 from pydantic import ValidationError
 
-from app.agents.models import ClassifyExtractOutput, IntentType
+from app.agents.models import ClassifyExtractOutput, IntentType, extract_text
 from app.agents.state import FieldAssistantState
 from app.agents.history import history_to_nl
 from app.logger import Step, pipeline_logger as log
@@ -207,7 +207,7 @@ def classify_and_extract(state: FieldAssistantState) -> dict:
         try:
             llm = get_field_llm(temperature=0.1, num_predict=256, format="json")
             response = llm.invoke(messages)
-            response_text = response.content if hasattr(response, "content") else str(response)
+            response_text = extract_text(response)
         except Exception as e:
             log.log_step(Step.CLASSIFY, "llm_error", level="ERROR",
                          details={"error": str(e)})

@@ -33,7 +33,7 @@ export default function TopBar({ title, subtitle, back, backTo, badge, leftActio
     <header className={`sticky top-0 z-40 px-4 py-3 ${dark ? 'bg-debug-bg' : 'bg-primary'}`}>
       <div className="max-w-lg mx-auto flex items-center gap-3">
         {back && (
-          <button onClick={handleBack} className="text-white p-1 -ml-1" aria-label="Go back">
+          <button onClick={handleBack} className="text-white p-2.5 -ml-2.5" aria-label="Go back">
             <ArrowLeft size={22} />
           </button>
         )}

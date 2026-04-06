@@ -17,7 +17,7 @@ import re
 
 from langchain_core.messages import HumanMessage, SystemMessage
 
-from app.agents.models import IntentType
+from app.agents.models import IntentType, extract_text
 from app.agents.state import FieldAssistantState
 from app.logger import Step, pipeline_logger as log
 from app.models.offline_llm import get_field_llm
@@ -173,7 +173,7 @@ def needs_search_node(state: FieldAssistantState) -> dict:
         try:
             llm = get_field_llm(temperature=0.1, num_predict=32)
             response = llm.invoke(messages)
-            response_text = response.content if hasattr(response, "content") else str(response)
+            response_text = extract_text(response)
             result = _parse_needs_search_response(response_text)
         except Exception as e:
             log.log_step(Step.NEEDS_SEARCH, "llm_error", level="ERROR",

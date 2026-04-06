@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Send, Menu } from 'lucide-react'
+import { Send, Menu, Leaf } from 'lucide-react'
+import MarkdownContent from '../components/MarkdownContent'
 import TopBar from '../components/layout/TopBar'
 import ChatSidebar from '../components/ChatSidebar'
 import { useSwipeToOpen } from '../hooks/useSwipeToOpen'
@@ -182,11 +183,11 @@ export default function MissionChatPage() {
             missionCard: {
               region: 'Casamance, Senegal',
               crops: ['Cassava', 'Rice'],
-              season: 'Rainy (Jul\u2013Oct)',
+              season: 'Rainy (Jul–Oct)',
               focusAreas: ['Disease ID', 'Treatment Protocols', 'Farming Calendar'],
             },
             actions: [
-              { label: 'Dispatch Agents \u2192', variant: 'primary' },
+              { label: 'Dispatch Agents →', variant: 'primary' },
               { label: 'Edit details', variant: 'secondary' },
             ],
           },
@@ -218,15 +219,15 @@ export default function MissionChatPage() {
       const response: Message = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
-        content: "Great \u2014 I'll focus on that region. Here's what I'll research for you:",
+        content: "Great — I'll focus on that region. Here's what I'll research for you:",
         missionCard: {
           region: 'Casamance, Senegal',
           crops: ['Cassava', 'Rice'],
-          season: 'Rainy (Jul\u2013Oct)',
+          season: 'Rainy (Jul–Oct)',
           focusAreas: ['Disease ID', 'Treatment Protocols', 'Farming Calendar'],
         },
         actions: [
-          { label: 'Dispatch Agents \u2192', variant: 'primary' },
+          { label: 'Dispatch Agents →', variant: 'primary' },
           { label: 'Edit details', variant: 'secondary' },
         ],
       }
@@ -254,7 +255,7 @@ export default function MissionChatPage() {
   }
 
   return (
-    <div className="flex flex-col h-[calc(100dvh-4rem)]">
+    <div className="flex flex-col h-[calc(100dvh-4rem-env(safe-area-inset-bottom,0px))]">
       <ChatSidebar
         isOpen={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
@@ -282,17 +283,46 @@ export default function MissionChatPage() {
       />
 
       {/* Chat messages */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4 bg-surface">
+      <div className="flex-1 overflow-y-auto overscroll-none px-4 py-4 space-y-4 bg-surface">
         {messages.map((msg) => (
-          <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+          <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start gap-2'}`}>
+            {msg.role === 'assistant' && (
+              <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center shrink-0 mt-1">
+                <Leaf size={14} className="text-primary" />
+              </div>
+            )}
             <div
-              className={`max-w-[85%] rounded-xl px-4 py-3 text-sm leading-relaxed ${
+              className={`max-w-[80%] rounded-xl px-4 py-3 text-sm leading-relaxed ${
                 msg.role === 'user'
-                  ? 'bg-primary text-white rounded-br-sm'
-                  : 'bg-card text-text border-l-[3px] border-primary shadow-sm rounded-bl-sm'
+                  ? 'bg-primary text-white rounded-br-sm animate-slideInRight'
+                  : 'bg-card text-text shadow-sm rounded-bl-sm animate-slideInLeft'
               }`}
             >
-              <p>{msg.content}</p>
+              {msg.role === 'user' ? (
+                <p className="whitespace-pre-wrap">{msg.content}</p>
+              ) : (
+                <MarkdownContent content={msg.content} />
+              )}
+
+              {/* Suggestion chips on the initial welcome message only */}
+              {msg.id === '1' && messages.filter((m) => m.role === 'user').length === 0 && (
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {[
+                    { label: 'Casamance, Senegal', icon: '📍' },
+                    { label: 'Cassava and rice crops', icon: '🌾' },
+                    { label: 'Disease identification focus', icon: '🔍' },
+                  ].map((chip) => (
+                    <button
+                      key={chip.label}
+                      onClick={() => setInput(chip.label)}
+                      className="flex items-center gap-1.5 text-xs bg-surface border border-surface-dark text-text-muted px-3 py-2 rounded-full hover:border-primary/40 hover:text-primary hover:bg-primary/5 transition-all whitespace-nowrap min-h-[36px]"
+                    >
+                      <span>{chip.icon}</span>
+                      <span>{chip.label}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
 
               {msg.missionCard && (
                 <div className="mt-3 bg-surface rounded-lg p-3 space-y-2 text-xs">
@@ -335,8 +365,8 @@ export default function MissionChatPage() {
                       onClick={() => handleAction(a.label)}
                       className={`text-xs font-semibold px-4 py-2 rounded-lg transition-colors ${
                         a.variant === 'primary'
-                          ? 'bg-primary text-white hover:bg-primary-light'
-                          : 'border border-text-muted text-text-muted hover:bg-surface-dark'
+                          ? 'bg-primary text-white hover:bg-primary-light min-h-[44px]'
+                          : 'border border-text-muted text-text-muted hover:bg-surface-dark min-h-[44px]'
                       }`}
                     >
                       {a.label}
@@ -349,12 +379,15 @@ export default function MissionChatPage() {
         ))}
 
         {isTyping && (
-          <div className="flex justify-start">
-            <div className="bg-card text-text-muted rounded-xl px-4 py-3 text-sm border-l-[3px] border-primary shadow-sm">
-              <div className="flex gap-1">
-                <span className="animate-bounce">.</span>
-                <span className="animate-bounce [animation-delay:0.1s]">.</span>
-                <span className="animate-bounce [animation-delay:0.2s]">.</span>
+          <div className="flex justify-start gap-2">
+            <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center shrink-0 mt-1">
+              <Leaf size={14} className="text-primary" />
+            </div>
+            <div className="bg-card text-text-muted rounded-xl rounded-bl-sm px-4 py-3 shadow-sm animate-fadeIn">
+              <div className="flex gap-1.5 items-center h-5">
+                <span className="w-2 h-2 bg-primary/40 rounded-full animate-bounceTyping" />
+                <span className="w-2 h-2 bg-primary/40 rounded-full animate-bounceTyping [animation-delay:0.15s]" />
+                <span className="w-2 h-2 bg-primary/40 rounded-full animate-bounceTyping [animation-delay:0.3s]" />
               </div>
             </div>
           </div>
@@ -365,19 +398,29 @@ export default function MissionChatPage() {
 
       {/* Input */}
       <div className="bg-card border-t border-surface-dark px-4 py-3">
-        <div className="max-w-lg mx-auto flex items-center gap-2">
-          <input
-            type="text"
+        <div className="max-w-lg mx-auto flex items-end gap-2">
+          <textarea
             value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleSend()}
+            onChange={(e) => {
+              setInput(e.target.value)
+              e.target.style.height = 'auto'
+              e.target.style.height = Math.min(e.target.scrollHeight, 120) + 'px'
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault()
+                handleSend()
+              }
+            }}
             placeholder={editing ? 'Tell me what to change...' : 'Describe your mission...'}
-            className="flex-1 bg-surface rounded-lg px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary/30"
+            rows={1}
+            className="flex-1 bg-surface rounded-lg px-4 py-2.5 text-base outline-none focus:ring-2 focus:ring-primary/30 resize-none leading-normal"
+            style={{ maxHeight: '120px' }}
           />
           <button
             onClick={handleSend}
             disabled={!input.trim() || isTyping}
-            className="bg-primary text-white p-2.5 rounded-lg disabled:opacity-40 hover:bg-primary-light transition-colors"
+            className="bg-primary text-white p-2.5 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg disabled:opacity-40 hover:bg-primary-light transition-colors shrink-0 shadow-md disabled:shadow-none"
             aria-label="Send message"
           >
             <Send size={18} />

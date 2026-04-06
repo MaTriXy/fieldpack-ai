@@ -19,7 +19,7 @@ class Settings(BaseSettings):
 
     # Field LLM provider: "ollama" for local, "google" for AI Studio API
     field_llm_provider: str = "ollama"
-    field_llm_google_model: str = "gemma-4-27b-it"
+    field_llm_google_model: str = "gemma-4-31b-it"
 
     # Tavily (Phase 1 gap analysis)
     tavily_api_key: str = ""

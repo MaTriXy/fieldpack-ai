@@ -1,12 +1,14 @@
 """Knowledge Pack builder.
 
-Assembles a complete Knowledge Pack from seed data:
-  1. Creates directory structure
-  2. Initializes SQLite with schema + seed data
-  3. Initializes ChromaDB with collections + seed chunks (embedded)
-  4. Writes manifest.json, README.md, SOURCES.md
+Two entry points:
+  build_pack()          — builds from hardcoded seed data (Phase 2 dev/demo)
+  build_pack_from_json() — builds from Agent Farm JSON output (Phase 1 pipeline)
+
+Both share _insert_chroma_chunks() for ChromaDB insertion.
 """
 
+import json
+import re
 import shutil
 import sqlite3
 from pathlib import Path
@@ -39,6 +41,13 @@ from app.knowledge_pack.seed_farming import (
     VARIETIES,
 )
 from app.logger import Step, pipeline_logger as log
+
+# Tables in FK-safe insertion order (matches compilation order)
+_TABLE_ORDER = [
+    "crops", "diseases", "crop_diseases", "treatments", "climate",
+    "pests", "varieties", "fertilization_schedule", "planting_calendar",
+    "storage_guidelines", "soil_requirements",
+]
 
 
 def build_pack(pack_name: str, base_path: Path | None = None) -> Path:
@@ -328,3 +337,288 @@ def _insert_chroma_chunks(client, chunks_by_collection: dict):
 
             collection.add(ids=ids, documents=documents, metadatas=metadatas)
             t.set(details={"collection": collection_name, "chunks": len(chunks)})
+
+
+# ============================================================
+# Generic SQLite row insertion (for Agent Farm JSON output)
+# ============================================================
+
+
+def _get_table_columns(conn: sqlite3.Connection, table_name: str) -> list[str]:
+    """Get column names for a table via PRAGMA table_info."""
+    cursor = conn.execute(f"PRAGMA table_info({table_name})")
+    return [row[1] for row in cursor.fetchall()]
+
+
+def _insert_sqlite_rows(
+    conn: sqlite3.Connection,
+    table_name: str,
+    rows: list[dict],
+) -> int:
+    """Insert a list of dicts into a SQLite table.
+
+    Only inserts keys that match actual columns (safe against extra keys).
+    Returns the number of rows inserted.
+    """
+    if not rows:
+        return 0
+
+    columns = _get_table_columns(conn, table_name)
+    if not columns:
+        log.log_step(Step.PACK_BUILD, "insert_skip_unknown_table",
+                     level="WARNING", details={"table": table_name})
+        return 0
+
+    column_set = set(columns)
+    inserted = 0
+    cursor = conn.cursor()
+
+    for row in rows:
+        # Filter to only known columns
+        filtered = {k: v for k, v in row.items() if k in column_set}
+        if not filtered:
+            continue
+
+        cols = list(filtered.keys())
+        placeholders = ", ".join("?" for _ in cols)
+        col_names = ", ".join(cols)
+        values = [filtered[c] for c in cols]
+
+        cursor.execute(
+            f"INSERT INTO {table_name} ({col_names}) VALUES ({placeholders})",
+            values,
+        )
+        inserted += 1
+
+    return inserted
+
+
+# ============================================================
+# build_pack_from_json — Phase 1 Agent Farm entry point
+# ============================================================
+
+
+def build_pack_from_json(
+    json_dir: str | Path,
+    pack_name: str,
+    chunks: dict[str, list[dict]],
+    downloaded_images: list[dict] | None = None,
+    sources: list[str] | None = None,
+    base_path: Path | None = None,
+) -> Path:
+    """Build a Knowledge Pack from Agent Farm JSON output.
+
+    Args:
+        json_dir: Directory containing 11 JSON files (one per table).
+        pack_name: Name for the Knowledge Pack directory.
+        chunks: ChromaDB chunks dict {collection_name: [chunk_dicts]}.
+        downloaded_images: List of {"local_path", "category", "entity", ...}.
+        sources: List of source names for the manifest.
+        base_path: Override for packs directory (default: settings.packs_path).
+
+    Returns:
+        Path to the created Knowledge Pack.
+    """
+    log.log_step(Step.PACK_BUILD, "build_from_json_start", details={
+        "json_dir": str(json_dir), "pack_name": pack_name,
+    })
+
+    json_path = Path(json_dir)
+    base = base_path or settings.packs_path
+    pack_path = base / pack_name
+    pack_path.mkdir(parents=True, exist_ok=True)
+
+    # Directory structure
+    (pack_path / "images" / "diseases").mkdir(parents=True, exist_ok=True)
+    (pack_path / "images" / "healthy").mkdir(parents=True, exist_ok=True)
+    (pack_path / "images" / "treatments").mkdir(parents=True, exist_ok=True)
+
+    # ---- SQLite ----
+
+    db_path = pack_path / "knowledge.db"
+    for suffix in ("", "-wal", "-shm"):
+        p = db_path.parent / (db_path.name + suffix)
+        p.unlink(missing_ok=True)
+    conn = init_sqlite_db(db_path)
+
+    table_counts: dict[str, int] = {}
+    total_rows = 0
+
+    # ---- Copy images first (so image_refs can reference verified files) ----
+
+    images_copied = 0
+    copied_images: list[dict] = []  # only successfully-copied entries
+    if downloaded_images:
+        for img in downloaded_images:
+            src = Path(img.get("local_path", ""))
+            if not src.exists():
+                continue
+            category = img.get("category", "misc")
+            entity_slug = _slugify_entity(img.get("entity", "unknown"))
+            dest_dir = pack_path / "images" / category / entity_slug
+            dest_dir.mkdir(parents=True, exist_ok=True)
+            dest = dest_dir / src.name
+            shutil.copy2(src, dest)
+            copied_images.append(img)
+            images_copied += 1
+
+    # ---- SQLite ----
+
+    with log.timed(Step.PACK_BUILD, "sqlite_insert_json") as t:
+        for table_name in _TABLE_ORDER:
+            json_file = json_path / f"{table_name}.json"
+            if not json_file.exists():
+                log.log_step(Step.PACK_BUILD, "json_file_missing",
+                             level="WARNING", details={"table": table_name})
+                table_counts[table_name] = 0
+                continue
+
+            rows = json.loads(json_file.read_text(encoding="utf-8"))
+            count = _insert_sqlite_rows(conn, table_name, rows)
+            table_counts[table_name] = count
+            total_rows += count
+
+        # Insert image_refs from successfully-copied images only
+        if copied_images:
+            image_rows = _build_image_ref_rows(copied_images)
+            img_count = _insert_sqlite_rows(conn, "image_refs", image_rows)
+            table_counts["image_refs"] = img_count
+            total_rows += img_count
+
+        conn.commit()
+        t.set(details={"total_rows": total_rows, "tables": table_counts})
+
+    schema_info = verify_sqlite_schema(conn)
+    conn.close()
+
+    log.log_step(Step.PACK_BUILD, "sqlite_seeded", details=table_counts)
+
+    # ---- ChromaDB ----
+
+    chroma_path = pack_path / "chroma_db"
+    if chroma_path.exists():
+        shutil.rmtree(chroma_path)
+    client = init_chroma_db(chroma_path)
+    _insert_chroma_chunks(client, chunks)
+    chroma_info = verify_chroma_collections(client)
+
+    total_chunks = sum(chroma_info.values())
+    log.log_step(Step.PACK_BUILD, "chroma_seeded", details={
+        "total_chunks": total_chunks, "collections": chroma_info,
+    })
+
+    # ---- Manifest ----
+
+    crop_names = []
+    crops_json = json_path / "crops.json"
+    if crops_json.exists():
+        crop_data = json.loads(crops_json.read_text(encoding="utf-8"))
+        crop_names = [c.get("name", "") for c in crop_data if c.get("name")]
+
+    manifest = create_manifest(
+        pack_path=pack_path,
+        name="Casamance Agriculture Pack",
+        description=(
+            "Agricultural knowledge for humanitarian workers assisting "
+            "smallholder farmers in the Casamance region of Senegal. "
+            "Compiled by Gemma 4 AI agents from authoritative sources."
+        ),
+        region=RegionInfo(
+            name="Casamance",
+            country="Senegal",
+            coordinates={"lat": 12.55, "lon": -15.5},
+            climate_zone="tropical_savanna",
+        ),
+        crops=crop_names,
+        statistics=Statistics(
+            diseases_count=table_counts.get("diseases", 0),
+            treatments_count=table_counts.get("treatments", 0),
+            farming_practices_count=len(chunks.get("farming_practices", [])) // 2,
+            text_chunks=total_chunks,
+            images_count=images_copied,
+        ),
+        models_used=ModelsUsed(
+            research_agents=settings.online_model_research,
+            knowledge_compiler=settings.online_model_large,
+            embedding_model=settings.embedding_model,
+            embedding_dimensions=settings.embedding_dimensions,
+        ),
+        sources=sources or [],
+    )
+
+    # ---- README ----
+
+    (pack_path / "README.md").write_text(
+        f"# {manifest.name}\n\n"
+        f"{manifest.description}\n\n"
+        f"## Contents\n\n"
+        f"- **{table_counts.get('crops', 0)} crops**: {', '.join(crop_names)}\n"
+        f"- **{table_counts.get('diseases', 0)} diseases** with visual identification guides\n"
+        f"- **{table_counts.get('treatments', 0)} treatment protocols** (organic and conventional)\n"
+        f"- **{table_counts.get('pests', 0)} pests** with identification and control methods\n"
+        f"- **{table_counts.get('varieties', 0)} crop varieties** with local adaptation data\n"
+        f"- **{table_counts.get('planting_calendar', 0)} planting calendar** entries\n"
+        f"- **{table_counts.get('climate', 0)} months** of Casamance climate data\n"
+        f"- **{total_chunks} knowledge chunks** for semantic search\n"
+        f"- **{images_copied} reference images**\n\n"
+        f"## Usage\n\n"
+        f"Load this pack with FieldPack AI's offline field assistant.\n"
+        f"The recommended edge model is `{manifest.recommended_edge_model}`.\n",
+        encoding="utf-8",
+    )
+
+    # ---- SOURCES ----
+
+    (pack_path / "SOURCES.md").write_text(
+        "# Data Sources\n\n"
+        "All data was gathered and validated by Gemma 4 agents from:\n\n"
+        + "\n".join(f"- {s}" for s in manifest.sources)
+        + "\n\nData is provided for educational and humanitarian purposes.\n",
+        encoding="utf-8",
+    )
+
+    log.log_step(Step.PACK_BUILD, "build_from_json_complete", details={
+        "pack_path": str(pack_path),
+        "total_rows": total_rows,
+        "total_chunks": total_chunks,
+        "images_copied": images_copied,
+    })
+
+    return pack_path
+
+
+def _slugify_entity(name: str) -> str:
+    """Convert entity name to a filesystem-safe slug."""
+    return re.sub(r"[^a-z0-9]+", "_", name.lower()).strip("_")
+
+
+def _build_image_ref_rows(
+    copied_images: list[dict],
+) -> list[dict]:
+    """Build image_refs rows from successfully-copied image metadata.
+
+    Maps category names to image_refs.type values and generates
+    relative file paths matching the pack directory structure:
+      images/{category}/{entity_slug}/{filename}
+    """
+    _CATEGORY_TO_TYPE = {
+        "diseases": "disease_symptom",
+        "healthy": "healthy_reference",
+        "treatments": "treatment_demo",
+    }
+
+    rows: list[dict] = []
+    for i, img in enumerate(copied_images, start=1):
+        src = Path(img.get("local_path", ""))
+        category = img.get("category", "misc")
+        entity_slug = _slugify_entity(img.get("entity", "unknown"))
+        rel_path = f"images/{category}/{entity_slug}/{src.name}"
+
+        rows.append({
+            "id": i,
+            "file_path": rel_path,
+            "type": _CATEGORY_TO_TYPE.get(category, "disease_symptom"),
+            "description": img.get("entity", ""),
+        })
+
+    return rows

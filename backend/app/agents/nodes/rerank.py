@@ -17,7 +17,7 @@ import re
 
 from langchain_core.messages import HumanMessage, SystemMessage
 
-from app.agents.models import ResultType, ScoredResult, SearchResult
+from app.agents.models import ResultType, ScoredResult, SearchResult, extract_text
 from app.agents.state import FieldAssistantState
 from app.logger import Step, pipeline_logger as log
 from app.models.offline_llm import get_field_llm
@@ -225,7 +225,7 @@ def _llm_rerank(
     try:
         llm = get_field_llm(temperature=0.1, num_predict=512, format="json")
         response = llm.invoke(messages)
-        response_text = response.content if hasattr(response, "content") else str(response)
+        response_text = extract_text(response)
     except Exception as e:
         log.log_step(Step.RERANK, "llm_error", level="ERROR",
                      details={"error": str(e)})

@@ -3,12 +3,12 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 from app.config import settings
 
 
-def get_planner_llm() -> ChatGoogleGenerativeAI:
+def get_planner_llm(temperature: float = 0.3) -> ChatGoogleGenerativeAI:
     """Gemma 4 31B — used for mission planning and knowledge compilation."""
     return ChatGoogleGenerativeAI(
         model=settings.online_model_large,
         google_api_key=settings.google_ai_studio_api_key,
-        temperature=0.3,
+        temperature=temperature,
     )
 
 

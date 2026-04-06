@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { Send, Camera, Mic, Check, ChevronDown, Menu } from 'lucide-react'
+import { Send, Camera, Check, ChevronDown, Menu, AlertCircle, X, Leaf, FileText, Square } from 'lucide-react'
+import MarkdownContent from '../components/MarkdownContent'
 import TopBar from '../components/layout/TopBar'
 import ChatSidebar from '../components/ChatSidebar'
 import { useSwipeToOpen } from '../hooks/useSwipeToOpen'
@@ -9,9 +10,12 @@ import {
   createConversation,
   getConversation,
   saveConversation,
+  uploadImageBase64,
   type ConversationSummary,
   type MessageData,
 } from '../lib/api'
+import { getWsUrl, isNative } from '../lib/config'
+import ServerSettings, { ServerSettingsButton } from '../components/ServerSettings'
 
 interface Message {
   id: string
@@ -30,7 +34,53 @@ interface DiagnosisPreview {
   pathogen: string
 }
 
-const PIPELINE_STEPS = ['Classifying', 'Routing', 'Searching', 'Reranking', 'Generating']
+const PHOTO_ANALYSIS_PHASES = [
+  'Analyzing photo...',
+  'Identifying symptoms...',
+  'Checking knowledge base...',
+  'Generating diagnosis...',
+]
+
+function PhotoAnalysisOverlay() {
+  const [phase, setPhase] = useState(0)
+
+  useEffect(() => {
+    const id = setInterval(() => {
+      setPhase((p) => (p + 1) % PHOTO_ANALYSIS_PHASES.length)
+    }, 2000)
+    return () => clearInterval(id)
+  }, [])
+
+  return (
+    <div className="absolute inset-0 rounded-lg overflow-hidden">
+      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-shimmer" />
+      <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+        <div className="text-center px-3">
+          <div className="w-8 h-8 border-2 border-white border-t-transparent rounded-full animate-spin mx-auto mb-2" />
+          <p className="text-white text-xs font-medium leading-snug">
+            {PHOTO_ANALYSIS_PHASES[phase]}
+          </p>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// Maps backend step names to display labels
+const STEP_LABELS: Record<string, string> = {
+  classifying: 'Classifying',
+  routing: 'Routing',
+  evaluating: 'Evaluating',
+  crafting: 'Crafting Query',
+  searching: 'Searching',
+  reranking: 'Reranking',
+  expanding: 'Expanding Search',
+  generating: 'Generating',
+  saving: 'Saving Observation',
+}
+
+// Ordered steps for the progress dots
+const STEP_ORDER = ['classifying', 'routing', 'searching', 'reranking', 'generating']
 
 function deriveTitle(firstMessage: string): string {
   const cleaned = firstMessage.replace(/\n/g, ' ').trim()
@@ -70,9 +120,11 @@ function apiToMessages(data: MessageData[]): Message[] {
 export default function FieldChatPage() {
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
-  const [pipelineStep, setPipelineStep] = useState(0)
+  const [currentStep, setCurrentStep] = useState<string | null>(null)
   const [isStreaming, setIsStreaming] = useState(false)
+  const [streamingContent, setStreamingContent] = useState('')
   const [showSources, setShowSources] = useState<string | null>(null)
+  const [wsError, setWsError] = useState<string | null>(null)
 
   // Conversation state
   const [conversationId, setConversationId] = useState<string | null>(null)
@@ -80,16 +132,170 @@ export default function FieldChatPage() {
   const [conversations, setConversations] = useState<ConversationSummary[]>([])
   const [sidebarLoading, setSidebarLoading] = useState(false)
 
+  // Pipeline context threaded back to backend on each turn
+  const pipelineHistory = useRef<Record<string, unknown>[]>([])
+  const pipelineSummary = useRef('')
+
+  // Server settings modal (native only)
+  const [showServerSettings, setShowServerSettings] = useState(false)
+
+  // Pending photo to attach to next message
+  const [pendingImage, setPendingImage] = useState<{ base64: string; format: string; preview: string } | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
+
   const bottomRef = useRef<HTMLDivElement>(null)
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
-  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const wsRef = useRef<WebSocket | null>(null)
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const skipNextSave = useRef(false)
+  const pendingSourcesRef = useRef<{ name: string; score: number }[] | null>(null)
+  const reconnectAttempts = useRef(0)
+  const MAX_RECONNECT_ATTEMPTS = 5
   const navigate = useNavigate()
   const location = useLocation()
 
   const openSidebar = useCallback(() => setSidebarOpen(true), [])
   useSwipeToOpen(openSidebar)
+
+  // WebSocket connection management
+  const connectWs = useCallback(() => {
+    const rs = wsRef.current?.readyState
+    if (rs === WebSocket.OPEN || rs === WebSocket.CONNECTING) return
+
+    if (reconnectAttempts.current >= MAX_RECONNECT_ATTEMPTS) {
+      setWsError('Could not connect to server. Click to retry.')
+      return
+    }
+
+    const ws = new WebSocket(getWsUrl())
+
+    ws.onopen = () => {
+      reconnectAttempts.current = 0
+      setWsError(null)
+    }
+
+    ws.onmessage = (event) => {
+      let data: Record<string, unknown>
+      try {
+        data = JSON.parse(event.data)
+      } catch {
+        setWsError('Received invalid data from server')
+        setStreamingContent('')
+        setCurrentStep(null)
+        setIsStreaming(false)
+        return
+      }
+
+      switch (data.type) {
+        case 'status':
+          setCurrentStep(data.step as string)
+          break
+
+        case 'token':
+          setStreamingContent((prev) => prev + (data.content as string))
+          break
+
+        case 'sources':
+          // Store sources — will attach to the assistant message on done
+          pendingSourcesRef.current = ((data.sources as { title: string; score: number }[]) || []).map(
+            (s) => ({ name: s.title, score: s.score })
+          )
+          break
+
+        case 'answer_done':
+          // Token stream complete — generating step done
+          setCurrentStep(null)
+          break
+
+        case 'done': {
+          // Thread conversation context for next turn
+          pipelineHistory.current = (data.conversation_history as Record<string, unknown>[]) || []
+          pipelineSummary.current = (data.conversation_summary as string) || ''
+
+          const finalAnswer = (data.final_answer as string) || ''
+          const observationStats = data.observation_stats as Record<string, unknown> | null
+
+          // Build the assistant message
+          let content = finalAnswer
+          if (!content && observationStats) {
+            content = `Observation saved. (${(observationStats as Record<string, unknown>).count || 1} total observations logged)`
+          }
+          if (!content) {
+            content = 'I processed your request but could not generate a response. Please try again.'
+          }
+
+          const sources = pendingSourcesRef.current
+          pendingSourcesRef.current = null
+
+          setMessages((prev) => [
+            ...prev,
+            {
+              id: Date.now().toString(),
+              role: 'assistant',
+              content,
+              sources: sources || undefined,
+            },
+          ])
+          setStreamingContent('')
+          setCurrentStep(null)
+          setIsStreaming(false)
+          break
+        }
+
+        case 'error':
+          setWsError(data.message as string)
+          // Show error inline in chat if we were mid-stream
+          if (isStreaming) {
+            setMessages((prev) => [
+              ...prev,
+              {
+                id: Date.now().toString(),
+                role: 'assistant',
+                content: `Error: ${data.message}`,
+              },
+            ])
+          }
+          setStreamingContent('')
+          setCurrentStep(null)
+          setIsStreaming(false)
+          break
+      }
+    }
+
+    ws.onclose = () => {
+      // If wsRef was already nulled (e.g. by stop button or unmount), skip reconnect
+      if (wsRef.current !== ws) return
+      wsRef.current = null
+      // Auto-reconnect with exponential backoff
+      reconnectAttempts.current += 1
+      if (reconnectAttempts.current < MAX_RECONNECT_ATTEMPTS) {
+        const delay = Math.min(2000 * Math.pow(2, reconnectAttempts.current - 1), 16000)
+        setTimeout(() => {
+          if (!wsRef.current) connectWs()
+        }, delay)
+      } else {
+        setWsError('Could not connect to server. Click to retry.')
+      }
+    }
+
+    ws.onerror = () => {
+      setWsError('Connection lost. Reconnecting...')
+    }
+
+    wsRef.current = ws
+  }, [])
+
+  // Connect WebSocket on mount, disconnect on unmount
+  useEffect(() => {
+    connectWs()
+    return () => {
+      const ws = wsRef.current
+      if (ws) {
+        wsRef.current = null // prevent reconnect
+        ws.close()
+      }
+    }
+  }, [connectWs])
 
   // Fetch conversations when sidebar opens
   useEffect(() => {
@@ -110,20 +316,19 @@ export default function FieldChatPage() {
     }
   }, [location.state])
 
+  // Auto-scroll on new messages or streaming tokens
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages])
+  }, [messages, streamingContent])
 
-  // Cleanup all timers on unmount
+  // Cleanup save timer on unmount
   useEffect(() => {
     return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current)
-      if (timeoutRef.current) clearTimeout(timeoutRef.current)
       if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current)
     }
   }, [])
 
-  // Auto-save after messages change (debounced — only when we have a conversation and messages)
+  // Auto-save after messages change (debounced)
   useEffect(() => {
     if (!conversationId || messages.length === 0 || isStreaming) return
     if (skipNextSave.current) {
@@ -134,7 +339,7 @@ export default function FieldChatPage() {
     saveTimeoutRef.current = setTimeout(() => {
       const firstUserMsg = messages.find((m) => m.role === 'user')
       const title = firstUserMsg ? deriveTitle(firstUserMsg.content) : 'New conversation'
-      saveConversation(conversationId, 'field', messagesToApi(messages), title)
+      saveConversation(conversationId, 'field', messagesToApi(messages), title, pipelineSummary.current || undefined)
     }, 500)
     return () => {
       if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current)
@@ -147,12 +352,15 @@ export default function FieldChatPage() {
       setConversationId(conv.id)
       setMessages([])
       setInput('')
+      pipelineHistory.current = []
+      pipelineSummary.current = ''
       setSidebarOpen(false)
     } catch {
-      // If pack not loaded, just clear locally
       setConversationId(null)
       setMessages([])
       setInput('')
+      pipelineHistory.current = []
+      pipelineSummary.current = ''
       setSidebarOpen(false)
     }
   }
@@ -163,54 +371,127 @@ export default function FieldChatPage() {
       skipNextSave.current = true
       setConversationId(conv.id)
       setMessages(apiToMessages(conv.messages))
+      // Reset pipeline context — loaded conversation starts fresh context
+      pipelineHistory.current = []
+      pipelineSummary.current = ''
       setSidebarOpen(false)
     } catch {
       // Conversation may have been deleted
     }
   }
 
-  const handleSend = () => {
-    if (!input.trim() || isStreaming) return
+  const handleCamera = async () => {
+    if (isNative()) {
+      // Capacitor native camera
+      try {
+        const { Camera: CapCamera, CameraResultType, CameraSource } = await import('@capacitor/camera')
+        const photo = await CapCamera.getPhoto({
+          quality: 80,
+          allowEditing: false,
+          resultType: CameraResultType.Base64,
+          source: CameraSource.Prompt, // Let user choose camera vs gallery
+          width: 1024, // Cap resolution to reduce payload size
+          height: 1024,
+        })
+        if (photo.base64String) {
+          setPendingImage({
+            base64: photo.base64String,
+            format: photo.format || 'jpeg',
+            preview: `data:image/${photo.format || 'jpeg'};base64,${photo.base64String}`,
+          })
+        }
+      } catch {
+        // User cancelled or camera unavailable
+      }
+    } else {
+      // Web fallback: trigger file input
+      fileInputRef.current?.click()
+    }
+  }
 
-    const userMsg: Message = { id: Date.now().toString(), role: 'user', content: input.trim() }
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = () => {
+      const result = reader.result as string
+      // Strip data:image/...;base64, prefix
+      const base64 = result.split(',')[1]
+      const format = file.type.split('/')[1] || 'jpeg'
+      setPendingImage({ base64, format, preview: result })
+    }
+    reader.readAsDataURL(file)
+    // Reset so same file can be selected again
+    e.target.value = ''
+  }
+
+  const handleSend = async () => {
+    if ((!input.trim() && !pendingImage) || isStreaming) return
+
+    const ws = wsRef.current
+    if (!ws || ws.readyState !== WebSocket.OPEN) {
+      setWsError('Not connected to server. Please wait...')
+      connectWs()
+      return
+    }
+
+    const messageText = input.trim() || (pendingImage ? 'What disease does this plant have?' : '')
+    const userMsg: Message = {
+      id: Date.now().toString(),
+      role: 'user',
+      content: messageText,
+      image: pendingImage?.preview,
+    }
     setMessages((prev) => [...prev, userMsg])
     setInput('')
+    if (textareaRef.current) textareaRef.current.style.height = 'auto'
     setIsStreaming(true)
+    setWsError(null)
+    setStreamingContent('')
+    setCurrentStep(null)
 
-    // Auto-create conversation if none active (fire-and-forget, auto-save handles persistence)
+    // Upload image if attached, then send message
+    let imagePath: string | null = null
+    if (pendingImage) {
+      try {
+        imagePath = await uploadImageBase64(pendingImage.base64, pendingImage.format)
+      } catch {
+        setWsError('Failed to upload image. Check server connection.')
+        // Remove the phantom user message we already added
+        setMessages((prev) => prev.filter((m) => m.id !== userMsg.id))
+        setIsStreaming(false)
+        return
+      }
+      setPendingImage(null)
+    }
+
+    // Auto-create conversation if none active
     if (!conversationId) {
-      createConversation('field', deriveTitle(userMsg.content))
+      createConversation('field', deriveTitle(messageText))
         .then((conv) => setConversationId(conv.id))
         .catch(() => {})
     }
-    setPipelineStep(0)
 
-    let step = 0
-    intervalRef.current = setInterval(() => {
-      step++
-      if (step >= PIPELINE_STEPS.length - 1) {
-        if (intervalRef.current) clearInterval(intervalRef.current)
-        intervalRef.current = null
-        setPipelineStep(PIPELINE_STEPS.length - 1)
-
-        timeoutRef.current = setTimeout(() => {
-          timeoutRef.current = null
-          setIsStreaming(false)
-          setMessages((prev) => [
-            ...prev,
-            {
-              id: (Date.now() + 1).toString(),
-              role: 'assistant',
-              content: 'Based on your question, here is what I found in the knowledge base...',
-              suggestions: ['Tell me more', 'What about prevention?', 'Show related diseases'],
-            },
-          ])
-        }, 1500)
-      } else {
-        setPipelineStep(step)
-      }
-    }, 800)
+    // Send to backend via WebSocket
+    ws.send(JSON.stringify({
+      message: messageText,
+      image_path: imagePath,
+      conversation_history: pipelineHistory.current,
+      conversation_summary: pipelineSummary.current,
+      session_id: conversationId,
+    }))
   }
+
+  // Compute which step index we're on for the progress dots
+  const stepIndex = currentStep ? STEP_ORDER.indexOf(currentStep) : -1
+  // Map non-standard steps (evaluating, crafting, expanding, saving) to nearest dot
+  const effectiveStepIndex = stepIndex >= 0
+    ? stepIndex
+    : currentStep === 'evaluating' ? 1
+    : currentStep === 'crafting' ? 2
+    : currentStep === 'expanding' ? 2
+    : currentStep === 'saving' ? 4
+    : 0
 
   const severityColor = (s: string) =>
     s === 'High'
@@ -219,8 +500,22 @@ export default function FieldChatPage() {
         ? 'bg-secondary/10 text-secondary'
         : 'bg-primary/10 text-primary'
 
+  // ID of the most recent user message — used to show photo analysis overlay
+  const lastUserMsgId = messages.findLast((m) => m.role === 'user')?.id
+
+  // Find last assistant message's suggestions for chip display (avoid O(n) reverse per render)
+  let lastSuggestions: string[] | undefined
+  if (!isStreaming && messages.length > 0) {
+    for (let i = messages.length - 1; i >= 0; i--) {
+      if (messages[i].role === 'assistant' && messages[i].suggestions) {
+        lastSuggestions = messages[i].suggestions
+        break
+      }
+    }
+  }
+
   return (
-    <div className="flex flex-col h-[calc(100dvh-4rem)]">
+    <div className="flex flex-col h-[calc(100dvh-4rem-env(safe-area-inset-bottom,0px))]">
       <ChatSidebar
         isOpen={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
@@ -232,7 +527,7 @@ export default function FieldChatPage() {
       />
 
       <TopBar
-        title="Field Assistant"
+        title="Field AI"
         backTo="/"
         back
         badge={{ label: 'Offline', variant: 'offline' }}
@@ -246,64 +541,162 @@ export default function FieldChatPage() {
           </button>
         }
         rightAction={
-          <span className="text-xs text-white/60 flex items-center gap-1">
-            <Check size={12} />
-            Casamance
-          </span>
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-white/60 flex items-center gap-1">
+              <Check size={12} />
+              Casamance
+            </span>
+            <ServerSettingsButton onClick={() => setShowServerSettings(true)} />
+          </div>
         }
       />
 
+      {/* Error banner */}
+      {wsError && (
+        <div className="bg-tertiary/10 border-b border-tertiary/20 px-4 py-2 flex items-center gap-2">
+          <AlertCircle size={14} className="text-tertiary shrink-0" />
+          <span className="text-xs text-tertiary">{wsError}</span>
+          {reconnectAttempts.current >= MAX_RECONNECT_ATTEMPTS && (
+            <button
+              onClick={() => {
+                reconnectAttempts.current = 0
+                setWsError(null)
+                connectWs()
+              }}
+              className="text-xs font-semibold text-tertiary underline hover:text-tertiary/80"
+            >
+              Retry
+            </button>
+          )}
+          <button
+            onClick={() => setWsError(null)}
+            className="ml-auto text-xs text-tertiary/60 hover:text-tertiary"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
+
       {/* Pipeline status */}
-      {isStreaming && (
-        <div className="bg-primary-dark px-4 py-1.5">
-          <div className="max-w-lg mx-auto flex items-center gap-2">
-            <span className="text-xs text-white/70">{PIPELINE_STEPS[pipelineStep]}...</span>
-            <div className="flex gap-1 ml-auto">
-              {PIPELINE_STEPS.map((_, i) => (
-                <span
-                  key={i}
-                  className={`w-1.5 h-1.5 rounded-full ${
-                    i < pipelineStep
-                      ? 'bg-primary-light'
-                      : i === pipelineStep
-                        ? 'bg-secondary animate-pulse'
-                        : 'bg-white/20'
-                  }`}
-                />
-              ))}
+      {isStreaming && currentStep && (
+        <div className="bg-primary-dark">
+          <div className="h-[3px] bg-white/10 w-full overflow-hidden">
+            <div
+              className="h-full bg-secondary transition-all duration-500 ease-out"
+              style={{ width: `${Math.max(((effectiveStepIndex + 1) / STEP_ORDER.length) * 100, 10)}%` }}
+            />
+          </div>
+          <div className="px-4 py-1.5">
+            <div className="max-w-lg mx-auto flex items-center gap-2">
+              <span className="text-xs text-white/70">
+                {STEP_LABELS[currentStep] || currentStep}...
+              </span>
+              <span className="text-xs text-white/40 ml-auto">
+                Step {effectiveStepIndex + 1}/{STEP_ORDER.length}
+              </span>
             </div>
           </div>
         </div>
       )}
 
       {/* Chat */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4 bg-surface">
+      <div className="flex-1 overflow-y-auto overscroll-none px-4 py-4 space-y-4 bg-surface">
         {messages.length === 0 && !isStreaming && (
-          <div className="flex flex-col items-center justify-center h-full text-text-muted text-sm gap-2">
-            <p className="font-heading font-semibold text-base text-text">Ask about your crops</p>
-            <p className="text-center text-xs max-w-[250px]">
-              Describe symptoms, upload a photo, or ask about farming practices in Casamance.
-            </p>
+          <div className="flex flex-col items-center justify-center h-full gap-5 animate-fadeIn px-2">
+            {/* Hero icon with layered gradient rings */}
+            <div className="relative flex items-center justify-center">
+              <div className="absolute w-28 h-28 rounded-full bg-primary/5" />
+              <div className="absolute w-20 h-20 rounded-full bg-primary/8" />
+              <div className="w-16 h-16 rounded-full bg-gradient-to-br from-primary to-primary-light flex items-center justify-center shadow-lg shadow-primary/20">
+                <Leaf size={32} className="text-white" />
+              </div>
+            </div>
+            <div className="text-center">
+              <p className="font-heading font-bold text-xl text-text">Ask about your crops</p>
+              <p className="text-sm text-text-muted mt-1.5 max-w-[280px] leading-relaxed">
+                Describe symptoms, upload a photo, or ask about farming practices — works fully offline.
+              </p>
+            </div>
+            <div className="grid grid-cols-2 gap-2.5 w-full max-w-[320px]">
+              {[
+                {
+                  icon: '📸',
+                  label: 'Diagnose a plant',
+                  desc: 'Photo or symptom description',
+                  prompt: 'What disease does this plant have?',
+                  accent: 'border-l-4 border-l-primary',
+                },
+                {
+                  icon: '🐛',
+                  label: 'Pest control',
+                  desc: 'Identify and treat infestations',
+                  prompt: 'How do I control pests on my cassava?',
+                  accent: 'border-l-4 border-l-tertiary',
+                },
+                {
+                  icon: '🌱',
+                  label: 'Planting guide',
+                  desc: 'Timing and spacing advice',
+                  prompt: 'When should I plant cassava in Casamance?',
+                  accent: 'border-l-4 border-l-secondary',
+                },
+                {
+                  icon: '💧',
+                  label: 'Irrigation advice',
+                  desc: 'Water management methods',
+                  prompt: 'What irrigation methods work best for rice in Casamance?',
+                  accent: 'border-l-4 border-l-primary-light',
+                },
+              ].map((card) => (
+                <button
+                  key={card.label}
+                  onClick={() => { setInput(card.prompt); }}
+                  className={`${card.accent} bg-card rounded-xl p-3.5 text-left shadow-sm border border-surface-dark hover:shadow-md hover:scale-[1.02] transition-all min-h-[44px]`}
+                >
+                  <span className="text-2xl">{card.icon}</span>
+                  <p className="text-xs font-semibold text-text mt-1.5 leading-tight">{card.label}</p>
+                  <p className="text-[11px] text-text-muted mt-0.5 leading-tight">{card.desc}</p>
+                </button>
+              ))}
+            </div>
           </div>
         )}
 
         {messages.map((msg) => (
-          <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+          <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start gap-2'}`}>
+            {msg.role === 'assistant' && (
+              <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center shrink-0 mt-1">
+                <Leaf size={14} className="text-primary" />
+              </div>
+            )}
             <div
-              className={`max-w-[85%] rounded-xl px-4 py-3 text-sm leading-relaxed ${
+              className={`max-w-[80%] rounded-xl px-4 py-3 text-sm leading-relaxed ${
                 msg.role === 'user'
-                  ? 'bg-primary text-white rounded-br-sm'
-                  : 'bg-card text-text border-l-[3px] border-primary shadow-sm rounded-bl-sm'
+                  ? 'bg-primary text-white rounded-br-sm animate-slideInRight'
+                  : 'bg-card text-text shadow-sm rounded-bl-sm animate-slideInLeft'
               }`}
             >
               {msg.image && (
-                <div className="mb-2 rounded-lg overflow-hidden bg-surface-dark h-32 flex items-center justify-center">
-                  <Camera size={24} className="text-text-muted" />
-                  <span className="ml-2 text-xs text-text-muted">Photo attached</span>
+                <div className="mb-2 rounded-lg overflow-hidden relative">
+                  {msg.image.startsWith('data:') ? (
+                    <img src={msg.image} alt="Attached plant photo" className="max-h-48 rounded-lg object-cover w-full" />
+                  ) : (
+                    <div className="bg-surface-dark h-32 flex items-center justify-center rounded-lg">
+                      <Camera size={24} className="text-text-muted" />
+                      <span className="ml-2 text-xs text-text-muted">Photo attached</span>
+                    </div>
+                  )}
+                  {isStreaming && msg.id === lastUserMsgId && (
+                    <PhotoAnalysisOverlay />
+                  )}
                 </div>
               )}
 
-              <p>{msg.content}</p>
+              {msg.role === 'user' ? (
+                <p className="whitespace-pre-wrap">{msg.content}</p>
+              ) : (
+                <MarkdownContent content={msg.content} />
+              )}
 
               {msg.diagnosis && (
                 <div className="mt-3 bg-surface rounded-lg p-3 space-y-1.5">
@@ -320,10 +713,10 @@ export default function FieldChatPage() {
                   </div>
                   <p className="text-xs text-text-muted">{msg.diagnosis.pathogen}</p>
                   <button
-                    onClick={() => navigate('/field/diagnosis')}
-                    className="mt-2 text-xs font-semibold bg-secondary text-primary-dark px-3 py-1.5 rounded-lg hover:bg-secondary-light transition-colors"
+                    onClick={() => navigate('/field/diagnosis', { state: { image: msg.image } })}
+                    className="mt-2 text-xs font-semibold bg-secondary text-primary-dark px-3 py-2.5 rounded-lg hover:bg-secondary-light transition-colors min-h-[44px]"
                   >
-                    View Full Diagnosis &rarr;
+                    View Full Diagnosis →
                   </button>
                 </div>
               )}
@@ -332,51 +725,51 @@ export default function FieldChatPage() {
                 <div className="mt-2">
                   <button
                     onClick={() => setShowSources(showSources === msg.id ? null : msg.id)}
-                    className="flex items-center gap-1 text-xs text-text-muted hover:text-text"
+                    className="flex items-center gap-1.5 text-xs text-text-muted hover:text-text py-1"
                   >
+                    <FileText size={12} className="shrink-0" />
+                    <span>{msg.sources.length} sources consulted</span>
                     <ChevronDown
                       size={12}
-                      className={showSources === msg.id ? 'rotate-180 transition-transform' : 'transition-transform'}
+                      className={`transition-transform ${showSources === msg.id ? 'rotate-180' : ''}`}
                     />
-                    {msg.sources.length} sources
                   </button>
                   {showSources === msg.id && (
-                    <div className="mt-1.5 space-y-1">
+                    <div className="mt-1.5 space-y-1.5">
                       {msg.sources.map((s) => (
-                        <div key={s.name} className="flex items-center justify-between text-xs text-text-muted">
-                          <span>{s.name}</span>
-                          <span className="font-mono">{s.score.toFixed(2)}</span>
+                        <div key={s.name} className="flex items-center gap-2 text-xs text-text-muted">
+                          <FileText size={10} className="shrink-0" />
+                          <span className="flex-1 truncate">{s.name}</span>
+                          <span className={`w-2 h-2 rounded-full shrink-0 ${s.score >= 0.7 ? 'bg-primary' : s.score >= 0.4 ? 'bg-secondary' : 'bg-text-muted/30'}`} />
                         </div>
                       ))}
                     </div>
                   )}
                 </div>
               )}
-
-              {msg.suggestions && (
-                <div className="mt-3 flex gap-1.5 flex-wrap">
-                  {msg.suggestions.map((s) => (
-                    <button
-                      key={s}
-                      onClick={() => setInput(s)}
-                      className="text-xs bg-surface text-text px-3 py-1.5 rounded-full border border-surface-dark hover:bg-surface-dark transition-colors"
-                    >
-                      {s}
-                    </button>
-                  ))}
-                </div>
-              )}
             </div>
           </div>
         ))}
 
+        {/* Streaming bubble — shows live tokens as they arrive */}
         {isStreaming && (
-          <div className="flex justify-start">
-            <div className="bg-card rounded-xl px-4 py-3 text-sm border-l-[3px] border-primary shadow-sm">
-              <div className="flex items-center gap-2 text-text-muted">
-                <div className="w-2 h-2 bg-secondary rounded-full animate-pulse" />
-                <span className="text-xs">{PIPELINE_STEPS[pipelineStep]}...</span>
-              </div>
+          <div className="flex justify-start gap-2">
+            <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center shrink-0 mt-1">
+              <Leaf size={14} className="text-primary" />
+            </div>
+            <div className="max-w-[80%] bg-card rounded-xl rounded-bl-sm px-4 py-3 text-sm shadow-sm animate-fadeIn" aria-live="polite">
+              {streamingContent ? (
+                <div className="leading-relaxed">
+                  <MarkdownContent content={streamingContent} />
+                  <span className="inline-block w-0.5 h-4 bg-primary ml-0.5 animate-blink align-text-bottom" />
+                </div>
+              ) : (
+                <div className="flex gap-1.5 items-center h-5">
+                  <span className="w-2 h-2 bg-primary/40 rounded-full animate-bounceTyping" />
+                  <span className="w-2 h-2 bg-primary/40 rounded-full animate-bounceTyping [animation-delay:0.15s]" />
+                  <span className="w-2 h-2 bg-primary/40 rounded-full animate-bounceTyping [animation-delay:0.3s]" />
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -386,31 +779,120 @@ export default function FieldChatPage() {
 
       {/* Input */}
       <div className="bg-card border-t border-surface-dark px-4 py-3">
-        <div className="max-w-lg mx-auto flex items-center gap-2">
-          <button className="text-text-muted p-2 hover:text-primary transition-colors" aria-label="Attach photo">
-            <Camera size={20} />
-          </button>
-          <input
-            type="text"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-            placeholder="Ask about your crops..."
-            className="flex-1 bg-surface rounded-lg px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary/30"
-          />
-          <button className="text-text-muted p-2 hover:text-primary transition-colors" aria-label="Voice input">
-            <Mic size={20} />
-          </button>
-          <button
-            onClick={handleSend}
-            disabled={!input.trim() || isStreaming}
-            className="bg-primary text-white p-2.5 rounded-lg disabled:opacity-40 hover:bg-primary-light transition-colors"
-            aria-label="Send message"
-          >
-            <Send size={18} />
-          </button>
+        <div className="max-w-lg mx-auto">
+          {/* Suggestion chips from last assistant message */}
+          {lastSuggestions && (
+            <div className="mb-2 flex gap-2 overflow-x-auto scrollbar-hide pb-1">
+              {lastSuggestions.map((s) => (
+                <button
+                  key={s}
+                  onClick={() => setInput(s)}
+                  className="shrink-0 text-xs bg-surface text-text px-3 py-2.5 rounded-full border border-surface-dark hover:bg-surface-dark hover:border-primary/30 transition-colors whitespace-nowrap min-h-[44px]"
+                >
+                  {s}
+                </button>
+              ))}
+            </div>
+          )}
+          {/* Image preview */}
+          {pendingImage && (
+            <div className="mb-2 relative inline-block">
+              <img src={pendingImage.preview} alt="Attached" className="h-20 rounded-lg object-cover" />
+              <button
+                onClick={() => setPendingImage(null)}
+                className="absolute -top-1.5 -right-1.5 bg-tertiary text-white rounded-full p-0.5"
+                aria-label="Remove photo"
+              >
+                <X size={14} />
+              </button>
+            </div>
+          )}
+          <div className="flex items-end gap-2">
+            <button
+              onClick={handleCamera}
+              className="w-11 h-11 rounded-full bg-surface border border-surface-dark flex items-center justify-center text-text-muted hover:text-primary hover:border-primary/30 hover:bg-primary/5 transition-all shrink-0"
+              aria-label="Attach photo"
+            >
+              <Camera size={20} />
+            </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              onChange={handleFileSelect}
+              className="hidden"
+            />
+            <textarea
+              ref={textareaRef}
+              value={input}
+              onChange={(e) => {
+                setInput(e.target.value)
+                // Auto-grow
+                e.target.style.height = 'auto'
+                e.target.style.height = Math.min(e.target.scrollHeight, 120) + 'px'
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault()
+                  handleSend()
+                }
+              }}
+              placeholder={pendingImage ? 'Describe the issue (optional)...' : 'Ask about your crops...'}
+              rows={1}
+              className="flex-1 bg-surface rounded-lg px-4 py-2.5 text-base outline-none focus:ring-2 focus:ring-primary/30 resize-none leading-normal"
+              style={{ maxHeight: '120px' }}
+            />
+            {isStreaming ? (
+              <button
+                onClick={() => {
+                  // Save partial content as a message before stopping
+                  if (streamingContent.trim()) {
+                    const sources = pendingSourcesRef.current
+                    pendingSourcesRef.current = null
+                    setMessages((prev) => [
+                      ...prev,
+                      {
+                        id: Date.now().toString(),
+                        role: 'assistant',
+                        content: streamingContent,
+                        sources: sources || undefined,
+                      },
+                    ])
+                  }
+                  // Null the ref BEFORE closing — onclose checks wsRef !== ws and skips
+                  const ws = wsRef.current
+                  wsRef.current = null
+                  ws?.close()
+                  setIsStreaming(false)
+                  setStreamingContent('')
+                  setCurrentStep(null)
+                  // Reconnect a fresh socket (onclose won't fire a competing reconnect)
+                  reconnectAttempts.current = 0
+                  setTimeout(() => connectWs(), 100)
+                }}
+                className="bg-tertiary text-white p-2.5 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg hover:bg-tertiary-light transition-colors shrink-0"
+                aria-label="Stop generating"
+              >
+                <Square size={16} />
+              </button>
+            ) : (
+              <button
+                onClick={handleSend}
+                disabled={!input.trim() && !pendingImage}
+                className="bg-primary text-white p-2.5 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg disabled:opacity-40 hover:bg-primary-light transition-colors shrink-0 shadow-md disabled:shadow-none"
+                aria-label="Send message"
+              >
+                <Send size={18} />
+              </button>
+            )}
+          </div>
         </div>
       </div>
+
+      {/* Server settings modal (native only) */}
+      {showServerSettings && (
+        <ServerSettings onClose={() => setShowServerSettings(false)} />
+      )}
     </div>
   )
 }

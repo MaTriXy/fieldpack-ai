@@ -15,6 +15,12 @@ import '@fontsource/jetbrains-mono/500.css'
 import './index.css'
 import App from './App.tsx'
 
+// Apply saved theme before React renders to avoid flash of wrong theme
+const savedTheme = localStorage.getItem('theme')
+if (savedTheme === 'dark') {
+  document.documentElement.classList.add('dark')
+}
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <App />

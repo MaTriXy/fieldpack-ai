@@ -9,6 +9,21 @@ from enum import StrEnum
 from pydantic import BaseModel, Field
 
 
+def extract_text(response) -> str:
+    """Extract text content from an LLM response.
+
+    Handles both Ollama (content is str) and Google AI Studio
+    (content is list of dicts with 'text' keys).
+    """
+    content = response.content if hasattr(response, "content") else str(response)
+    if isinstance(content, list):
+        return "".join(
+            part.get("text", "") if isinstance(part, dict) else str(part)
+            for part in content
+        )
+    return str(content)
+
+
 # --- Enums ---
 
 class IntentType(StrEnum):

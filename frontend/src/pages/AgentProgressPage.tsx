@@ -83,7 +83,7 @@ export default function AgentProgressPage() {
   }
 
   return (
-    <div className="flex flex-col h-dvh">
+    <div className="flex flex-col h-[calc(100dvh-4rem)] animate-fadeIn">
       <TopBar title="Building Pack..." back backTo="/mission" badge={{ label: 'Live', variant: 'live' }} />
 
       {/* Mission summary */}
@@ -110,7 +110,13 @@ export default function AgentProgressPage() {
               </div>
 
               {/* Card */}
-              <div className="flex-1 bg-card rounded-xl p-3 shadow-sm border border-surface-dark mb-1">
+              <div className={`flex-1 bg-card rounded-xl p-3 shadow-sm border border-surface-dark mb-1 border-l-4 ${
+                step.status === 'completed'
+                  ? 'border-l-primary'
+                  : step.status === 'in_progress'
+                  ? 'border-l-secondary'
+                  : 'border-l-text-muted/30'
+              }`}>
                 <div className="flex items-center justify-between">
                   <h3 className="font-heading font-bold text-sm">{step.name}</h3>
                   {step.latency && (
@@ -146,10 +152,10 @@ export default function AgentProgressPage() {
 
           {/* Activity log */}
           <div className="bg-debug-bg rounded-xl p-3 mt-4">
-            <p className="text-xs font-mono text-white/50 mb-2">Activity Feed</p>
-            <div className="space-y-1 max-h-32 overflow-y-auto">
+            <p className="text-xs font-mono text-white/60 mb-2 uppercase tracking-wider">Activity Feed</p>
+            <div className="space-y-1.5 max-h-40 overflow-y-auto">
               {logs.map((log) => (
-                <p key={log} className="text-xs font-mono text-green-400/80">{log}</p>
+                <p key={log} className="text-sm font-mono text-green-400/90 leading-snug">{log}</p>
               ))}
             </div>
           </div>
