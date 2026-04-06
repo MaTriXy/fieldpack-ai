@@ -57,6 +57,10 @@ def _make_google(temperature: float) -> BaseChatModel:
     )
 
 
+# Cache resolved provider so we only probe once per process
+_resolved_provider: str | None = None
+
+
 def get_field_llm(
     temperature: float = 0.3,
     num_predict: int | None = None,
@@ -66,37 +70,69 @@ def get_field_llm(
 
     Resolution order:
       1. Tunnel Ollama (if OLLAMA_TUNNEL_TOKEN set and reachable)
-      2. Local Ollama at OLLAMA_BASE_URL (if reachable)
-      3. Google AI Studio API (if API key set)
+      2. Google AI Studio API (if API key set)
+      3. Local Ollama at localhost:11434 (if reachable)
 
-    If field_llm_provider is explicitly "google", skips Ollama entirely.
+    Result is cached — health checks only run once per process.
+    If field_llm_provider is explicitly set, skips fallback entirely.
     """
+    global _resolved_provider
+
     if settings.field_llm_provider == "google":
         log.info("field_llm_provider=google, using Google AI Studio")
         return _make_google(temperature)
+    if settings.field_llm_provider == "ollama-local":
+        log.info("field_llm_provider=ollama-local, using local Ollama")
+        return _make_ollama(
+            "http://localhost:11434", temperature,
+            num_predict=num_predict, format=format,
+        )
 
-    # 1. Try tunnel Ollama
-    if settings.ollama_tunnel_token:
-        if _ollama_reachable(settings.ollama_base_url, settings.ollama_tunnel_token):
-            log.info("Using tunnel Ollama at %s", settings.ollama_base_url)
-            return _make_ollama(
-                settings.ollama_base_url, temperature, settings.ollama_tunnel_token,
-                num_predict=num_predict, format=format,
-            )
-        log.warning("Tunnel Ollama unreachable, falling back...")
+    # Auto-resolve: probe once, cache result
+    if _resolved_provider is None:
+        _resolve_provider()
 
-    # 2. Try local Ollama
-    local_url = "http://localhost:11434"
-    if _ollama_reachable(local_url):
-        log.info("Using local Ollama at %s", local_url)
-        return _make_ollama(local_url, temperature, num_predict=num_predict, format=format)
-    log.warning("Local Ollama unreachable at %s, falling back...", local_url)
-
-    # 3. Fall back to Google API
-    if settings.google_ai_studio_api_key:
-        log.warning("Falling back to Google AI Studio API")
+    if _resolved_provider == "tunnel":
+        return _make_ollama(
+            settings.ollama_base_url, temperature, settings.ollama_tunnel_token,
+            num_predict=num_predict, format=format,
+        )
+    if _resolved_provider == "google":
         return _make_google(temperature)
+    if _resolved_provider == "local":
+        return _make_ollama(
+            "http://localhost:11434", temperature,
+            num_predict=num_predict, format=format,
+        )
 
     raise RuntimeError(
         "No LLM available. Start Ollama, configure a tunnel, or set GOOGLE_AI_STUDIO_API_KEY."
     )
+
+
+def _resolve_provider():
+    """Probe available providers once and cache the result."""
+    global _resolved_provider
+
+    # 1. Tunnel Ollama
+    if settings.ollama_tunnel_token:
+        if _ollama_reachable(settings.ollama_base_url, settings.ollama_tunnel_token):
+            log.info("Resolved LLM: tunnel Ollama at %s", settings.ollama_base_url)
+            _resolved_provider = "tunnel"
+            return
+        log.warning("Tunnel Ollama unreachable")
+
+    # 2. Google AI Studio API
+    if settings.google_ai_studio_api_key:
+        log.info("Resolved LLM: Google AI Studio API")
+        _resolved_provider = "google"
+        return
+
+    # 3. Local Ollama
+    if _ollama_reachable("http://localhost:11434"):
+        log.info("Resolved LLM: local Ollama at localhost:11434")
+        _resolved_provider = "local"
+        return
+
+    _resolved_provider = "none"
+    log.error("No LLM provider available")

@@ -301,6 +301,11 @@ def test_fts_table_map():
     assert FTS_TABLE_MAP["diseases"] == "diseases_fts"
     assert FTS_TABLE_MAP["treatments"] == "treatments_fts"
     assert FTS_TABLE_MAP["crops"] == "crops_fts"
+    assert FTS_TABLE_MAP["pests"] == "pests_fts"
+    assert FTS_TABLE_MAP["varieties"] == "varieties_fts"
+    assert FTS_TABLE_MAP["fertilization_schedule"] == "fertilization_schedule_fts"
+    assert FTS_TABLE_MAP["storage_guidelines"] == "storage_guidelines_fts"
+    assert len(FTS_TABLE_MAP) == 7
 
 
 def test_table_joins():
@@ -401,6 +406,32 @@ def test_varieties_fts_trigger(db):
     db.commit()
     results = db.execute(
         "SELECT * FROM varieties_fts WHERE varieties_fts MATCH 'TME'"
+    ).fetchall()
+    assert len(results) >= 1
+
+
+def test_fertilization_schedule_fts_trigger(db):
+    db.execute("INSERT INTO crops (id, name) VALUES (1, 'cassava')")
+    db.execute(
+        "INSERT INTO fertilization_schedule (id, crop_id, growth_stage, fertilizer_type, organic_alternative) "
+        "VALUES (1, 1, 'vegetative', 'NPK 15-15-15', 'Compost and wood ash')"
+    )
+    db.commit()
+    results = db.execute(
+        "SELECT * FROM fertilization_schedule_fts WHERE fertilization_schedule_fts MATCH 'compost'"
+    ).fetchall()
+    assert len(results) >= 1
+
+
+def test_storage_guidelines_fts_trigger(db):
+    db.execute("INSERT INTO crops (id, name) VALUES (1, 'cassava')")
+    db.execute(
+        "INSERT INTO storage_guidelines (id, crop_id, method, pest_risks, local_materials) "
+        "VALUES (1, 1, 'Sun drying', 'Weevil infestation', 'Woven baskets and jute bags')"
+    )
+    db.commit()
+    results = db.execute(
+        "SELECT * FROM storage_guidelines_fts WHERE storage_guidelines_fts MATCH 'weevil'"
     ).fetchall()
     assert len(results) >= 1
 

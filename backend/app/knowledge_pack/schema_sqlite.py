@@ -295,6 +295,30 @@ CREATE VIRTUAL TABLE IF NOT EXISTS varieties_fts USING fts5(
     tokenize='unicode61',
     prefix='2,3'
 );
+
+-- Fertilization schedule full-text search
+CREATE VIRTUAL TABLE IF NOT EXISTS fertilization_schedule_fts USING fts5(
+    growth_stage,
+    fertilizer_type,
+    organic_alternative,
+    timing_notes,
+    content='fertilization_schedule',
+    content_rowid='id',
+    tokenize='unicode61',
+    prefix='2,3'
+);
+
+-- Storage guidelines full-text search
+CREATE VIRTUAL TABLE IF NOT EXISTS storage_guidelines_fts USING fts5(
+    method,
+    pest_risks,
+    quality_indicators,
+    local_materials,
+    content='storage_guidelines',
+    content_rowid='id',
+    tokenize='unicode61',
+    prefix='2,3'
+);
 """
 
 # ============================================================
@@ -391,6 +415,42 @@ CREATE TRIGGER IF NOT EXISTS varieties_au AFTER UPDATE ON varieties BEGIN
     INSERT INTO varieties_fts(rowid, name, local_names, disease_resistance, seed_source_in_region, notes)
     VALUES (new.id, new.name, new.local_names, new.disease_resistance, new.seed_source_in_region, new.notes);
 END;
+
+-- Fertilization schedule triggers
+CREATE TRIGGER IF NOT EXISTS fertilization_schedule_ai AFTER INSERT ON fertilization_schedule BEGIN
+    INSERT INTO fertilization_schedule_fts(rowid, growth_stage, fertilizer_type, organic_alternative, timing_notes)
+    VALUES (new.id, new.growth_stage, new.fertilizer_type, new.organic_alternative, new.timing_notes);
+END;
+
+CREATE TRIGGER IF NOT EXISTS fertilization_schedule_ad AFTER DELETE ON fertilization_schedule BEGIN
+    INSERT INTO fertilization_schedule_fts(fertilization_schedule_fts, rowid, growth_stage, fertilizer_type, organic_alternative, timing_notes)
+    VALUES ('delete', old.id, old.growth_stage, old.fertilizer_type, old.organic_alternative, old.timing_notes);
+END;
+
+CREATE TRIGGER IF NOT EXISTS fertilization_schedule_au AFTER UPDATE ON fertilization_schedule BEGIN
+    INSERT INTO fertilization_schedule_fts(fertilization_schedule_fts, rowid, growth_stage, fertilizer_type, organic_alternative, timing_notes)
+    VALUES ('delete', old.id, old.growth_stage, old.fertilizer_type, old.organic_alternative, old.timing_notes);
+    INSERT INTO fertilization_schedule_fts(rowid, growth_stage, fertilizer_type, organic_alternative, timing_notes)
+    VALUES (new.id, new.growth_stage, new.fertilizer_type, new.organic_alternative, new.timing_notes);
+END;
+
+-- Storage guidelines triggers
+CREATE TRIGGER IF NOT EXISTS storage_guidelines_ai AFTER INSERT ON storage_guidelines BEGIN
+    INSERT INTO storage_guidelines_fts(rowid, method, pest_risks, quality_indicators, local_materials)
+    VALUES (new.id, new.method, new.pest_risks, new.quality_indicators, new.local_materials);
+END;
+
+CREATE TRIGGER IF NOT EXISTS storage_guidelines_ad AFTER DELETE ON storage_guidelines BEGIN
+    INSERT INTO storage_guidelines_fts(storage_guidelines_fts, rowid, method, pest_risks, quality_indicators, local_materials)
+    VALUES ('delete', old.id, old.method, old.pest_risks, old.quality_indicators, old.local_materials);
+END;
+
+CREATE TRIGGER IF NOT EXISTS storage_guidelines_au AFTER UPDATE ON storage_guidelines BEGIN
+    INSERT INTO storage_guidelines_fts(storage_guidelines_fts, rowid, method, pest_risks, quality_indicators, local_materials)
+    VALUES ('delete', old.id, old.method, old.pest_risks, old.quality_indicators, old.local_materials);
+    INSERT INTO storage_guidelines_fts(rowid, method, pest_risks, quality_indicators, local_materials)
+    VALUES (new.id, new.method, new.pest_risks, new.quality_indicators, new.local_materials);
+END;
 """
 
 # ============================================================
@@ -419,6 +479,8 @@ FTS_TABLE_MAP = {
     "crops": "crops_fts",
     "pests": "pests_fts",
     "varieties": "varieties_fts",
+    "fertilization_schedule": "fertilization_schedule_fts",
+    "storage_guidelines": "storage_guidelines_fts",
 }
 
 TABLE_JOINS = {

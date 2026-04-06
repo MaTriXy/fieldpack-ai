@@ -7,6 +7,7 @@ Assembles a complete Knowledge Pack from seed data:
   4. Writes manifest.json, README.md, SOURCES.md
 """
 
+import shutil
 import sqlite3
 from pathlib import Path
 
@@ -57,8 +58,11 @@ def build_pack(pack_name: str, base_path: Path | None = None) -> Path:
     (pack_path / "images" / "healthy").mkdir(parents=True, exist_ok=True)
     (pack_path / "images" / "treatments").mkdir(parents=True, exist_ok=True)
 
-    # SQLite
+    # SQLite — remove stale DB so schema changes take effect
     db_path = pack_path / "knowledge.db"
+    for suffix in ("", "-wal", "-shm"):
+        p = db_path.parent / (db_path.name + suffix)
+        p.unlink(missing_ok=True)
     conn = init_sqlite_db(db_path)
     _insert_sqlite_data(conn)
     schema_info = verify_sqlite_schema(conn)
@@ -73,8 +77,10 @@ def build_pack(pack_name: str, base_path: Path | None = None) -> Path:
         "varieties": len(VARIETIES),
     })
 
-    # ChromaDB
+    # ChromaDB — remove stale data so collection schemas stay current
     chroma_path = pack_path / "chroma_db"
+    if chroma_path.exists():
+        shutil.rmtree(chroma_path)
     client = init_chroma_db(chroma_path)
     chunks = get_all_chunks()
     _insert_chroma_chunks(client, chunks)

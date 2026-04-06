@@ -395,7 +395,8 @@ def fts_search_tool(
 
     Args:
         query: Keywords to search for.
-        table: Which data to search. One of: diseases_fts, treatments_fts, crops_fts, pests_fts, varieties_fts.
+        table: Which data to search. One of: diseases_fts, treatments_fts, crops_fts,
+            pests_fts, varieties_fts, fertilization_schedule_fts, storage_guidelines_fts.
         top_k: Maximum results (default 5).
     """
     results = fts_search(query, table, top_k)
@@ -421,7 +422,8 @@ def fuzzy_fts_search_tool(
 
     Args:
         query: Keywords to search (typos OK).
-        table: Which data to search. One of: diseases_fts, treatments_fts, crops_fts, pests_fts, varieties_fts.
+        table: Which data to search. One of: diseases_fts, treatments_fts, crops_fts,
+            pests_fts, varieties_fts, fertilization_schedule_fts, storage_guidelines_fts.
         top_k: Maximum results (default 5).
     """
     results = fuzzy_fts_search(query, table, top_k)

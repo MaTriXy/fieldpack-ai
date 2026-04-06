@@ -119,6 +119,7 @@ class TestRouteIntent:
         assert SearchEngineType.SQLITE_FTS in route.engines
         assert "disease_knowledge" in route.collections
         assert "diseases" in route.tables
+        assert "pests" in route.tables
         assert route.metadata_filters.get("crop") == "cassava"
 
     def test_get_treatment(self):
@@ -139,6 +140,11 @@ class TestRouteIntent:
         assert "regional_context" in route.collections
         assert "crops" in route.tables
         assert "climate" in route.tables
+        assert "varieties" in route.tables
+        assert "fertilization_schedule" in route.tables
+        assert "planting_calendar" in route.tables
+        assert "storage_guidelines" in route.tables
+        assert "soil_requirements" in route.tables
 
     def test_identify_image(self):
         result = route_intent(self._make_state(IntentType.IDENTIFY_IMAGE))
@@ -146,6 +152,7 @@ class TestRouteIntent:
         assert SearchEngineType.CHROMA_EMBEDDING in route.engines
         assert SearchEngineType.SQLITE_FTS in route.engines
         assert "disease_knowledge" in route.collections
+        assert "pests" in route.tables
 
     def test_log_observation(self):
         result = route_intent(self._make_state(IntentType.LOG_OBSERVATION))
@@ -234,6 +241,12 @@ class TestExpandRoute:
         expanded = expand_route(narrow)
         assert "treatments" in expanded.tables
         assert "crops" in expanded.tables
+        assert "pests" in expanded.tables
+        assert "varieties" in expanded.tables
+        assert "fertilization_schedule" in expanded.tables
+        assert "planting_calendar" in expanded.tables
+        assert "storage_guidelines" in expanded.tables
+        assert "soil_requirements" in expanded.tables
 
     def test_preserves_metadata_filters(self):
         narrow = SearchRoute(

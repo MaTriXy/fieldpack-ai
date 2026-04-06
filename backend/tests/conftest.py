@@ -160,13 +160,12 @@ def google_api_model(monkeypatch):
 
 @pytest.fixture
 def live_llm(monkeypatch):
-    """Default LLM for live tests. Tries Ollama E2B first, falls back to Google API.
+    """Default LLM for live tests. Matches get_field_llm() fallback order.
 
-    This is Gemma 4 E2B Q4_K_M on Ollama (local or Colab tunnel) by default.
-    Falls back to Google AI Studio only if Ollama is unavailable.
+    Resolution: tunnel Ollama -> Google API -> local Ollama.
     Returns a tuple: (model_name: str, provider: str).
     """
-    # Try Ollama first (local or remote tunnel) — single HTTP call
+    # 1. Tunnel Ollama
     tags = _ollama_tags()
     if tags is not None and any(
         m.get("name", "").startswith(_DEFAULT_OLLAMA_MODEL) for m in tags
@@ -175,13 +174,25 @@ def live_llm(monkeypatch):
         monkeypatch.setattr(settings, "ollama_model", _DEFAULT_OLLAMA_MODEL)
         return (_DEFAULT_OLLAMA_MODEL, "ollama")
 
-    # Fall back to Google API
+    # 2. Google API
     if _google_api_available():
         monkeypatch.setattr(settings, "field_llm_provider", "google")
         monkeypatch.setattr(settings, "field_llm_google_model", "gemma-3-27b-it")
         return ("gemma-3-27b-it", "google")
 
-    pytest.skip("No LLM available: Ollama not running and no Google API key")
+    # 3. Local Ollama
+    try:
+        r = httpx.get("http://localhost:11434/api/tags", timeout=3)
+        if r.status_code == 200:
+            local_tags = r.json().get("models", [])
+            if any(m.get("name", "").startswith(_DEFAULT_OLLAMA_MODEL) for m in local_tags):
+                monkeypatch.setattr(settings, "field_llm_provider", "ollama-local")
+                monkeypatch.setattr(settings, "ollama_model", _DEFAULT_OLLAMA_MODEL)
+                return (_DEFAULT_OLLAMA_MODEL, "ollama-local")
+    except httpx.HTTPError:
+        pass
+
+    pytest.skip("No LLM available: tunnel down, no Google API key, no local Ollama")
 
 
 # ============================================================

@@ -26,7 +26,7 @@ ROUTING_RULES: dict[IntentType, dict] = {
     IntentType.DIAGNOSE_DISEASE: {
         "engines": [SearchEngineType.CHROMA_EMBEDDING, SearchEngineType.SQLITE_FTS],
         "collections": ["disease_knowledge"],
-        "tables": ["diseases", "crop_diseases"],
+        "tables": ["diseases", "crop_diseases", "pests"],
     },
     IntentType.GET_TREATMENT: {
         "engines": [SearchEngineType.CHROMA_EMBEDDING, SearchEngineType.SQLITE_STRUCTURED],
@@ -40,12 +40,15 @@ ROUTING_RULES: dict[IntentType, dict] = {
             SearchEngineType.SQLITE_FTS,
         ],
         "collections": ["farming_practices", "regional_context"],
-        "tables": ["crops", "climate"],
+        "tables": [
+            "crops", "climate", "varieties", "fertilization_schedule",
+            "planting_calendar", "storage_guidelines", "soil_requirements",
+        ],
     },
     IntentType.IDENTIFY_IMAGE: {
         "engines": [SearchEngineType.CHROMA_EMBEDDING, SearchEngineType.SQLITE_FTS],
         "collections": ["disease_knowledge"],
-        "tables": ["diseases"],
+        "tables": ["diseases", "pests"],
     },
     IntentType.LOG_OBSERVATION: {
         "engines": [],
@@ -83,7 +86,11 @@ EXPANDED_ROUTE = {
         "disease_knowledge", "treatment_guides",
         "farming_practices", "regional_context",
     ],
-    "tables": ["diseases", "treatments", "crops", "climate"],
+    "tables": [
+        "diseases", "treatments", "crops", "climate", "pests",
+        "varieties", "fertilization_schedule", "planting_calendar",
+        "storage_guidelines", "soil_requirements",
+    ],
 }
 
 

@@ -393,7 +393,10 @@ def fuzzy_structured_query_tool(
     Good for finding entities when you're not sure of the exact spelling.
 
     Args:
-        table: Table to search. One of: crops, diseases, treatments, climate.
+        table: Table to search. One of: crops, diseases, treatments, climate,
+            crop_diseases, image_refs, field_observations, pests, varieties,
+            fertilization_schedule, planting_calendar, storage_guidelines,
+            soil_requirements.
         name_query: Name or partial name to find.
         name_column: Column to search in (default "name").
         limit: Max results (default 10).

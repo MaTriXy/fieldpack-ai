@@ -105,6 +105,29 @@ def _run_fts_searches(
     return all_results
 
 
+# Tables that use crop_id FK instead of a name column for crop filtering
+_CROP_ID_TABLES = {
+    "pests", "varieties", "fertilization_schedule", "planting_calendar",
+    "storage_guidelines", "soil_requirements", "field_observations",
+    "image_refs", "crop_diseases",
+}
+
+
+def _resolve_crop_id(crop_name: str) -> int | None:
+    """Look up crop_id from crop name. Returns None if not found."""
+    from app.knowledge_pack.loader import get_active_pack
+
+    pack = get_active_pack()
+    if pack is None:
+        return None
+    cursor = pack.sqlite_conn.execute(
+        "SELECT id FROM crops WHERE LOWER(name) = LOWER(?) LIMIT 1",
+        (crop_name,),
+    )
+    row = cursor.fetchone()
+    return row[0] if row else None
+
+
 def _run_structured_searches(
     tables: list[str],
     filters: dict,
@@ -113,22 +136,22 @@ def _run_structured_searches(
     """Run structured SQL queries on specified tables."""
     all_results = []
 
-    # Build conditions from classify filters
-    conditions = {}
-    if filters.get("crop"):
-        conditions["name"] = {"$like": f"%{filters['crop']}%"}
+    crop_name = filters.get("crop")
+    crop_id = _resolve_crop_id(crop_name) if crop_name else None
 
     for table in tables:
-        table_conditions = dict(conditions)
+        conditions = {}
 
-        # Table-specific conditions
-        if table == "treatments" and filters.get("disease_name"):
-            # Find disease_id first, then filter treatments
-            pass  # Let the query return all with limit — re-ranker filters
+        # Use crop_id FK for tables that have it, name LIKE for crops table
+        if crop_name:
+            if table in _CROP_ID_TABLES and crop_id is not None:
+                conditions["crop_id"] = crop_id
+            elif table not in _CROP_ID_TABLES:
+                conditions["name"] = {"$like": f"%{crop_name}%"}
 
         results = structured_query(
             table=table,
-            conditions=table_conditions if table_conditions else None,
+            conditions=conditions if conditions else None,
             limit=top_k,
         )
         all_results.extend(results)
