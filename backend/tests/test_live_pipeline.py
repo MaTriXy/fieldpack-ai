@@ -160,21 +160,18 @@ class TestPhaseA:
 
     @pytest.mark.asyncio
     async def test_phase_a_climate(self):
-        """Fetch climate tables from weather-and-climate.com."""
-        from app.agent_farm.sources.climate_parser import parse_climate_tables
-        from app.agent_farm.tools.web_fetch import fetch_html
+        """Fetch climate data from Open-Meteo for Ziguinchor."""
+        from app.agent_farm.sources.open_meteo import fetch_climate_open_meteo
 
-        url = "https://weather-and-climate.com/average-monthly-Rainfall-Temperature-Sunshine,Ziguinchor,Senegal"
-        html = await fetch_html(url)
+        records = await fetch_climate_open_meteo(12.56, -16.27, "Ziguinchor")
 
-        assert html is not None, f"Failed to fetch climate page: {url}"
+        assert len(records) == 12, f"Expected 12 months, got {len(records)}"
+        assert records[0].get("rainfall_mm") is not None, "Missing rainfall data"
+        assert records[0].get("temperature_avg_c") is not None, "Missing temperature data"
 
-        records = parse_climate_tables(html, region="Ziguinchor", source_url=url)
-        assert len(records) > 0, "No climate records parsed"
-
-        print(f"\n  Ziguinchor climate: {len(records)} monthly records")
+        print(f"\n  Ziguinchor climate (Open-Meteo): {len(records)} monthly records")
         for r in records[:3]:
-            print(f"    Month {r.get('month')}: {r.get('rainfall_mm')}mm, {r.get('temperature_avg_c')}C")
+            print(f"    Month {r.get('month')}: {r.get('rainfall_mm')}mm, {r.get('temperature_avg_c')}C, {r.get('humidity_pct')}%")
 
         _save_checkpoint("phase_a_climate", {"records": records})
 
@@ -239,7 +236,7 @@ class TestPhaseB:
     async def test_phase_b_single_section(self):
         """Extract findings from one real PlantVillage section."""
         from app.agent_farm.models import ExtractionOutput, PageSection
-        from app.models.online_llm import get_research_llm
+        from app.models.online_llm import get_research_llm, invoke_structured
 
         # Use a checkpoint section or create a minimal one
         checkpoint = _load_checkpoint("phase_a_full")
@@ -264,7 +261,6 @@ class TestPhaseB:
             )
 
         llm = get_research_llm()
-        llm_with_schema = llm.with_structured_output(ExtractionOutput)
 
         prompt = (
             f"You are an agricultural knowledge extraction agent.\n\n"
@@ -274,7 +270,7 @@ class TestPhaseB:
         )
 
         t0 = time.perf_counter()
-        result: ExtractionOutput = await llm_with_schema.ainvoke(prompt)
+        result = await invoke_structured(llm, prompt, ExtractionOutput)
         elapsed = time.perf_counter() - t0
 
         assert isinstance(result, ExtractionOutput), f"Wrong type: {type(result)}"

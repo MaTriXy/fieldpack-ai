@@ -84,6 +84,16 @@ body {
   50% { opacity: 0; }
 }
 
+@keyframes dotPulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(0.85); }
+}
+
+@keyframes dotPing {
+  0% { transform: scale(1); opacity: 0.8; }
+  70%, 100% { transform: scale(2); opacity: 0; }
+}
+
 @keyframes progressFill {
   from { width: 0%; }
 }
@@ -121,4 +131,30 @@ body {
 
 @utility animate-bounceTyping {
   animation: bounceTyping 1.4s ease-in-out infinite;
+}
+
+@utility animate-dotPulse {
+  animation: dotPulse 1.4s ease-in-out infinite;
+}
+
+@utility animate-dotPing {
+  animation: dotPing 1.5s ease-out infinite;
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+
+@utility animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+@keyframes heroShimmer {
+  0% { transform: translateX(-100%) skewX(-20deg); }
+  100% { transform: translateX(250%) skewX(-20deg); }
+}
+
+@utility animate-heroShimmer {
+  animation: heroShimmer 6s ease-in-out infinite;
 }

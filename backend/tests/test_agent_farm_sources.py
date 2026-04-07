@@ -18,10 +18,11 @@ import pytest
 from app.agent_farm.models import PageSection
 from app.agent_farm.sources.registry import (
     ALL_SOURCES,
-    CLIMATE_SOURCES,
+    CGIAR_SOURCES,
     HTML_SOURCES,
+    OPEN_METEO_CITIES,
     PDF_SOURCES,
-    get_climate_urls,
+    get_climate_cities,
     get_pdf_urls,
     get_urls_for_crop,
 )
@@ -83,19 +84,21 @@ class TestRegistry:
         assert any("i3278e" in u for u in urls)
         assert any("iita" in u.lower() for u in urls)
 
-    def test_get_climate_urls(self):
-        results = get_climate_urls()
-        assert len(results) == 3
-        urls = [url for _, url in results]
-        assert any("Ziguinchor" in u for u in urls)
-        assert any("Kolda" in u for u in urls)
-        assert any("Sedhiou" in u for u in urls)
+    def test_get_climate_cities(self):
+        cities = get_climate_cities()
+        assert len(cities) == 3
+        assert "Ziguinchor" in cities
+        assert "Kolda" in cities
+        assert "Sédhiou" in cities
+        for name, (lat, lon) in cities.items():
+            assert 12.0 < lat < 14.0, f"{name} lat out of range"
+            assert -17.0 < lon < -14.0, f"{name} lon out of range"
 
     def test_all_sources_count(self):
-        assert len(ALL_SOURCES) == len(HTML_SOURCES) + len(PDF_SOURCES) + len(CLIMATE_SOURCES)
+        assert len(ALL_SOURCES) == len(HTML_SOURCES) + len(PDF_SOURCES) + len(CGIAR_SOURCES)
         assert len(HTML_SOURCES) == 2
         assert len(PDF_SOURCES) == 3
-        assert len(CLIMATE_SOURCES) == 1
+        assert len(CGIAR_SOURCES) == 1
 
 
 # ============================================================

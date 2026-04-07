@@ -96,6 +96,11 @@ export async function loadPack(packId: string): Promise<boolean> {
   return res.ok
 }
 
+export async function unloadPack(): Promise<boolean> {
+  const res = await fetch(apiUrl('/packs/unload'), { method: 'POST' })
+  return res.ok
+}
+
 export async function browseKnowledge(type: string = 'all', search: string = '', limit: number = 50): Promise<BrowseResponse> {
   const params = new URLSearchParams({ type, search, limit: String(limit) })
   const res = await fetch(apiUrl(`/packs/browse?${params}`))

@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { useNavigate, useLocation } from 'react-router-dom'
-import { Send, Camera, Check, ChevronDown, Menu, AlertCircle, X, Leaf, FileText, Square } from 'lucide-react'
+import { useNavigate, useLocation, Link } from 'react-router-dom'
+import { Send, Camera, ChevronDown, Menu, AlertCircle, X, Leaf, FileText, Square, Database, MapPin, ChevronRight } from 'lucide-react'
 import MarkdownContent from '../components/MarkdownContent'
 import TopBar from '../components/layout/TopBar'
 import ChatSidebar from '../components/ChatSidebar'
@@ -11,8 +11,11 @@ import {
   getConversation,
   saveConversation,
   uploadImageBase64,
+  listPacks,
+  loadPack,
   type ConversationSummary,
   type MessageData,
+  type PackSummary,
 } from '../lib/api'
 import { getWsUrl, isNative } from '../lib/config'
 import ServerSettings, { ServerSettingsButton } from '../components/ServerSettings'
@@ -136,6 +139,12 @@ export default function FieldChatPage() {
   const pipelineHistory = useRef<Record<string, unknown>[]>([])
   const pipelineSummary = useRef('')
 
+  // Pack status
+  const [packInfo, setPackInfo] = useState<{ name: string; region: string; crops: string[]; diseases_count: number } | null>(null)
+  const [packLoading, setPackLoading] = useState(true)
+  const [packError, setPackError] = useState<string | null>(null)
+  const [availablePacks, setAvailablePacks] = useState<PackSummary[]>([])
+
   // Server settings modal (native only)
   const [showServerSettings, setShowServerSettings] = useState(false)
 
@@ -156,6 +165,18 @@ export default function FieldChatPage() {
 
   const openSidebar = useCallback(() => setSidebarOpen(true), [])
   useSwipeToOpen(openSidebar)
+
+  // Fetch pack status on mount
+  useEffect(() => {
+    listPacks().then(packs => {
+      setAvailablePacks(packs)
+      const loaded = packs.find(p => p.loaded)
+      if (loaded) {
+        setPackInfo({ name: loaded.name, region: loaded.region, crops: loaded.crops, diseases_count: loaded.diseases_count })
+      }
+      setPackLoading(false)
+    }).catch(() => setPackLoading(false))
+  }, [])
 
   // WebSocket connection management
   const connectWs = useCallback(() => {
@@ -285,8 +306,9 @@ export default function FieldChatPage() {
     wsRef.current = ws
   }, [])
 
-  // Connect WebSocket on mount, disconnect on unmount
+  // Connect WebSocket only after a pack is loaded, disconnect on unmount
   useEffect(() => {
+    if (!packInfo) return
     connectWs()
     return () => {
       const ws = wsRef.current
@@ -295,7 +317,7 @@ export default function FieldChatPage() {
         ws.close()
       }
     }
-  }, [connectWs])
+  }, [connectWs, packInfo])
 
   // Fetch conversations when sidebar opens
   useEffect(() => {
@@ -514,6 +536,76 @@ export default function FieldChatPage() {
     }
   }
 
+  if (!packInfo) {
+    return (
+      <div className="flex flex-col h-[calc(100dvh-4rem-env(safe-area-inset-bottom,0px))]">
+        <TopBar title="Field AI" back backTo="/" />
+        <div className="flex-1 flex flex-col items-center justify-center px-6 bg-surface animate-fadeIn">
+          {packLoading ? (
+            <>
+              <div className="w-12 h-12 border-3 border-primary border-t-transparent rounded-full animate-spin mb-4" />
+              <p className="text-sm text-text-muted">Loading pack...</p>
+            </>
+          ) : (
+            <>
+              <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-4">
+                <Database size={28} className="text-primary" />
+              </div>
+              <h2 className="font-heading font-bold text-xl text-text text-center">Choose a Knowledge Pack</h2>
+              <p className="text-sm text-text-muted text-center mt-2 max-w-[280px]">
+                Select a region&rsquo;s offline field guide to start diagnosing crops
+              </p>
+              {packError && (
+                <p className="text-xs text-tertiary mt-2">{packError}</p>
+              )}
+              <div className="mt-6 w-full max-w-sm space-y-3">
+                {availablePacks.map(pack => (
+                  <button
+                    key={pack.pack_id}
+                    disabled={packLoading}
+                    onClick={async () => {
+                      setPackLoading(true)
+                      setPackError(null)
+                      try {
+                        const ok = await loadPack(pack.pack_id)
+                        if (ok) {
+                          setPackInfo({ name: pack.name, region: pack.region, crops: pack.crops, diseases_count: pack.diseases_count })
+                        } else {
+                          setPackError('Failed to load pack. Check that the server is running.')
+                        }
+                      } catch {
+                        setPackError('Could not reach the server.')
+                      }
+                      setPackLoading(false)
+                    }}
+                    className="w-full bg-card rounded-xl p-4 border border-surface-dark shadow-sm text-left hover:border-primary/30 transition-colors disabled:opacity-50"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="bg-primary/10 rounded-lg p-2.5">
+                        <MapPin size={18} className="text-primary" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-heading font-bold text-sm text-text">{pack.name}</p>
+                        <p className="text-xs text-text-muted mt-0.5">{pack.region} · {pack.crops.length} crops · {pack.diseases_count} diseases</p>
+                      </div>
+                      <ChevronRight size={16} className="text-text-muted" />
+                    </div>
+                  </button>
+                ))}
+                {availablePacks.length === 0 && (
+                  <div className="text-center py-8">
+                    <p className="text-sm text-text-muted">No packs available.</p>
+                    <Link to="/mission" className="text-sm text-primary font-semibold mt-2 inline-block">Create one &rarr;</Link>
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="flex flex-col h-[calc(100dvh-4rem-env(safe-area-inset-bottom,0px))]">
       <ChatSidebar
@@ -540,16 +632,27 @@ export default function FieldChatPage() {
             <Menu size={20} />
           </button>
         }
-        rightAction={
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-white/60 flex items-center gap-1">
-              <Check size={12} />
-              Casamance
-            </span>
-            <ServerSettingsButton onClick={() => setShowServerSettings(true)} />
-          </div>
-        }
+        rightAction={<ServerSettingsButton onClick={() => setShowServerSettings(true)} />}
       />
+
+      {/* Pack context banner */}
+      {packInfo && (
+        <div className="bg-primary/5 border-b border-surface-dark px-4 py-2">
+          <div className="max-w-lg mx-auto flex items-center justify-between">
+            <div className="flex items-center gap-2 min-w-0">
+              <MapPin size={12} className="text-primary shrink-0" />
+              <span className="text-xs font-medium text-text truncate">{packInfo.region}</span>
+              <span className="text-xs text-text-muted">·</span>
+              <span className="text-xs text-text-muted">{packInfo.crops.length} crops</span>
+              <span className="text-xs text-text-muted">·</span>
+              <span className="text-xs text-text-muted">{packInfo.diseases_count} diseases</span>
+            </div>
+            <Link to="/packs" className="text-xs text-primary font-medium hover:underline shrink-0">
+              Change
+            </Link>
+          </div>
+        </div>
+      )}
 
       {/* Error banner */}
       {wsError && (

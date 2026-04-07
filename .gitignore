@@ -39,8 +39,28 @@ frontend/dist/
 frontend/build/
 .next/
 
+# Android SDK & JDK (local installs, ~1GB)
+.android-sdk/
+jdk-*/
+
+# APK build artifacts
+frontend/android/app/build/
+
 # Misc
 *.log
 .pytest_cache/
 .coverage
 htmlcov/
+
+# Claude Code
+.claude/
+
+# Pip install artifacts
+=*
+
+# Generated data & logs
+logs/
+backend/data/
+screenshots/
+start_ollama_optimized.bat
+stitch-designs/

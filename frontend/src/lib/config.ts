@@ -48,3 +48,66 @@ export function getWsUrl(): string {
 export function apiUrl(path: string): string {
   return `${getApiBase()}${path}`
 }
+
+/** Probe a single candidate URL; resolves to the base URL on success, rejects otherwise. */
+async function probeHealth(baseUrl: string, timeoutMs: number): Promise<string> {
+  const res = await fetch(`${baseUrl}/health`, { signal: AbortSignal.timeout(timeoutMs) })
+  if (!res.ok) throw new Error('not ok')
+  return baseUrl
+}
+
+/**
+ * Scan the local network for the FieldPack backend.
+ *
+ * Probing order:
+ *   1. Saved server URL (if any) — skip scan when it still responds.
+ *   2. Windows hotspot default: 192.168.137.1:8000
+ *   3. Common gateway IPs: 192.168.1.1, 192.168.0.1, 192.168.43.1, 10.0.0.1
+ *   4. .1–.5 on 192.168.137.x subnet (parallel, 2 s timeout each)
+ *
+ * Returns the first URL that responds with HTTP 200, or null if none found.
+ * Automatically saves the found URL via setServerUrl().
+ */
+export async function autoScanForServer(): Promise<string | null> {
+  if (!isNative()) return null
+
+  const TIMEOUT = 2000
+
+  // 1. Saved URL still alive — no scan needed
+  const saved = localStorage.getItem(STORAGE_KEY)
+  if (saved) {
+    try {
+      const found = await probeHealth(saved, TIMEOUT)
+      return found
+    } catch {
+      // Saved URL is dead — fall through to scan
+    }
+  }
+
+  // 2. Parallel scan: Windows hotspot default, common gateways, subnet .2-.5
+  //    Uses Promise.any — first to respond wins (no wrong-order issue).
+  const allCandidates = [
+    'http://192.168.137.1:8000',  // Windows hotspot default (most likely)
+    'http://192.168.1.1:8000',
+    'http://192.168.0.1:8000',
+    'http://192.168.43.1:8000',   // Android hotspot
+    'http://10.0.0.1:8000',
+    // .2-.5 on Windows hotspot subnet (skip .1, already above)
+    'http://192.168.137.2:8000',
+    'http://192.168.137.3:8000',
+    'http://192.168.137.4:8000',
+    'http://192.168.137.5:8000',
+  ]
+
+  try {
+    const found = await Promise.any(
+      allCandidates.map((url) => probeHealth(url, TIMEOUT))
+    )
+    setServerUrl(found)
+    return found
+  } catch {
+    // All candidates failed
+  }
+
+  return null
+}

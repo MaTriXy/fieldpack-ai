@@ -33,6 +33,10 @@ export default function ChatSidebar({
   onNewChat,
   isLoading,
 }: ChatSidebarProps) {
+  function handleKeyDown(e: React.KeyboardEvent) {
+    if (e.key === 'Escape') onClose()
+  }
+
   return (
     <>
       {/* Backdrop */}
@@ -41,6 +45,7 @@ export default function ChatSidebar({
           isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
         }`}
         onClick={onClose}
+        aria-hidden="true"
       />
 
       {/* Panel */}
@@ -51,6 +56,7 @@ export default function ChatSidebar({
         role="dialog"
         aria-modal="true"
         aria-label="Chat history"
+        onKeyDown={handleKeyDown}
       >
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-surface-dark">
@@ -63,6 +69,7 @@ export default function ChatSidebar({
         {/* New Chat */}
         <button
           onClick={onNewChat}
+          aria-label="Start new chat"
           className="mx-3 mt-3 flex items-center gap-2 px-3 py-2.5 rounded-lg border border-dashed border-primary/30 text-primary text-sm font-medium hover:bg-primary/5 transition-colors"
         >
           <Plus size={16} />
@@ -84,6 +91,7 @@ export default function ChatSidebar({
                 <button
                   key={conv.id}
                   onClick={() => onSelect(conv.id)}
+                  aria-current={conv.id === activeId ? 'true' : undefined}
                   className={`w-full text-left px-3 py-2.5 rounded-lg transition-colors ${
                     conv.id === activeId
                       ? 'bg-primary/10 border-l-2 border-primary'

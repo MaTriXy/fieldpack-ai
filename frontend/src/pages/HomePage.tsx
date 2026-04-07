@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, Navigate } from 'react-router-dom'
 import { Rocket, Leaf, Database, Moon, Sun, ChevronRight, WifiOff, Cpu, Globe, BarChart2 } from 'lucide-react'
 import { apiUrl } from '../lib/config'
 
@@ -43,12 +43,24 @@ export default function HomePage() {
     return () => controller.abort()
   }, [])
 
+  if (!localStorage.getItem('fieldpack_onboarded')) {
+    return <Navigate to="/onboarding" replace />
+  }
+
   return (
     <div className="bg-surface animate-fadeIn min-h-screen">
 
       {/* ── Hero ── */}
       <div className="relative">
         <div className="bg-gradient-to-br from-primary via-primary-dark to-[#071910] px-6 pt-14 pb-24 text-center relative overflow-hidden">
+
+          {/* diagonal shimmer sweep — slow light pass across the hero */}
+          <div className="absolute inset-0 pointer-events-none overflow-hidden" aria-hidden="true">
+            <div
+              className="absolute top-0 left-0 h-full w-1/3 animate-heroShimmer"
+              style={{ background: 'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.04) 50%, transparent 100%)' }}
+            />
+          </div>
 
           {/* dot grid */}
           <div
@@ -97,7 +109,7 @@ export default function HomePage() {
               <div className="relative">
                 <span className="absolute inset-0 rounded-full bg-secondary/25 animate-ping" style={{ animationDuration: '2.6s' }} />
                 <span className="absolute inset-0 rounded-full bg-secondary/10 scale-150 animate-ping" style={{ animationDuration: '3.2s', animationDelay: '0.4s' }} />
-                <div className="relative bg-white/10 rounded-full p-4 ring-1 ring-white/20 backdrop-blur-sm">
+                <div className="relative bg-white/10 rounded-full p-4 ring-1 ring-white/20 backdrop-blur-sm animate-float">
                   <Leaf className="text-secondary" size={32} />
                 </div>
               </div>
@@ -135,17 +147,23 @@ export default function HomePage() {
           </div>
         </div>
 
-        {/* SVG wave — creates a clean curved transition into the card area */}
-        <div className="absolute bottom-0 left-0 right-0 overflow-hidden leading-none" style={{ height: '40px' }}>
+        {/* SVG wave — double-wave organic transition into the card area */}
+        <div className="absolute bottom-0 left-0 right-0 overflow-hidden leading-none" style={{ height: '56px' }}>
           <svg
-            viewBox="0 0 390 40"
+            viewBox="0 0 390 56"
             xmlns="http://www.w3.org/2000/svg"
             preserveAspectRatio="none"
             className="block w-full h-full"
             aria-hidden="true"
           >
+            {/* back wave — slightly transparent for depth */}
             <path
-              d="M0,20 C80,40 160,0 220,18 C280,36 340,10 390,20 L390,40 L0,40 Z"
+              d="M0,34 C55,18 110,46 170,30 C230,14 290,44 390,28 L390,56 L0,56 Z"
+              className="fill-surface opacity-40"
+            />
+            {/* front wave — solid fill */}
+            <path
+              d="M0,42 C60,26 120,54 190,38 C250,24 320,50 390,36 L390,56 L0,56 Z"
               className="fill-surface"
             />
           </svg>
@@ -158,7 +176,7 @@ export default function HomePage() {
         {/* Phase 2: Field Session — PRIMARY card */}
         <Link
           to="/field"
-          className="block rounded-2xl overflow-hidden shadow-2xl active:scale-[0.98] transition-transform"
+          className="block rounded-2xl overflow-hidden shadow-[0_8px_32px_rgba(27,67,50,0.3)] active:scale-[0.98] transition-transform"
           style={{
             background: 'linear-gradient(135deg, #2D6A4F 0%, #1B4332 55%, #0f2d1e 100%)',
             animationDelay: '0.1s',
@@ -205,7 +223,7 @@ export default function HomePage() {
         {/* Phase 1: Create Pack — secondary card */}
         <Link
           to="/mission"
-          className="block bg-card rounded-2xl shadow-lg border border-surface-dark active:scale-[0.98] transition-transform overflow-hidden"
+          className="block bg-card rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.08)] border border-surface-dark active:scale-[0.98] transition-transform overflow-hidden"
           style={{ animationDelay: '0.2s' }}
         >
           {/* left accent bar */}

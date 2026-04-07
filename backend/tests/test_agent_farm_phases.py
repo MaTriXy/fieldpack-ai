@@ -89,8 +89,10 @@ class TestSourceGathering:
                     new_callable=AsyncMock, return_value="<html><h2>Diseases</h2><p>CMD causes mosaic patterns on cassava leaves, leading to yield loss.</p></html>"), \
              patch("app.agent_farm.phases.source_gathering.fetch_pdf_bytes",
                     new_callable=AsyncMock, return_value=None), \
-             patch("app.agent_farm.phases.source_gathering.parse_climate_tables",
-                    return_value=[_make_climate_record()]):
+             patch("app.agent_farm.phases.source_gathering.fetch_climate_open_meteo",
+                    new_callable=AsyncMock, return_value=[_make_climate_record()]), \
+             patch("app.agent_farm.phases.source_gathering.fetch_cgiar_pdfs",
+                    new_callable=AsyncMock, return_value=[]):
 
             result = await source_gathering(state)
 
@@ -145,13 +147,22 @@ class TestSourceGathering:
             assert s.crop == "cassava"
 
     async def test_climate_fetch_failure_returns_empty(self):
-        from app.agent_farm.phases.source_gathering import _fetch_and_parse_climate
+        from app.agent_farm.phases.source_gathering import source_gathering
+
+        state = self._make_state(crops=["cassava"])
 
         with patch("app.agent_farm.phases.source_gathering.fetch_html",
-                    new_callable=AsyncMock, return_value=None):
-            records = await _fetch_and_parse_climate("Ziguinchor", "url")
+                    new_callable=AsyncMock, return_value=None), \
+             patch("app.agent_farm.phases.source_gathering.fetch_pdf_bytes",
+                    new_callable=AsyncMock, return_value=None), \
+             patch("app.agent_farm.phases.source_gathering.fetch_cgiar_pdfs",
+                    new_callable=AsyncMock, return_value=[]), \
+             patch("app.agent_farm.phases.source_gathering.fetch_climate_open_meteo",
+                    new_callable=AsyncMock, return_value=[]):
 
-        assert records == []
+            result = await source_gathering(state)
+
+        assert result["climate_records"] == []
 
     async def test_lowercases_crops(self):
         from app.agent_farm.phases.source_gathering import source_gathering
@@ -161,7 +172,11 @@ class TestSourceGathering:
         with patch("app.agent_farm.phases.source_gathering.fetch_html",
                     new_callable=AsyncMock, return_value=None), \
              patch("app.agent_farm.phases.source_gathering.fetch_pdf_bytes",
-                    new_callable=AsyncMock, return_value=None):
+                    new_callable=AsyncMock, return_value=None), \
+             patch("app.agent_farm.phases.source_gathering.fetch_cgiar_pdfs",
+                    new_callable=AsyncMock, return_value=[]), \
+             patch("app.agent_farm.phases.source_gathering.fetch_climate_open_meteo",
+                    new_callable=AsyncMock, return_value=[]):
 
             result = await source_gathering(state)
 
@@ -175,6 +190,10 @@ class TestSourceGathering:
         with patch("app.agent_farm.phases.source_gathering.fetch_html",
                     new_callable=AsyncMock, side_effect=Exception("Network error")), \
              patch("app.agent_farm.phases.source_gathering.fetch_pdf_bytes",
+                    new_callable=AsyncMock, side_effect=Exception("Network error")), \
+             patch("app.agent_farm.phases.source_gathering.fetch_cgiar_pdfs",
+                    new_callable=AsyncMock, side_effect=Exception("Network error")), \
+             patch("app.agent_farm.phases.source_gathering.fetch_climate_open_meteo",
                     new_callable=AsyncMock, side_effect=Exception("Network error")):
 
             result = await source_gathering(state)
@@ -231,8 +250,9 @@ class TestKnowledgeExtraction:
 
         state = self._make_state()
 
-        with patch("app.agent_farm.phases.knowledge_extraction.get_research_llm") as mock_llm:
-            mock_llm.return_value.with_structured_output.return_value = MagicMock()
+        with patch("app.agent_farm.phases.knowledge_extraction.get_research_llm"), \
+             patch("app.agent_farm.phases.knowledge_extraction.invoke_structured",
+                   new_callable=AsyncMock):
             result = await knowledge_extraction(state)
 
         assert result["findings"] == []
@@ -243,8 +263,9 @@ class TestKnowledgeExtraction:
 
         state = self._make_state(climate_records=[_make_climate_record()])
 
-        with patch("app.agent_farm.phases.knowledge_extraction.get_research_llm") as mock_llm:
-            mock_llm.return_value.with_structured_output.return_value = MagicMock()
+        with patch("app.agent_farm.phases.knowledge_extraction.get_research_llm"), \
+             patch("app.agent_farm.phases.knowledge_extraction.invoke_structured",
+                   new_callable=AsyncMock):
             result = await knowledge_extraction(state)
 
         assert len(result["findings"]) == 1
@@ -265,12 +286,11 @@ class TestKnowledgeExtraction:
             ),
         ])
 
-        mock_llm_chain = AsyncMock()
-        mock_llm_chain.ainvoke = AsyncMock(return_value=mock_output)
-
-        with patch("app.agent_farm.phases.knowledge_extraction.get_research_llm") as mock_llm, \
+        with patch("app.agent_farm.phases.knowledge_extraction.get_research_llm"), \
+             patch("app.agent_farm.phases.knowledge_extraction.invoke_structured",
+                   new_callable=AsyncMock) as mock_invoke, \
              patch("app.agent_farm.phases.knowledge_extraction.rate_limiter") as mock_rl:
-            mock_llm.return_value.with_structured_output.return_value = mock_llm_chain
+            mock_invoke.return_value = mock_output
             mock_rl.wait = AsyncMock()
             mock_rl.on_success = MagicMock()
             result = await knowledge_extraction(state)
@@ -287,12 +307,11 @@ class TestKnowledgeExtraction:
             climate_records=[_make_climate_record()],
         )
 
-        mock_llm_chain = AsyncMock()
-        mock_llm_chain.ainvoke = AsyncMock(side_effect=Exception("LLM error"))
-
-        with patch("app.agent_farm.phases.knowledge_extraction.get_research_llm") as mock_llm, \
+        with patch("app.agent_farm.phases.knowledge_extraction.get_research_llm"), \
+             patch("app.agent_farm.phases.knowledge_extraction.invoke_structured",
+                   new_callable=AsyncMock) as mock_invoke, \
              patch("app.agent_farm.phases.knowledge_extraction.rate_limiter") as mock_rl:
-            mock_llm.return_value.with_structured_output.return_value = mock_llm_chain
+            mock_invoke.side_effect = Exception("LLM error")
             mock_rl.wait = AsyncMock()
             mock_rl.on_success = MagicMock()
             mock_rl.on_rate_limit = MagicMock()
@@ -356,11 +375,11 @@ class TestGapAnalysis:
         findings = [_make_finding()]
         state = self._make_state(findings=findings)
 
-        with patch("app.agent_farm.phases.gap_analysis.get_planner_llm") as mock_planner, \
+        with patch("app.agent_farm.phases.gap_analysis.get_planner_llm"), \
+             patch("app.agent_farm.phases.gap_analysis.invoke_structured",
+                   new_callable=AsyncMock) as mock_invoke, \
              patch("app.agent_farm.phases.gap_analysis.rate_limiter") as mock_rl:
-            mock_chain = AsyncMock()
-            mock_chain.ainvoke = AsyncMock(side_effect=Exception("LLM down"))
-            mock_planner.return_value.with_structured_output.return_value = mock_chain
+            mock_invoke.side_effect = Exception("LLM down")
             mock_rl.wait = AsyncMock()
             mock_rl.on_rate_limit = MagicMock()
 
@@ -380,15 +399,14 @@ class TestGapAnalysis:
             gaps=[], coverage_summary="Complete coverage",
         )
 
-        with patch("app.agent_farm.phases.gap_analysis.get_planner_llm") as mock_planner, \
-             patch("app.agent_farm.phases.gap_analysis.get_research_llm") as mock_research, \
+        with patch("app.agent_farm.phases.gap_analysis.get_planner_llm"), \
+             patch("app.agent_farm.phases.gap_analysis.get_research_llm"), \
+             patch("app.agent_farm.phases.gap_analysis.invoke_structured",
+                   new_callable=AsyncMock) as mock_invoke, \
              patch("app.agent_farm.phases.gap_analysis.rate_limiter") as mock_rl, \
              patch("app.agent_farm.phases.gap_analysis.search_images",
                     return_value=[]):
-            mock_chain = AsyncMock()
-            mock_chain.ainvoke = AsyncMock(return_value=gap_output)
-            mock_planner.return_value.with_structured_output.return_value = mock_chain
-            mock_research.return_value.with_structured_output.return_value = MagicMock()
+            mock_invoke.return_value = gap_output
             mock_rl.wait = AsyncMock()
             mock_rl.on_success = MagicMock()
 
@@ -889,25 +907,17 @@ class TestCompilation:
         # Track which tables triggered LLM calls
         llm_called_tables: list[str] = []
 
-        def make_mock_chain_for_table(list_model):
-            """Return a mock chain that returns empty records for any table."""
-            chain = AsyncMock()
-
-            async def _invoke(prompt):
-                # Identify which table this is for (crude but works for testing)
-                for tname in _LIST_MODEL_MAP:
-                    if tname in prompt and tname != "climate":
-                        llm_called_tables.append(tname)
-                        break
-                return list_model(records=[])
-
-            chain.ainvoke = _invoke
-            return chain
+        async def mock_invoke_fn(llm, prompt, model_cls, **kwargs):
+            for tname in _LIST_MODEL_MAP:
+                if tname in prompt and tname != "climate":
+                    llm_called_tables.append(tname)
+                    break
+            return model_cls(records=[])
 
         with patch("app.agent_farm.phases.compilation.get_planner_llm") as mock_llm, \
+             patch("app.agent_farm.phases.compilation.invoke_structured", new_callable=AsyncMock) as mock_invoke, \
              patch("app.agent_farm.phases.compilation.rate_limiter") as mock_rl:
-            # with_structured_output is called per table — return fresh mock each time
-            mock_llm.return_value.with_structured_output = lambda model_cls: make_mock_chain_for_table(model_cls)
+            mock_invoke.side_effect = mock_invoke_fn
             mock_rl.wait = AsyncMock()
             mock_rl.on_success = MagicMock()
 
@@ -930,14 +940,13 @@ class TestCompilation:
 
         state = self._make_state()
 
-        def make_mock_chain(list_model):
-            chain = AsyncMock()
-            chain.ainvoke = AsyncMock(return_value=list_model(records=[]))
-            return chain
+        async def mock_invoke_fn(llm, prompt, model_cls, **kwargs):
+            return model_cls(records=[])
 
         with patch("app.agent_farm.phases.compilation.get_planner_llm") as mock_llm, \
+             patch("app.agent_farm.phases.compilation.invoke_structured", new_callable=AsyncMock) as mock_invoke, \
              patch("app.agent_farm.phases.compilation.rate_limiter") as mock_rl:
-            mock_llm.return_value.with_structured_output = lambda model_cls: make_mock_chain(model_cls)
+            mock_invoke.side_effect = mock_invoke_fn
             mock_rl.wait = AsyncMock()
             mock_rl.on_success = MagicMock()
 

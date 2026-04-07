@@ -77,20 +77,27 @@ IITA_CASSAVA_MANUAL = SourceConfig(
 )
 
 # ============================================================
-# Tier 3: Climate data (parse tables directly, no LLM)
+# Tier 2b: CGIAR/IITA PDF discovery (fertilization data)
 # ============================================================
 
-WEATHER_AND_CLIMATE = SourceConfig(
-    name="Weather and Climate",
-    url_template="https://weather-and-climate.com/average-monthly-Rainfall-Temperature-Sunshine,{slug},Senegal",
-    slug_map={
-        "ziguinchor": "Ziguinchor",
-        "kolda": "Kolda",
-        "sedhiou": "Sedhiou",
-    },
-    parser_type="climate_table",
-    tier=3,
+CGIAR_FERTILIZATION = SourceConfig(
+    name="CGIAR/IITA Fertilization",
+    url_template="https://cgspace.cgiar.org/server/api/discover/search/objects",
+    slug_map={"cassava": "cassava fertilizer nutrient management West Africa"},
+    parser_type="pdf_pages",
+    tier=2,
 )
+
+# ============================================================
+# Tier 3: Climate data (Open-Meteo Archive API, no LLM)
+# ============================================================
+
+# Lat/lon for Casamance cities — used by open_meteo.py
+OPEN_METEO_CITIES: dict[str, tuple[float, float]] = {
+    "Ziguinchor": (12.56, -16.27),
+    "Kolda": (12.90, -14.96),
+    "Sédhiou": (12.71, -15.57),
+}
 
 # ============================================================
 # Aggregated lists
@@ -98,9 +105,9 @@ WEATHER_AND_CLIMATE = SourceConfig(
 
 HTML_SOURCES = [PLANTVILLAGE, INFONET_BIOVISION]
 PDF_SOURCES = [FAO_CASSAVA_FFS, FAO_SAVE_AND_GROW, IITA_CASSAVA_MANUAL]
-CLIMATE_SOURCES = [WEATHER_AND_CLIMATE]
+CGIAR_SOURCES = [CGIAR_FERTILIZATION]
 
-ALL_SOURCES = HTML_SOURCES + PDF_SOURCES + CLIMATE_SOURCES
+ALL_SOURCES = HTML_SOURCES + PDF_SOURCES + CGIAR_SOURCES
 
 
 def get_urls_for_crop(crop: str) -> list[tuple[SourceConfig, str]]:
@@ -118,10 +125,6 @@ def get_pdf_urls() -> list[tuple[SourceConfig, str]]:
     return [(source, source.url_template) for source in PDF_SOURCES]
 
 
-def get_climate_urls() -> list[tuple[SourceConfig, str]]:
-    """Return (source_config, resolved_url) pairs for climate data."""
-    results = []
-    for source in CLIMATE_SOURCES:
-        for city, slug in source.slug_map.items():
-            results.append((source, source.url_template.format(slug=slug)))
-    return results
+def get_climate_cities() -> dict[str, tuple[float, float]]:
+    """Return {city_name: (lat, lon)} for Open-Meteo climate fetching."""
+    return OPEN_METEO_CITIES

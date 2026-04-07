@@ -6,7 +6,7 @@ JSON outputs — one per SQLite table — in strict FK-safe order.
 Each step:
   1. Filters findings by domain relevance
   2. Builds a prompt with FK context from previous steps
-  3. Calls get_planner_llm().with_structured_output()
+  3. Calls invoke_structured(get_planner_llm(), prompt, Model)
   4. Validates FK references, skips invalid records
   5. Writes JSON file to disk
 
@@ -50,7 +50,7 @@ from app.agent_farm.rate_limiter import rate_limiter
 from app.agent_farm.state import AgentFarmState
 from app.config import settings
 from app.logger import Step, pipeline_logger as log
-from app.models.online_llm import get_planner_llm
+from app.models.online_llm import get_planner_llm, invoke_structured
 
 _MAX_RETRIES = 3
 
@@ -489,10 +489,9 @@ async def _compile_one_table(
 
         try:
             llm = get_planner_llm(temperature=temperature)
-            llm_with_schema = llm.with_structured_output(list_model)
 
             with log.timed(Step.AGENT_FARM_COMPILE, "compile_llm_call") as t:
-                result = await llm_with_schema.ainvoke(prompt)
+                result = await invoke_structured(llm, prompt, list_model, max_retries=0)
                 records = result.records
                 t.set(details={
                     "table": table,
@@ -524,7 +523,7 @@ async def _compile_one_table(
 
             return valid_records, attempt
 
-        except ValidationError as exc:
+        except (ValidationError, ValueError) as exc:
             last_error = str(exc)[:1000]
             log.log_step(Step.AGENT_FARM_COMPILE, "compile_retry",
                          level="WARNING", details={

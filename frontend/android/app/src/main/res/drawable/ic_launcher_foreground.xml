@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    FieldPack AI adaptive icon foreground.
+    Viewport: 108x108dp. Safe zone: 66dp circle centered at (54,54).
+    Content sits between roughly 21,21 and 87,87 to survive all launcher crops.
+
+    Design: a single broad leaf pointed at top-right, centered in the safe zone,
+    with three short circuit-node lines branching off the mid-vein to suggest AI.
+    All shapes are filled #F5F1EB (cream) so they read on the #1B4332 background.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- Main leaf body.
+         Starts at the tip (54, 22), curves out to the right lobe,
+         sweeps down to the stem base (54, 86), then mirrors back.
+         All coordinates kept within the 21-87 safe zone. -->
+    <path
+        android:fillColor="#F5F1EB"
+        android:strokeColor="#00000000"
+        android:pathData="
+            M 54,22
+            C 72,28 84,42 82,58
+            C 80,72 68,82 54,86
+            C 40,82 28,72 26,58
+            C 24,42 36,28 54,22
+            Z" />
+
+    <!-- Central vein: a narrow dark stripe running tip-to-stem so the leaf
+         reads as organic rather than a blob. Using primary green so it
+         looks like a cutout into the background. -->
+    <path
+        android:fillColor="#1B4332"
+        android:strokeColor="#00000000"
+        android:pathData="
+            M 54,25
+            Q 55,54 54,83
+            Q 53,54 54,25
+            Z" />
+
+    <!-- Vein - slightly wider so it actually renders at small sizes -->
+    <path
+        android:fillColor="#1B4332"
+        android:strokeColor="#00000000"
+        android:pathData="
+            M 52.5,26 L 55.5,26 L 55.5,82 L 52.5,82 Z" />
+
+    <!-- Left lateral vein -->
+    <path
+        android:fillColor="#1B4332"
+        android:strokeColor="#00000000"
+        android:pathData="
+            M 53,46 L 38,56 L 40,58 L 54,48 Z" />
+
+    <!-- Right lateral vein -->
+    <path
+        android:fillColor="#1B4332"
+        android:strokeColor="#00000000"
+        android:pathData="
+            M 55,46 L 70,56 L 68,58 L 54,48 Z" />
+
+    <!-- Lower-left lateral vein -->
+    <path
+        android:fillColor="#1B4332"
+        android:strokeColor="#00000000"
+        android:pathData="
+            M 53,60 L 35,67 L 36,69 L 54,62 Z" />
+
+    <!-- Lower-right lateral vein -->
+    <path
+        android:fillColor="#1B4332"
+        android:strokeColor="#00000000"
+        android:pathData="
+            M 55,60 L 73,67 L 72,69 L 54,62 Z" />
+
+    <!-- Circuit node dots on lateral vein tips.
+         Small filled circles (radius ~2.5) in the gold accent color #D4A017
+         to hint at the AI/circuit motif without overwhelming the leaf shape. -->
+
+    <!-- Node: end of left upper vein -->
+    <path
+        android:fillColor="#D4A017"
+        android:strokeColor="#00000000"
+        android:pathData="
+            M 36,57
+            A 2.5,2.5 0 1 0 36.001,57
+            Z" />
+
+    <!-- Node: end of right upper vein -->
+    <path
+        android:fillColor="#D4A017"
+        android:strokeColor="#00000000"
+        android:pathData="
+            M 71,57
+            A 2.5,2.5 0 1 0 71.001,57
+            Z" />
+
+    <!-- Node: end of left lower vein -->
+    <path
+        android:fillColor="#D4A017"
+        android:strokeColor="#00000000"
+        android:pathData="
+            M 34,68
+            A 2.5,2.5 0 1 0 34.001,68
+            Z" />
+
+    <!-- Node: end of right lower vein -->
+    <path
+        android:fillColor="#D4A017"
+        android:strokeColor="#00000000"
+        android:pathData="
+            M 74,68
+            A 2.5,2.5 0 1 0 74.001,68
+            Z" />
+
+    <!-- Stem: short thick line below leaf body -->
+    <path
+        android:fillColor="#F5F1EB"
+        android:strokeColor="#00000000"
+        android:pathData="
+            M 52,82 L 56,82 L 56,88 L 52,88 Z" />
+
+</vector>

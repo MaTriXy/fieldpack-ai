@@ -26,7 +26,7 @@ from app.agent_farm.rate_limiter import rate_limiter
 from app.agent_farm.state import AgentFarmState
 from app.config import settings
 from app.logger import Step, pipeline_logger as log
-from app.models.online_llm import get_research_llm
+from app.models.online_llm import get_research_llm, invoke_structured
 
 _MAX_CONCURRENT = 10
 _MODEL_NAME = settings.online_model_research
@@ -68,7 +68,7 @@ Focus on information useful for a field worker in Casamance, Senegal.
 
 async def _extract_section(
     section: PageSection,
-    llm_with_schema,
+    llm,
     semaphore: asyncio.Semaphore,
 ) -> list[Finding]:
     """Extract findings from a single section via LLM call."""
@@ -96,7 +96,7 @@ async def _extract_section(
 
         try:
             with log.timed(Step.AGENT_FARM_EXTRACT, "llm_call") as t:
-                result: ExtractionOutput = await llm_with_schema.ainvoke(prompt)
+                result = await invoke_structured(llm, prompt, ExtractionOutput)
                 t.set(details={
                     "source": section.source_name,
                     "heading": section.heading,
@@ -190,17 +190,16 @@ async def knowledge_extraction(state: AgentFarmState) -> dict[str, Any]:
         "climate_records_count": len(climate_records),
     })
 
-    # ---- Set up LLM with structured output ----
+    # ---- Set up LLM ----
 
     llm = get_research_llm()
-    llm_with_schema = llm.with_structured_output(ExtractionOutput)
 
     # ---- Extract from all sections concurrently ----
 
     semaphore = asyncio.Semaphore(_MAX_CONCURRENT)
 
     tasks = [
-        _extract_section(section, llm_with_schema, semaphore)
+        _extract_section(section, llm, semaphore)
         for section in sections
     ]
 

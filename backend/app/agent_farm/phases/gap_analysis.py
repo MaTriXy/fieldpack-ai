@@ -26,7 +26,7 @@ from app.agent_farm.state import AgentFarmState
 from app.agent_farm.tools.web_search import search_images, search_text
 from app.config import settings
 from app.logger import Step, pipeline_logger as log
-from app.models.online_llm import get_planner_llm, get_research_llm
+from app.models.online_llm import get_planner_llm, get_research_llm, invoke_structured
 
 _MAX_CONCURRENT_SEARCH = 10
 _MAX_CONCURRENT_EXTRACT = 10
@@ -133,7 +133,7 @@ def _build_coverage_summary(findings: list[Finding], crops: list[str]) -> str:
 async def _extract_from_tavily_result(
     result: dict,
     gap_description: str,
-    llm_with_schema,
+    llm,
     semaphore: asyncio.Semaphore,
 ) -> list[Finding]:
     """Parse a Tavily result into PageSections and extract findings."""
@@ -170,7 +170,7 @@ async def _extract_from_tavily_result(
 
             try:
                 with log.timed(Step.AGENT_FARM_GAP, "gap_extract") as t:
-                    output: ExtractionOutput = await llm_with_schema.ainvoke(prompt)
+                    output = await invoke_structured(llm, prompt, ExtractionOutput)
                     t.set(details={
                         "url": url, "findings_count": len(output.findings),
                     })
@@ -196,7 +196,7 @@ async def _extract_from_tavily_result(
 async def _search_for_gap(
     gap_query: str,
     gap_description: str,
-    llm_with_schema,
+    llm,
     search_semaphore: asyncio.Semaphore,
     extract_semaphore: asyncio.Semaphore,
 ) -> list[Finding]:
@@ -220,7 +220,7 @@ async def _search_for_gap(
     # Extract findings from Tier 1 results
     if results:
         extract_tasks = [
-            _extract_from_tavily_result(r, gap_description, llm_with_schema, extract_semaphore)
+            _extract_from_tavily_result(r, gap_description, llm, extract_semaphore)
             for r in results
         ]
         extract_results = await asyncio.gather(*extract_tasks, return_exceptions=True)
@@ -252,7 +252,7 @@ async def _search_for_gap(
             })
 
             extract_tasks = [
-                _extract_from_tavily_result(r, gap_description, llm_with_schema, extract_semaphore)
+                _extract_from_tavily_result(r, gap_description, llm, extract_semaphore)
                 for r in site_results
             ]
             extract_results = await asyncio.gather(*extract_tasks, return_exceptions=True)
@@ -362,13 +362,12 @@ async def gap_analysis(state: AgentFarmState) -> dict[str, Any]:
     )
 
     planner_llm = get_planner_llm()
-    planner_with_schema = planner_llm.with_structured_output(GapAnalysisOutput)
 
     await rate_limiter.wait(_PLANNER_MODEL)
 
     try:
         with log.timed(Step.AGENT_FARM_GAP, "gap_identification") as t:
-            gap_output: GapAnalysisOutput = await planner_with_schema.ainvoke(prompt)
+            gap_output = await invoke_structured(planner_llm, prompt, GapAnalysisOutput)
             t.set(details={
                 "gaps_found": len(gap_output.gaps),
                 "coverage_summary": gap_output.coverage_summary[:200],
@@ -408,7 +407,6 @@ async def gap_analysis(state: AgentFarmState) -> dict[str, Any]:
     # ---- Step 2: Search and extract for each gap ----
 
     research_llm = get_research_llm()
-    research_with_schema = research_llm.with_structured_output(ExtractionOutput)
 
     search_semaphore = asyncio.Semaphore(_MAX_CONCURRENT_SEARCH)
     extract_semaphore = asyncio.Semaphore(_MAX_CONCURRENT_EXTRACT)
@@ -417,7 +415,7 @@ async def gap_analysis(state: AgentFarmState) -> dict[str, Any]:
         _search_for_gap(
             gap_query=gap.search_query,
             gap_description=gap.description,
-            llm_with_schema=research_with_schema,
+            llm=research_llm,
             search_semaphore=search_semaphore,
             extract_semaphore=extract_semaphore,
         )

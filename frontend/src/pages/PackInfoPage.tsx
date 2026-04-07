@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { Leaf, Bug, Pill, Shield, FileText, Database, MapPin, Loader2, AlertCircle } from 'lucide-react'
+import { useParams, useNavigate } from 'react-router-dom'
+import { Leaf, Bug, Pill, Shield, FileText, Database, MapPin, Loader2, AlertCircle, CheckCircle2 } from 'lucide-react'
 import TopBar from '../components/layout/TopBar'
-import { listPacks, browseKnowledge, type PackSummary } from '../lib/api'
+import { listPacks, loadPack, unloadPack, browseKnowledge, type PackSummary } from '../lib/api'
+import { getPackHeroImage } from '../lib/pack-images'
 
 const MODELS = [
   { name: 'Research', model: 'Gemma 4 26B MoE', provider: 'Google AI Studio' },
@@ -21,12 +22,33 @@ interface PackStats {
 }
 
 export default function PackInfoPage() {
+  const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
 
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [pack, setPack] = useState<PackSummary | null>(null)
   const [stats, setStats] = useState<PackStats | null>(null)
+  const [loadingPack, setLoadingPack] = useState(false)
+  const [loadError, setLoadError] = useState<string | null>(null)
+
+  async function fetchBrowseStats(p: PackSummary) {
+    const [diseases, treatments, pests, practices, climate] = await Promise.all([
+      browseKnowledge('disease', '', 1),
+      browseKnowledge('treatment', '', 1),
+      browseKnowledge('pest', '', 1),
+      browseKnowledge('practice', '', 1),
+      browseKnowledge('climate', '', 1),
+    ])
+    setStats({
+      crops: p.crops.length,
+      diseases: diseases.count,
+      treatments: treatments.count,
+      pests: pests.count,
+      practices: practices.count,
+      climate: climate.count,
+    })
+  }
 
   useEffect(() => {
     let cancelled = false
@@ -36,31 +58,18 @@ export default function PackInfoPage() {
       setError(null)
       try {
         const packs = await listPacks()
-        const loaded = packs.find((p) => p.loaded) ?? null
+        const thisPack = packs.find((p) => p.pack_id === id) ?? null
         if (cancelled) return
-        if (!loaded) {
+        if (!thisPack) {
           setPack(null)
           setLoading(false)
           return
         }
-        setPack(loaded)
-
-        const [diseases, treatments, pests, practices, climate] = await Promise.all([
-          browseKnowledge('disease', '', 200),
-          browseKnowledge('treatment', '', 200),
-          browseKnowledge('pest', '', 200),
-          browseKnowledge('practice', '', 200),
-          browseKnowledge('climate', '', 200),
-        ])
-        if (cancelled) return
-        setStats({
-          crops: loaded.crops.length,
-          diseases: diseases.count,
-          treatments: treatments.count,
-          pests: pests.count,
-          practices: practices.count,
-          climate: climate.count,
-        })
+        setPack(thisPack)
+        if (thisPack.loaded) {
+          await fetchBrowseStats(thisPack)
+          if (cancelled) return
+        }
       } catch (err) {
         if (!cancelled) setError('Could not reach the backend. Is the server running?')
       } finally {
@@ -70,22 +79,52 @@ export default function PackInfoPage() {
 
     fetchData()
     return () => { cancelled = true }
-  }, [])
+  }, [id])
 
-  const buildStats = stats
+  async function handleLoadPack() {
+    if (!id) return
+    setLoadingPack(true)
+    setLoadError(null)
+    try {
+      const ok = await loadPack(id)
+      if (!ok) {
+        setLoadError('Failed to load the pack. Check server logs.')
+        return
+      }
+      const packs = await listPacks()
+      const updated = packs.find((p) => p.pack_id === id) ?? null
+      setPack(updated)
+      if (updated?.loaded) await fetchBrowseStats(updated)
+    } catch {
+      setLoadError('Could not reach the backend.')
+    } finally {
+      setLoadingPack(false)
+    }
+  }
+
+  // When browse stats are loaded, use them. When not loaded, fall back to pack metadata for crops/diseases.
+  const displayStats = stats
+    ? stats
+    : pack
+      ? { crops: pack.crops.length, diseases: pack.diseases_count, treatments: null, pests: null, practices: null, climate: null }
+      : null
+
+  const buildStats = displayStats
     ? [
-        { label: `${stats.crops} Crop${stats.crops !== 1 ? 's' : ''}`, icon: Leaf, color: 'text-primary' },
-        { label: `${stats.diseases} Disease${stats.diseases !== 1 ? 's' : ''}`, icon: Bug, color: 'text-tertiary' },
-        { label: `${stats.treatments} Treatment${stats.treatments !== 1 ? 's' : ''}`, icon: Pill, color: 'text-primary' },
-        { label: `${stats.pests} Pest${stats.pests !== 1 ? 's' : ''}`, icon: Shield, color: 'text-secondary' },
-        { label: `${stats.practices} Practice${stats.practices !== 1 ? 's' : ''}`, icon: FileText, color: 'text-text-muted' },
-        { label: `${stats.climate} Climate`, icon: MapPin, color: 'text-text-muted' },
+        { label: `${displayStats.crops} Crop${displayStats.crops !== 1 ? 's' : ''}`, icon: Leaf, color: 'text-primary' },
+        { label: displayStats.diseases != null ? `${displayStats.diseases} Disease${displayStats.diseases !== 1 ? 's' : ''}` : 'Diseases', icon: Bug, color: 'text-tertiary' },
+        ...(stats ? [
+          { label: `${stats.treatments} Treatment${stats.treatments !== 1 ? 's' : ''}`, icon: Pill, color: 'text-primary' },
+          { label: `${stats.pests} Pest${stats.pests !== 1 ? 's' : ''}`, icon: Shield, color: 'text-secondary' },
+          { label: `${stats.practices} Practice${stats.practices !== 1 ? 's' : ''}`, icon: FileText, color: 'text-text-muted' },
+          { label: `${stats.climate} Climate`, icon: MapPin, color: 'text-text-muted' },
+        ] : []),
       ]
     : []
 
   return (
     <div className="flex flex-col animate-fadeIn">
-      <TopBar title="Pack Details" back backTo="/" />
+      <TopBar title="Pack Details" back backTo="/packs" />
 
       <div className="flex-1 overflow-y-auto px-4 py-4 bg-surface">
         <div className="max-w-lg mx-auto space-y-4">
@@ -113,17 +152,17 @@ export default function PackInfoPage() {
             </div>
           )}
 
-          {/* No pack loaded */}
+          {/* Pack not found */}
           {!loading && !error && !pack && (
             <div className="bg-card rounded-xl p-6 shadow-sm border border-surface-dark text-center space-y-3">
               <Database size={32} className="mx-auto text-text-muted" />
-              <p className="text-sm font-semibold text-text">No pack loaded</p>
-              <p className="text-xs text-text-muted">Go to the home screen to load a Knowledge Pack first.</p>
+              <p className="text-sm font-semibold text-text">Pack not found</p>
+              <p className="text-xs text-text-muted">The pack "{id}" does not exist or the server is not running.</p>
               <button
-                onClick={() => navigate('/')}
+                onClick={() => navigate('/packs')}
                 className="text-xs text-primary font-medium hover:underline"
               >
-                Go to Home
+                Back to Packs
               </button>
             </div>
           )}
@@ -131,25 +170,73 @@ export default function PackInfoPage() {
           {/* Main content — only shown when pack is loaded */}
           {!loading && !error && pack && (
             <>
-              {/* Pack identity */}
-              <div className="bg-card rounded-xl p-4 shadow-sm border border-surface-dark text-center">
-                <div className="w-14 h-14 bg-primary/10 rounded-xl flex items-center justify-center mx-auto mb-3">
-                  <Database className="text-primary" size={28} />
+              {/* Pack identity — hero banner */}
+              <div className="bg-card rounded-xl shadow-sm border border-surface-dark overflow-hidden">
+                <div className="h-40 relative overflow-hidden">
+                  <img
+                    src={getPackHeroImage(pack.pack_id)}
+                    alt={`${pack.name} landscape`}
+                    className="w-full h-full object-cover"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
+                  {pack.loaded ? (
+                    <span className="absolute top-2.5 right-2.5 inline-flex items-center gap-1 text-[11px] font-bold bg-primary/90 text-white px-2.5 py-1 rounded-full shadow-sm">
+                      <CheckCircle2 size={12} />
+                      Active
+                    </span>
+                  ) : (
+                    <span className="absolute top-2.5 right-2.5 text-[11px] font-bold bg-black/40 text-white/80 px-2.5 py-1 rounded-full backdrop-blur-sm">
+                      Not Loaded
+                    </span>
+                  )}
+                  <div className="absolute bottom-3 left-4 right-4">
+                    <h2 className="font-heading text-xl font-extrabold text-white drop-shadow-md">{pack.name}</h2>
+                    <div className="flex items-center gap-1.5 mt-1">
+                      <MapPin size={12} className="text-white/80" />
+                      <span className="text-xs text-white/80">{pack.region}</span>
+                      <span className="text-white/40 mx-1">&middot;</span>
+                      <span className="text-xs text-white/60 font-mono">{pack.pack_id}</span>
+                    </div>
+                  </div>
                 </div>
-                <h2 className="font-heading text-xl font-extrabold">{pack.name}</h2>
-                <p className="text-xs text-text-muted mt-1">Pack ID: {pack.pack_id}</p>
-                <div className="flex items-center justify-center gap-1.5 mt-2">
-                  <MapPin size={12} className="text-text-muted" />
-                  <span className="text-xs text-text-muted">{pack.region}</span>
-                </div>
-                <span className="inline-block mt-2 text-xs font-semibold bg-primary/10 text-primary px-3 py-1 rounded-full">
-                  Loaded
-                </span>
               </div>
 
+              {/* Load error */}
+              {loadError && (
+                <div className="bg-card rounded-xl p-3 shadow-sm border border-surface-dark flex items-center gap-2">
+                  <AlertCircle size={16} className="text-tertiary shrink-0" />
+                  <p className="text-xs text-tertiary">{loadError}</p>
+                </div>
+              )}
+
+              {/* Load this Pack button — only shown if not currently loaded */}
+              {!pack.loaded && (
+                <button
+                  onClick={handleLoadPack}
+                  disabled={loadingPack}
+                  className="w-full bg-primary text-white font-semibold text-sm py-3 rounded-lg hover:bg-primary/90 active:scale-[0.98] transition-all disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                >
+                  {loadingPack ? (
+                    <>
+                      <Loader2 size={16} className="animate-spin" />
+                      Loading Pack...
+                    </>
+                  ) : (
+                    'Load this Pack'
+                  )}
+                </button>
+              )}
+
               {/* Stats grid */}
-              {stats ? (
+              {pack.loaded && !stats ? (
+                // Loading skeleton while browse stats are being fetched for the active pack
                 <div className="grid grid-cols-3 gap-2">
+                  {Array.from({ length: 6 }).map((_, i) => (
+                    <div key={i} className="bg-card rounded-lg p-3 text-center shadow-sm border border-surface-dark animate-pulse h-16" />
+                  ))}
+                </div>
+              ) : buildStats.length > 0 ? (
+                <div className={`grid gap-2 ${buildStats.length === 2 ? 'grid-cols-2' : 'grid-cols-3'}`}>
                   {buildStats.map((s) => (
                     <div key={s.label} className="bg-card rounded-lg p-3 text-center shadow-sm border border-surface-dark">
                       <s.icon size={18} className={`mx-auto mb-1 ${s.color}`} />
@@ -157,13 +244,7 @@ export default function PackInfoPage() {
                     </div>
                   ))}
                 </div>
-              ) : (
-                <div className="grid grid-cols-3 gap-2">
-                  {Array.from({ length: 6 }).map((_, i) => (
-                    <div key={i} className="bg-card rounded-lg p-3 text-center shadow-sm border border-surface-dark animate-pulse h-16" />
-                  ))}
-                </div>
-              )}
+              ) : null}
 
               {/* Crops */}
               {pack.crops.length > 0 && (
@@ -202,14 +283,36 @@ export default function PackInfoPage() {
               <div className="space-y-2">
                 <button
                   onClick={() => navigate('/packs/explorer')}
-                  className="w-full border-2 border-primary text-primary font-semibold text-sm py-2.5 rounded-lg hover:bg-primary/5 transition-colors"
+                  disabled={!pack.loaded}
+                  className={`w-full border-2 font-semibold text-sm py-2.5 rounded-lg transition-colors ${
+                    pack.loaded
+                      ? 'border-primary text-primary hover:bg-primary/5'
+                      : 'border-surface-dark text-text-muted cursor-not-allowed opacity-50'
+                  }`}
                 >
-                  Open in Knowledge Explorer
+                  {pack.loaded ? 'Open in Knowledge Explorer' : 'Load pack to explore knowledge'}
                 </button>
-                <button className="w-full border-2 border-secondary text-secondary font-semibold text-sm py-2.5 rounded-lg hover:bg-secondary/5 transition-colors">
-                  Rebuild Pack
+                <button
+                  onClick={handleLoadPack}
+                  disabled={loadingPack}
+                  className="w-full flex items-center justify-center gap-2 border-2 border-secondary text-secondary font-semibold text-sm py-2.5 rounded-lg hover:bg-secondary/5 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {loadingPack && <Loader2 size={14} className="animate-spin" />}
+                  {loadingPack ? 'Reloading...' : 'Reload Pack'}
                 </button>
-                <button className="w-full text-tertiary text-xs font-medium py-2 hover:underline">
+                {loadError && (
+                  <p className="text-xs text-tertiary text-center">{loadError}</p>
+                )}
+                <button
+                  onClick={async () => {
+                    const ok = await unloadPack()
+                    if (ok) {
+                      setPack(prev => prev ? { ...prev, loaded: false } : null)
+                      setStats(null)
+                    }
+                  }}
+                  className="w-full text-tertiary text-xs font-medium py-2 hover:underline"
+                >
                   Unload Pack
                 </button>
               </div>

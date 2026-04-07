@@ -5,6 +5,7 @@ import MarkdownContent from '../components/MarkdownContent'
 import TopBar from '../components/layout/TopBar'
 import ChatSidebar from '../components/ChatSidebar'
 import { useSwipeToOpen } from '../hooks/useSwipeToOpen'
+import { apiUrl } from '../lib/config'
 import {
   listConversations,
   createConversation,
@@ -73,6 +74,8 @@ export default function MissionChatPage() {
   const [isTyping, setIsTyping] = useState(false)
   const [missionReady, setMissionReady] = useState(false)
   const [editing, setEditing] = useState(false)
+  const [actionError, setActionError] = useState<string | null>(null)
+  const [isDispatching, setIsDispatching] = useState(false)
 
   // Conversation state
   const [conversationId, setConversationId] = useState<string | null>(null)
@@ -81,12 +84,18 @@ export default function MissionChatPage() {
   const [sidebarLoading, setSidebarLoading] = useState(false)
 
   const bottomRef = useRef<HTMLDivElement>(null)
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const skipNextSave = useRef(false)
   const navigate = useNavigate()
 
   const openSidebar = useCallback(() => setSidebarOpen(true), [])
   useSwipeToOpen(openSidebar)
+
+  // Auto-focus textarea on mount so keyboard users can type immediately
+  useEffect(() => {
+    textareaRef.current?.focus()
+  }, [])
 
   // Fetch conversations when sidebar opens
   useEffect(() => {
@@ -237,10 +246,32 @@ export default function MissionChatPage() {
     }, 1500)
   }
 
-  const handleAction = (label: string) => {
+  const handleAction = async (label: string) => {
     if (label.includes('Dispatch')) {
-      navigate('/mission/progress')
+      setActionError(null)
+      setIsDispatching(true)
+      try {
+        const res = await fetch(apiUrl('/mission/start'), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            region: 'Casamance, Senegal',
+            crops: ['Cassava', 'Rice'],
+            season: 'Rainy (Jul-Oct)',
+            focus_areas: ['Disease ID', 'Treatment Protocols', 'Farming Calendar'],
+          }),
+        })
+        if (!res.ok) throw new Error(`Server returned ${res.status}`)
+        const data = await res.json()
+        navigate('/mission/progress', { state: { missionId: data.mission_id } })
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Unknown error'
+        setActionError(`Could not reach the server. ${message}`)
+      } finally {
+        setIsDispatching(false)
+      }
     } else if (label.includes('Edit')) {
+      setActionError(null)
       setEditing(true)
       setInput('')
       setMessages((prev) => [
@@ -255,7 +286,10 @@ export default function MissionChatPage() {
   }
 
   return (
-    <div className="flex flex-col h-[calc(100dvh-4rem-env(safe-area-inset-bottom,0px))]">
+    <div
+      className="flex flex-col h-[calc(100dvh-4rem-env(safe-area-inset-bottom,0px))]"
+      onKeyDown={(e) => { if (e.key === 'Escape' && sidebarOpen) setSidebarOpen(false) }}
+    >
       <ChatSidebar
         isOpen={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
@@ -283,7 +317,7 @@ export default function MissionChatPage() {
       />
 
       {/* Chat messages */}
-      <div className="flex-1 overflow-y-auto overscroll-none px-4 py-4 space-y-4 bg-surface">
+      <div role="log" aria-label="Chat messages" aria-live="polite" className="flex-1 overflow-y-auto overscroll-none px-4 py-4 space-y-4 bg-surface">
         {messages.map((msg) => (
           <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start gap-2'}`}>
             {msg.role === 'assistant' && (
@@ -358,20 +392,30 @@ export default function MissionChatPage() {
               )}
 
               {msg.actions && (
-                <div className="mt-3 flex gap-2 flex-wrap">
-                  {msg.actions.map((a) => (
-                    <button
-                      key={a.label}
-                      onClick={() => handleAction(a.label)}
-                      className={`text-xs font-semibold px-4 py-2 rounded-lg transition-colors ${
-                        a.variant === 'primary'
-                          ? 'bg-primary text-white hover:bg-primary-light min-h-[44px]'
-                          : 'border border-text-muted text-text-muted hover:bg-surface-dark min-h-[44px]'
-                      }`}
-                    >
-                      {a.label}
-                    </button>
-                  ))}
+                <div className="mt-3 flex flex-col gap-2">
+                  <div className="flex gap-2 flex-wrap">
+                    {msg.actions.map((a) => {
+                      const isDispatchBtn = a.label.includes('Dispatch')
+                      const busy = isDispatchBtn && isDispatching
+                      return (
+                        <button
+                          key={a.label}
+                          onClick={() => handleAction(a.label)}
+                          disabled={busy}
+                          className={`text-xs font-semibold px-4 py-2 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-wait ${
+                            a.variant === 'primary'
+                              ? 'bg-primary text-white hover:bg-primary-light min-h-[44px]'
+                              : 'border border-text-muted text-text-muted hover:bg-surface-dark min-h-[44px]'
+                          }`}
+                        >
+                          {busy ? 'Dispatching...' : a.label}
+                        </button>
+                      )
+                    })}
+                  </div>
+                  {actionError && (
+                    <p className="text-xs text-red-500 mt-1">{actionError}</p>
+                  )}
                 </div>
               )}
             </div>
@@ -400,6 +444,7 @@ export default function MissionChatPage() {
       <div className="bg-card border-t border-surface-dark px-4 py-3">
         <div className="max-w-lg mx-auto flex items-end gap-2">
           <textarea
+            ref={textareaRef}
             value={input}
             onChange={(e) => {
               setInput(e.target.value)
