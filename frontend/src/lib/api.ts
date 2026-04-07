@@ -114,8 +114,37 @@ export async function uploadImageBase64(base64Data: string, format: string = 'jp
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ data: base64Data, format }),
+    signal: AbortSignal.timeout(15000),
   })
   if (!res.ok) throw new Error(`Upload failed: ${res.status}`)
   const result = await res.json()
   return result.image_path
+}
+
+export interface MissionChatResponse {
+  reply: string
+  mission_card?: {
+    region: string
+    crops: string[]
+    season: string
+    focus_areas: string[]
+    scale_estimate?: string
+  }
+}
+
+export async function chatMission(message: string, conversationHistory: MessageData[]): Promise<MissionChatResponse> {
+  const res = await fetch(apiUrl('/mission/chat'), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      message,
+      conversation_history: conversationHistory.slice(0, -1).map(m => ({
+        role: m.role,
+        content: m.content,
+      })),
+    }),
+    signal: AbortSignal.timeout(60000),
+  })
+  if (!res.ok) throw new Error(`Mission chat failed: ${res.status}`)
+  return res.json()
 }

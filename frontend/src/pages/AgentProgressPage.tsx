@@ -46,7 +46,7 @@ const LOG_ENTRIES = [
   '[Agent 2] Researching rice blast treatments from PlantVillage...',
   '[Agent 1] Found cassava mosaic data from IITA',
   '[Agent 3] Querying FAO disease database...',
-  '[Agent 4] Gathering Casamance climate data...',
+  '[Agent 4] Gathering Casamance, Senegal climate data...',
   '[Agent 2] Found 3 organic treatments for rice blast',
   '[Agent 5] Collecting pest management protocols...',
 ]
@@ -84,13 +84,13 @@ export default function AgentProgressPage() {
 
   return (
     <div className="flex flex-col h-[calc(100dvh-4rem)] animate-fadeIn">
-      <TopBar title="Building Pack..." back backTo="/mission" badge={{ label: 'Live', variant: 'live' }} />
+      <TopBar title="Building Pack" back backTo="/mission" badge={{ label: 'Live', variant: 'live' }} />
 
       {/* Mission summary */}
       <div className="bg-primary/5 px-4 py-3 border-b border-surface-dark">
         <div className="max-w-lg mx-auto">
-          <p className="font-heading font-bold text-sm text-text">Casamance Agriculture</p>
-          <p className="text-xs text-text-muted">Cassava, Rice, Maize &middot; Senegal</p>
+          <p className="font-heading font-bold text-sm text-text">Casamance, Senegal &mdash; Agriculture</p>
+          <p className="text-xs text-text-muted">Cassava, Rice, Maize, Groundnut, Tomato</p>
         </div>
       </div>
 

@@ -49,7 +49,10 @@ async def list_packs():
             packs.append(PackInfo(
                 pack_id=pack_dir.name,
                 name=data.get("name", pack_dir.name),
-                region=data.get("region", {}).get("name", "Unknown"),
+                region=", ".join(filter(None, [
+                    data.get("region", {}).get("name"),
+                    data.get("region", {}).get("country"),
+                ])) or "Unknown",
                 crops=data.get("crops", []),
                 diseases_count=data.get("statistics", {}).get("diseases_count", 0),
                 loaded=pack_dir.resolve() == active_path,
@@ -92,7 +95,10 @@ async def load_pack_endpoint(pack_id: str):
         status="loaded",
         pack_id=pack_id,
         name=manifest.name,
-        region=manifest.region.name if manifest.region else "Unknown",
+        region=", ".join(filter(None, [
+            manifest.region.name if manifest.region else None,
+            manifest.region.country if manifest.region else None,
+        ])) or "Unknown",
         crops=manifest.crops,
         diseases_count=manifest.statistics.diseases_count if manifest.statistics else 0,
     )

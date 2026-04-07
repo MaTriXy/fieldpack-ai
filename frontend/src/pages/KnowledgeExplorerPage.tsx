@@ -80,7 +80,7 @@ export default function KnowledgeExplorerPage() {
 
   return (
     <div className="flex flex-col h-[calc(100dvh-4rem-env(safe-area-inset-bottom,0px))] animate-fadeIn">
-      <TopBar title="Knowledge Explorer" subtitle="Casamance Agriculture v1.0" back backTo="/packs" />
+      <TopBar title="Knowledge Explorer" subtitle="Casamance, Senegal — Agriculture v1.0" back backTo="/packs" />
 
       {/* Search */}
       <div className="bg-card px-4 py-3 border-b border-surface-dark">
@@ -116,7 +116,7 @@ export default function KnowledgeExplorerPage() {
               onClick={() => setTab(t.key)}
               className={`shrink-0 px-3 py-2.5 text-xs font-medium border-b-2 transition-colors min-h-[44px] ${
                 tab === t.key
-                  ? 'border-primary text-primary'
+                  ? 'border-primary-light text-primary'
                   : 'border-transparent text-text-muted hover:text-text'
               }`}
             >
@@ -168,7 +168,7 @@ export default function KnowledgeExplorerPage() {
                       </span>
                     ))}
                   </div>
-                  <p className="text-xs text-text-muted mt-2 leading-relaxed">{item.description}</p>
+                  <p className="text-sm text-text-muted mt-2 leading-relaxed">{item.description}</p>
                 </button>
 
                 <div

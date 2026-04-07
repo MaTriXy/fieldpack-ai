@@ -47,8 +47,8 @@ ROUTING_RULES: dict[IntentType, dict] = {
     },
     IntentType.IDENTIFY_IMAGE: {
         "engines": [SearchEngineType.CHROMA_EMBEDDING, SearchEngineType.SQLITE_FTS],
-        "collections": ["disease_knowledge"],
-        "tables": ["diseases", "pests"],
+        "collections": ["disease_knowledge", "treatment_guides"],
+        "tables": ["diseases", "treatments", "pests"],
     },
     IntentType.LOG_OBSERVATION: {
         "engines": [],

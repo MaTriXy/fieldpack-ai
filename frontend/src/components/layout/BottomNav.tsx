@@ -6,7 +6,7 @@ const tabs = [
   { to: '/mission', icon: Rocket, label: 'Mission' },
   { to: '/field', icon: Leaf, label: 'Field' },
   { to: '/packs', icon: Database, label: 'Packs' },
-  { to: '/debug', icon: Terminal, label: 'Debug' },
+  ...(import.meta.env.DEV ? [{ to: '/debug', icon: Terminal, label: 'Debug' }] : []),
 ]
 
 export default function BottomNav() {
@@ -21,7 +21,7 @@ export default function BottomNav() {
             className={({ isActive }) =>
               `relative flex flex-col items-center gap-0.5 px-3 py-2 text-xs transition-all min-w-[44px] min-h-[44px] justify-center active:scale-90 ${
                 isActive
-                  ? 'text-primary font-semibold'
+                  ? 'text-primary-light font-semibold'
                   : 'text-text-muted/70 font-medium hover:text-text-muted'
               }`
             }
@@ -30,7 +30,7 @@ export default function BottomNav() {
               <>
                 <span
                   className={`flex items-center justify-center w-9 h-7 rounded-full transition-all ${
-                    isActive ? 'bg-primary/12' : ''
+                    isActive ? 'bg-primary-light/20' : ''
                   }`}
                   aria-hidden="true"
                 >

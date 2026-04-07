@@ -243,7 +243,7 @@ def craft_search_query(state: FieldAssistantState) -> dict:
 
         with log.timed(Step.CRAFT_QUERY, "retry_variants") as t:
             try:
-                llm = get_field_llm(temperature=0.5, num_predict=256, format="json")
+                llm = get_field_llm(temperature=0.5, num_predict=1024, format="json")
                 response = llm.invoke(messages)
                 response_text = extract_text(response)
                 fts_fallback = classify_result.keywords if classify_result else []

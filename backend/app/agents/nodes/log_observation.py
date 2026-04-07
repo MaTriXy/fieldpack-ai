@@ -212,7 +212,7 @@ def log_observation_node(state: FieldAssistantState) -> dict:
 
     with log.timed(Step.OBSERVATION, "llm_call") as t:
         try:
-            llm = get_field_llm(temperature=0.2, num_predict=256, format="json")
+            llm = get_field_llm(temperature=0.2, num_predict=1024, format="json")
             response = llm.invoke(messages)
             response_text = extract_text(response)
             parsed = _parse_observation_response(response_text, fallback_type, user_message)

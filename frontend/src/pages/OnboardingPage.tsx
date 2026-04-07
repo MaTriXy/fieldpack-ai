@@ -16,9 +16,14 @@ import {
   CloudOff,
 } from 'lucide-react'
 import { useConnection } from '../hooks/ServerConnectionContext'
-import { getServerUrl, setServerUrl } from '../lib/config'
+import { getServerUrl, setServerUrl, isNative } from '../lib/config'
 
 const TOTAL_SLIDES = 5
+
+const haptic = (style: string = 'Medium') =>
+  isNative() && import('@capacitor/haptics').then(m =>
+    m.Haptics.impact({ style: m.ImpactStyle[style as keyof typeof m.ImpactStyle] })
+  ).catch(() => {})
 
 // ── Slide 1: Welcome ───────────────────────────────────────────────────────────
 
@@ -41,11 +46,11 @@ function WelcomeSlide() {
         Offline intelligence for field workers
       </p>
 
-      <p className="text-white/55 text-sm leading-relaxed max-w-xs mb-8">
+      <p className="text-white/75 text-sm leading-relaxed max-w-xs mb-8">
         Point your phone at a sick plant. Get a diagnosis and treatment plan &mdash; no internet, no signal required.
       </p>
 
-      <p className="text-white/30 text-xs tracking-widest uppercase">
+      <p className="text-white/75 text-xs tracking-widest uppercase">
         Powered by Gemma&nbsp;4 &middot; Built for the field
       </p>
     </div>
@@ -71,7 +76,7 @@ function HeroWorkflowSlide() {
             </div>
             <span className="text-white font-semibold text-xs">Take Photo</span>
           </div>
-          <p className="text-white/40 text-[10px] leading-tight">Point at affected leaves or stems</p>
+          <p className="text-white/65 text-[11px] leading-tight">Point at affected leaves or stems</p>
         </div>
 
         {/* Arrow */}
@@ -85,7 +90,7 @@ function HeroWorkflowSlide() {
             </div>
             <span className="text-white font-semibold text-xs">AI Diagnoses</span>
           </div>
-          <p className="text-white/40 text-[10px] leading-tight">Identifies disease from knowledge base</p>
+          <p className="text-white/65 text-[11px] leading-tight">Identifies disease from knowledge base</p>
         </div>
 
         {/* Arrow */}
@@ -99,7 +104,7 @@ function HeroWorkflowSlide() {
             </div>
             <span className="text-white font-semibold text-xs">Treatment</span>
           </div>
-          <p className="text-white/40 text-[10px] leading-tight">Step-by-step plan with local materials</p>
+          <p className="text-white/65 text-[11px] leading-tight">Step-by-step plan with local materials</p>
         </div>
       </div>
 
@@ -107,7 +112,7 @@ function HeroWorkflowSlide() {
       <div className="w-full max-w-sm bg-white/8 border border-white/12 rounded-xl p-4 text-left">
         <div className="flex items-start gap-3">
           <Camera size={16} className="text-secondary flex-shrink-0 mt-0.5" />
-          <p className="text-white/60 text-xs leading-relaxed">
+          <p className="text-white/75 text-xs leading-relaxed">
             Just attach a photo in Field Chat &mdash; no special commands needed. You can also describe symptoms in text.
           </p>
         </div>
@@ -124,7 +129,7 @@ function OnlineOfflineSlide() {
       <h2 className="font-heading text-2xl font-bold text-white mb-2">
         Two modes, one app
       </h2>
-      <p className="text-white/50 text-sm mb-8 max-w-xs">
+      <p className="text-white/70 text-sm mb-8 max-w-xs">
         FieldPack works in the office and in the field
       </p>
 
@@ -137,20 +142,20 @@ function OnlineOfflineSlide() {
             </div>
             <div>
               <h3 className="text-white font-semibold text-sm">Online Mode</h3>
-              <p className="text-white/40 text-xs">Requires internet</p>
+              <p className="text-white/65 text-xs">Requires internet</p>
             </div>
-            <Cloud size={14} className="text-white/20 ml-auto" />
+            <Cloud size={14} className="text-white/40 ml-auto" />
           </div>
           <ul className="space-y-1.5 ml-1">
-            <li className="flex items-center gap-2 text-white/60 text-xs">
+            <li className="flex items-center gap-2 text-white/75 text-xs">
               <span className="w-1 h-1 rounded-full bg-blue-400 flex-shrink-0" />
               Create Knowledge Packs for your region
             </li>
-            <li className="flex items-center gap-2 text-white/60 text-xs">
+            <li className="flex items-center gap-2 text-white/75 text-xs">
               <span className="w-1 h-1 rounded-full bg-blue-400 flex-shrink-0" />
               AI agents research crops, diseases, treatments
             </li>
-            <li className="flex items-center gap-2 text-white/60 text-xs">
+            <li className="flex items-center gap-2 text-white/75 text-xs">
               <span className="w-1 h-1 rounded-full bg-blue-400 flex-shrink-0" />
               Done once at the office before field deployment
             </li>
@@ -165,20 +170,20 @@ function OnlineOfflineSlide() {
             </div>
             <div>
               <h3 className="text-white font-semibold text-sm">Offline Mode</h3>
-              <p className="text-secondary/70 text-xs">No internet needed</p>
+              <p className="text-secondary text-xs">No internet needed</p>
             </div>
-            <CloudOff size={14} className="text-white/20 ml-auto" />
+            <CloudOff size={14} className="text-white/40 ml-auto" />
           </div>
           <ul className="space-y-1.5 ml-1">
-            <li className="flex items-center gap-2 text-white/60 text-xs">
+            <li className="flex items-center gap-2 text-white/75 text-xs">
               <span className="w-1 h-1 rounded-full bg-secondary flex-shrink-0" />
               Diagnose diseases from photos
             </li>
-            <li className="flex items-center gap-2 text-white/60 text-xs">
+            <li className="flex items-center gap-2 text-white/75 text-xs">
               <span className="w-1 h-1 rounded-full bg-secondary flex-shrink-0" />
               Get treatment plans with local materials
             </li>
-            <li className="flex items-center gap-2 text-white/60 text-xs">
+            <li className="flex items-center gap-2 text-white/75 text-xs">
               <span className="w-1 h-1 rounded-full bg-secondary flex-shrink-0" />
               Works anywhere &mdash; no signal, no cloud
             </li>
@@ -197,14 +202,14 @@ function KnowledgePackSlide() {
       <h2 className="font-heading text-2xl font-bold text-white mb-2">
         Pre-loaded crop knowledge
       </h2>
-      <p className="text-white/50 text-sm mb-8 max-w-xs">
+      <p className="text-white/70 text-sm mb-8 max-w-xs">
         A Knowledge Pack contains everything the AI needs &mdash; stored locally, not in the cloud
       </p>
 
       {/* Mock pack card */}
       <div className="w-full max-w-sm rounded-xl overflow-hidden border border-white/15 mb-6 animate-slideUp" style={{ animationDelay: '0.15s' }}>
         {/* Shimmer top bar */}
-        <div className="h-0.5 w-full animate-shimmer" style={{ background: 'linear-gradient(90deg, transparent 0%, #D4A017 30%, #E3B634 50%, #D4A017 70%, transparent 100%)', backgroundSize: '200% 100%' }} />
+        <div className="h-0.5 w-full animate-shimmer" style={{ background: 'linear-gradient(90deg, transparent 0%, #F5A623 30%, #FFD180 50%, #F5A623 70%, transparent 100%)', backgroundSize: '200% 100%' }} />
 
         <div className="bg-white/8 p-4">
           <div className="flex items-center gap-3 mb-3">
@@ -212,8 +217,8 @@ function KnowledgePackSlide() {
               <Database size={20} className="text-secondary" />
             </div>
             <div className="text-left flex-1 min-w-0">
-              <h3 className="text-white font-semibold text-sm">Casamance Agriculture</h3>
-              <p className="text-white/40 text-xs">Senegal &middot; Southern Region</p>
+              <h3 className="text-white font-semibold text-sm">Casamance, Senegal &mdash; Agriculture</h3>
+              <p className="text-white/65 text-xs">Southern Region</p>
             </div>
             <span className="flex items-center gap-1 text-[10px] font-bold text-green-400 bg-green-500/15 border border-green-500/25 rounded-full px-2 py-0.5">
               <span className="w-1.5 h-1.5 rounded-full bg-green-400" />
@@ -224,15 +229,15 @@ function KnowledgePackSlide() {
           {/* Pack stats */}
           <div className="bg-white/6 rounded-lg divide-y divide-white/8">
             <div className="flex items-center justify-between px-3 py-2">
-              <span className="text-white/40 text-xs">Crops</span>
+              <span className="text-white/65 text-xs">Crops</span>
               <span className="text-white/80 text-xs font-medium">Cassava, Rice, Millet, Groundnut</span>
             </div>
             <div className="flex items-center justify-between px-3 py-2">
-              <span className="text-white/40 text-xs">Diseases</span>
+              <span className="text-white/65 text-xs">Diseases</span>
               <span className="text-white/80 text-xs font-medium">47 disease profiles</span>
             </div>
             <div className="flex items-center justify-between px-3 py-2">
-              <span className="text-white/40 text-xs">Records</span>
+              <span className="text-white/65 text-xs">Records</span>
               <span className="text-white/80 text-xs font-medium">847 entries &middot; 4 search indexes</span>
             </div>
           </div>
@@ -243,7 +248,7 @@ function KnowledgePackSlide() {
       <div className="w-full max-w-sm bg-white/8 border border-white/12 rounded-xl p-4 text-left">
         <div className="flex items-start gap-3">
           <Leaf size={16} className="text-secondary flex-shrink-0 mt-0.5" />
-          <p className="text-white/60 text-xs leading-relaxed">
+          <p className="text-white/75 text-xs leading-relaxed">
             The FieldStation laptop pre-loads a pack before deploying to the field. You just connect and go.
           </p>
         </div>
@@ -315,7 +320,7 @@ function ConnectSlide({ onComplete }: { onComplete: () => void }) {
         <p className="font-heading text-base font-semibold text-white mb-1 animate-dotPulse">
           Searching for FieldStation...
         </p>
-        <p className="text-white/40 text-xs mb-6">
+        <p className="text-white/65 text-xs mb-6">
           The AI runs on a nearby laptop over WiFi
         </p>
 
@@ -327,7 +332,7 @@ function ConnectSlide({ onComplete }: { onComplete: () => void }) {
                 <span className="flex-shrink-0 w-5 h-5 rounded-full bg-secondary/20 border border-secondary/30 text-secondary text-[10px] font-bold flex items-center justify-center mt-0.5">
                   {i + 1}
                 </span>
-                <span className="text-white/55 text-xs leading-relaxed">{tip}</span>
+                <span className="text-white/75 text-xs leading-relaxed">{tip}</span>
               </li>
             ))}
           </ol>
@@ -336,7 +341,7 @@ function ConnectSlide({ onComplete }: { onComplete: () => void }) {
         {!showManualInput ? (
           <button
             onClick={() => setShowManualInput(true)}
-            className="text-secondary/70 text-xs underline underline-offset-2"
+            className="text-secondary text-xs underline underline-offset-2"
           >
             Enter IP manually
           </button>
@@ -365,22 +370,22 @@ function ConnectSlide({ onComplete }: { onComplete: () => void }) {
         {serverInfo && (
           <div className="w-full max-w-sm bg-white/8 border border-white/12 rounded-xl divide-y divide-white/8 mb-8 text-left">
             <div className="flex items-center justify-between px-4 py-3">
-              <span className="text-white/40 text-xs">Server</span>
+              <span className="text-white/65 text-xs">Server</span>
               <span className="text-white text-xs font-mono">{serverInfo.ip}</span>
             </div>
             <div className="flex items-center justify-between px-4 py-3">
-              <span className="text-white/40 text-xs">Model</span>
+              <span className="text-white/65 text-xs">Model</span>
               <span className="text-white text-xs font-medium truncate ml-4 text-right max-w-[150px]">{serverInfo.model}</span>
             </div>
             <div className="flex items-center justify-between px-4 py-3">
-              <span className="text-white/40 text-xs">Knowledge Pack</span>
+              <span className="text-white/65 text-xs">Knowledge Pack</span>
               <span className="text-secondary text-xs font-medium truncate ml-4 text-right max-w-[150px]">{serverInfo.pack}</span>
             </div>
           </div>
         )}
 
         <button
-          onClick={onComplete}
+          onClick={() => { haptic('Medium'); onComplete() }}
           className="w-full max-w-sm flex items-center justify-center gap-2 bg-secondary text-white font-heading font-bold rounded-xl px-6 py-4 text-base active:scale-95 transition-transform"
         >
           Get Started
@@ -409,7 +414,7 @@ function ConnectSlide({ onComplete }: { onComplete: () => void }) {
               <span className="flex-shrink-0 w-5 h-5 rounded-full bg-secondary/20 border border-secondary/30 text-secondary text-[10px] font-bold flex items-center justify-center mt-0.5">
                 {i + 1}
               </span>
-              <span className="text-white/55 text-xs leading-relaxed">{tip}</span>
+              <span className="text-white/75 text-xs leading-relaxed">{tip}</span>
             </li>
           ))}
         </ol>
@@ -439,9 +444,10 @@ function ManualIpInput({ url, onChange, onConnect, state }: {
 }) {
   return (
     <div className="space-y-2">
-      <label className="text-white/40 text-xs text-left block mb-1">Server address</label>
+      <label className="text-white/65 text-xs text-left block mb-1">Server address</label>
       <input
-        type="text"
+        type="url"
+        inputMode="url"
         value={url}
         onChange={(e) => onChange(e.target.value)}
         placeholder="http://192.168.137.1:8000"
@@ -480,12 +486,14 @@ function DotIndicators({ total, active, onDotClick }: { total: number; active: n
           aria-selected={i === active}
           aria-label={`Slide ${i + 1}`}
           onClick={() => onDotClick(i)}
-          className={`transition-all duration-300 rounded-full ${
+          className="p-2"
+        >
+          <span className={`block transition-all duration-300 rounded-full ${
             i === active
               ? 'w-6 h-2.5 bg-secondary'
-              : 'w-2.5 h-2.5 bg-white/25 hover:bg-white/40'
-          }`}
-        />
+              : 'w-2.5 h-2.5 bg-white/35 hover:bg-white/50'
+          }`} />
+        </button>
       ))}
     </div>
   )
@@ -551,21 +559,21 @@ export default function OnboardingPage() {
   return (
     <div
       className="min-h-[100dvh] flex flex-col overflow-hidden relative"
-      style={{ background: 'linear-gradient(160deg, #1B4332 0%, #132F23 55%, #0f2d1e 100%)' }}
+      style={{ background: 'linear-gradient(160deg, #2D6A4F 0%, #1B4332 55%, #143d29 100%)' }}
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
     >
       {/* Decorative textures */}
       <div className="absolute inset-0 opacity-[0.05] pointer-events-none" style={{ backgroundImage: 'radial-gradient(circle, white 1.5px, transparent 1.5px)', backgroundSize: '28px 28px' }} aria-hidden="true" />
-      <div className="absolute inset-0 opacity-25 pointer-events-none" style={{ background: 'radial-gradient(ellipse 70% 45% at 50% 0%, #2D6A4F, transparent)' }} aria-hidden="true" />
-      <div className="absolute inset-0 opacity-10 pointer-events-none" style={{ background: 'radial-gradient(ellipse 50% 35% at 10% 100%, #D4A01740, transparent)' }} aria-hidden="true" />
+      <div className="absolute inset-0 opacity-25 pointer-events-none" style={{ background: 'radial-gradient(ellipse 70% 45% at 50% 0%, #40916C, transparent)' }} aria-hidden="true" />
+      <div className="absolute inset-0 opacity-10 pointer-events-none" style={{ background: 'radial-gradient(ellipse 50% 35% at 10% 100%, #F5A62340, transparent)' }} aria-hidden="true" />
 
       {/* Skip button — visible on slides 0-3, hidden on last slide */}
       <div className="relative z-10 flex justify-end px-5 pt-4 min-h-[48px]">
         {slide < TOTAL_SLIDES - 1 && (
           <button
             onClick={goSkip}
-            className="inline-flex items-center gap-1 text-white/60 text-sm font-medium bg-white/10 border border-white/15 rounded-full px-4 py-2 active:bg-white/20 transition-colors min-h-[44px]"
+            className="inline-flex items-center gap-1 text-white/80 text-sm font-medium bg-white/15 border border-white/20 rounded-full px-4 py-2 active:bg-white/25 transition-colors min-h-[44px]"
           >
             Skip setup
             <ChevronRight size={14} className="opacity-60" />
@@ -588,7 +596,7 @@ export default function OnboardingPage() {
 
         {slide < TOTAL_SLIDES - 1 && (
           <button
-            onClick={goNext}
+            onClick={() => { haptic('Medium'); goNext() }}
             className="w-full flex items-center justify-center gap-2 bg-secondary text-white font-heading font-bold rounded-xl px-6 py-4 text-base active:scale-95 transition-transform"
           >
             {SLIDE_BUTTON_LABELS[slide] ?? 'Next'}

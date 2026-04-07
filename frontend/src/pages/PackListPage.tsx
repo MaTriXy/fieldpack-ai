@@ -154,7 +154,7 @@ export default function PackListPage() {
                     {pack.crops.map((crop) => (
                       <span
                         key={crop}
-                        className="text-[11px] font-medium bg-primary/8 text-primary px-2 py-0.5 rounded-full capitalize"
+                        className="text-[11px] font-medium bg-primary/15 text-primary px-2 py-0.5 rounded-full capitalize"
                       >
                         {crop}
                       </span>

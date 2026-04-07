@@ -56,7 +56,6 @@ def _make_google(
         model=settings.field_llm_google_model,
         google_api_key=settings.google_ai_studio_api_key,
         temperature=temperature,
-        convert_system_message_to_human=True,
     )
     if max_output_tokens is not None:
         kwargs["max_output_tokens"] = max_output_tokens

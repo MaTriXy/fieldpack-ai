@@ -29,13 +29,13 @@ function parseHealth(data: Record<string, unknown>): ServerInfo {
   return {
     ip,
     model: (model?.name as string) || 'FieldStation',
-    pack: (pack?.name as string) || (pack?.pack_id as string) || 'Unknown Pack',
+    pack: (pack?.pack_name as string) || (pack?.name as string) || (pack?.pack_id as string) || 'Unknown Pack',
     ollama: (data.ollama_version as string) || (data.ollama as string) || 'unknown',
   }
 }
 
-const POLL_INTERVAL_MS = 30_000
-const RETRY_DELAY_MS = 10_000
+const POLL_INTERVAL_MS = 10_000
+const RETRY_DELAY_MS = 3_000
 const native = isNative()
 
 export function useServerConnection(): ServerConnectionState {

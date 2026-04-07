@@ -126,6 +126,14 @@ def generate_answer(state: FieldAssistantState) -> dict:
 
     user_prompt_parts = [f"Context:\n{context_text}"]
 
+    image_description = state.get("image_description")
+    if image_description:
+        user_prompt_parts.append(
+            f"\nImage analysis of the farmer's photo: {image_description}"
+            "\nIMPORTANT: Match the visual symptoms above against the context to identify the most likely disease. "
+            "State your diagnosis confidently, then provide treatment steps."
+        )
+
     if history_text:
         user_prompt_parts.append(f"\nConversation history:\n{history_text}")
 
@@ -135,7 +143,7 @@ def generate_answer(state: FieldAssistantState) -> dict:
 
     with log.timed(Step.GENERATE, "llm_call") as t:
         try:
-            llm = get_field_llm(temperature=0.4, num_predict=512)
+            llm = get_field_llm(temperature=0.4, num_predict=2048)
             response = llm.invoke(messages)
             answer = extract_text(response)
         except Exception as e:

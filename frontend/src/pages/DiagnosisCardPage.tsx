@@ -11,7 +11,7 @@ function ConfidenceArc({ value }: { value: number }) {
     <div className="relative w-24 h-24 flex items-center justify-center">
       <svg className="w-24 h-24 -rotate-[135deg]" viewBox="0 0 100 100">
         <circle cx="50" cy="50" r={radius} fill="none" stroke="currentColor" strokeWidth="8" className="text-surface-dark" strokeDasharray={`${arcLength} ${circumference}`} strokeLinecap="round" />
-        <circle cx="50" cy="50" r={radius} fill="none" stroke="currentColor" strokeWidth="8" className="text-primary animate-confidenceArc" strokeDasharray={`${arcLength} ${circumference}`} strokeLinecap="round"
+        <circle cx="50" cy="50" r={radius} fill="none" stroke="currentColor" strokeWidth="8" className="text-primary-light animate-confidenceArc" strokeDasharray={`${arcLength} ${circumference}`} strokeLinecap="round"
           style={{ '--arc-length': String(arcLength), '--arc-target': String(offset), strokeDashoffset: offset } as React.CSSProperties}
         />
       </svg>
@@ -49,7 +49,7 @@ export default function DiagnosisCardPage() {
             <img src={imageUrl} alt="Analyzed plant" className="w-full h-full object-cover" />
           ) : (
             <div className="w-full h-full flex flex-col items-center justify-center"
-              style={{ background: 'linear-gradient(160deg, #1B4332 0%, #2D6A4F 45%, #52996E 100%)' }}>
+              style={{ background: 'linear-gradient(160deg, #2D6A4F 0%, #40916C 45%, #52B788 100%)' }}>
               {/* SVG cassava leaf illustration */}
               <svg viewBox="0 0 120 120" className="w-28 h-28 drop-shadow-lg" aria-hidden="true">
                 {/* Main leaf body */}

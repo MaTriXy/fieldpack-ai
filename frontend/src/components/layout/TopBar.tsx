@@ -124,7 +124,7 @@ export default function TopBar({
   const connection = useConnection()
 
   const badgeColors = {
-    online: 'bg-secondary text-primary-dark',
+    online: 'bg-secondary text-white',
     offline: 'bg-primary-light text-white',
     live: 'bg-green-500 text-white',
   }
@@ -140,7 +140,7 @@ export default function TopBar({
   const showConnectionPill = isNative()
 
   return (
-    <header role="banner" className={`sticky top-0 z-40 px-4 py-3 ${dark ? 'bg-debug-bg' : 'bg-primary'}`}>
+    <header role="banner" className={`sticky top-0 z-40 px-4 py-3 ${dark ? 'bg-debug-bg' : 'bg-primary'}`} style={{ paddingTop: 'calc(0.75rem + env(safe-area-inset-top, 0px))' }}>
       <div className="max-w-lg mx-auto flex items-center gap-3">
         {back && (
           <button onClick={handleBack} className="text-white p-2.5 -ml-2.5" aria-label="Go back">

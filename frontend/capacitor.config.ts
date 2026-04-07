@@ -4,6 +4,7 @@ const config: CapacitorConfig = {
   appId: 'com.fieldpackai.app',
   appName: 'FieldPack AI',
   webDir: 'dist',
+  backgroundColor: '#1B4332',
   server: {
     cleartext: true, // Allow HTTP to LAN IP (Android 9+ blocks by default)
   },

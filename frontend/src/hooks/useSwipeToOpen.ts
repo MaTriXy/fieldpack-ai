@@ -6,7 +6,7 @@ export function useSwipeToOpen(onOpen: () => void) {
 
   useEffect(() => {
     const onTouchStart = (e: TouchEvent) => {
-      if (e.touches[0].clientX > 10 && e.touches[0].clientX < 35) {
+      if (e.touches[0].clientX > 16 && e.touches[0].clientX < 48) {
         tracking.current = true
         startX.current = e.touches[0].clientX
       }

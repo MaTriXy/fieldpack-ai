@@ -30,7 +30,7 @@ const NODES: PipelineNode[] = [
     status: 'completed',
     detail: 'Template query (no LLM)',
     latency: '1ms',
-    extra: 'cassava mosaic yellow leaves curling Casamance',
+    extra: 'cassava mosaic yellow leaves curling Casamance Senegal',
   },
   {
     name: 'execute_searches',

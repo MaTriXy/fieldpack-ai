@@ -121,6 +121,11 @@ function apiToMessages(data: MessageData[]): Message[] {
 }
 
 export default function FieldChatPage() {
+  const haptic = (style: string = 'Medium') =>
+    isNative() && import('@capacitor/haptics').then(m =>
+      m.Haptics.impact({ style: m.ImpactStyle[style as keyof typeof m.ImpactStyle] })
+    ).catch(() => {})
+
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
   const [currentStep, setCurrentStep] = useState<string | null>(null)
@@ -156,6 +161,8 @@ export default function FieldChatPage() {
   const bottomRef = useRef<HTMLDivElement>(null)
   const wsRef = useRef<WebSocket | null>(null)
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const scrollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const isStreamingRef = useRef(false)
   const skipNextSave = useRef(false)
   const pendingSourcesRef = useRef<{ name: string; score: number }[] | null>(null)
   const reconnectAttempts = useRef(0)
@@ -203,6 +210,7 @@ export default function FieldChatPage() {
         setWsError('Received invalid data from server')
         setStreamingContent('')
         setCurrentStep(null)
+        isStreamingRef.current = false
         setIsStreaming(false)
         return
       }
@@ -259,6 +267,7 @@ export default function FieldChatPage() {
           ])
           setStreamingContent('')
           setCurrentStep(null)
+          isStreamingRef.current = false
           setIsStreaming(false)
           break
         }
@@ -266,7 +275,7 @@ export default function FieldChatPage() {
         case 'error':
           setWsError(data.message as string)
           // Show error inline in chat if we were mid-stream
-          if (isStreaming) {
+          if (isStreamingRef.current) {
             setMessages((prev) => [
               ...prev,
               {
@@ -278,6 +287,7 @@ export default function FieldChatPage() {
           }
           setStreamingContent('')
           setCurrentStep(null)
+          isStreamingRef.current = false
           setIsStreaming(false)
           break
       }
@@ -319,6 +329,11 @@ export default function FieldChatPage() {
     }
   }, [connectWs, packInfo])
 
+  // Pre-warm the Capacitor camera module on native so first launch is instant
+  useEffect(() => {
+    if (isNative()) import('@capacitor/camera').catch(() => {})
+  }, [])
+
   // Fetch conversations when sidebar opens
   useEffect(() => {
     if (!sidebarOpen) return
@@ -338,17 +353,25 @@ export default function FieldChatPage() {
     }
   }, [location.state])
 
-  // Auto-scroll on new messages or streaming tokens
+  // Auto-scroll on new messages or streaming tokens (debounced to avoid layout thrash)
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
+    if (scrollTimerRef.current) clearTimeout(scrollTimerRef.current)
+    scrollTimerRef.current = setTimeout(() => {
+      bottomRef.current?.scrollIntoView({ behavior: 'instant' })
+    }, 80)
   }, [messages, streamingContent])
 
-  // Cleanup save timer on unmount
+  // Cleanup save timer and scroll timer on unmount
   useEffect(() => {
     return () => {
       if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current)
+      if (scrollTimerRef.current) clearTimeout(scrollTimerRef.current)
     }
   }, [])
+
+  useEffect(() => {
+    if (packInfo) textareaRef.current?.focus()
+  }, [packInfo])
 
   // Auto-save after messages change (debounced)
   useEffect(() => {
@@ -411,7 +434,7 @@ export default function FieldChatPage() {
           quality: 80,
           allowEditing: false,
           resultType: CameraResultType.Base64,
-          source: CameraSource.Prompt, // Let user choose camera vs gallery
+          source: CameraSource.Camera,
           width: 1024, // Cap resolution to reduce payload size
           height: 1024,
         })
@@ -467,6 +490,7 @@ export default function FieldChatPage() {
     setMessages((prev) => [...prev, userMsg])
     setInput('')
     if (textareaRef.current) textareaRef.current.style.height = 'auto'
+    isStreamingRef.current = true
     setIsStreaming(true)
     setWsError(null)
     setStreamingContent('')
@@ -481,6 +505,7 @@ export default function FieldChatPage() {
         setWsError('Failed to upload image. Check server connection.')
         // Remove the phantom user message we already added
         setMessages((prev) => prev.filter((m) => m.id !== userMsg.id))
+        isStreamingRef.current = false
         setIsStreaming(false)
         return
       }
@@ -543,7 +568,7 @@ export default function FieldChatPage() {
         <div className="flex-1 flex flex-col items-center justify-center px-6 bg-surface animate-fadeIn">
           {packLoading ? (
             <>
-              <div className="w-12 h-12 border-3 border-primary border-t-transparent rounded-full animate-spin mb-4" />
+              <div className="w-12 h-12 border-2 border-primary border-t-transparent rounded-full animate-spin mb-4" />
               <p className="text-sm text-text-muted">Loading pack...</p>
             </>
           ) : (
@@ -607,7 +632,10 @@ export default function FieldChatPage() {
   }
 
   return (
-    <div className="flex flex-col h-[calc(100dvh-4rem-env(safe-area-inset-bottom,0px))]">
+    <div
+      className="flex flex-col h-[calc(100dvh-4rem-env(safe-area-inset-bottom,0px))]"
+      onKeyDown={(e) => { if (e.key === 'Escape' && sidebarOpen) setSidebarOpen(false) }}
+    >
       <ChatSidebar
         isOpen={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
@@ -620,6 +648,7 @@ export default function FieldChatPage() {
 
       <TopBar
         title="Field AI"
+        subtitle="Agentic RAG · Gemma 4 E2B"
         backTo="/"
         back
         badge={{ label: 'Offline', variant: 'offline' }}
@@ -691,10 +720,10 @@ export default function FieldChatPage() {
           </div>
           <div className="px-4 py-1.5">
             <div className="max-w-lg mx-auto flex items-center gap-2">
-              <span className="text-xs text-white/70">
+              <span className="text-xs text-white/85">
                 {STEP_LABELS[currentStep] || currentStep}...
               </span>
-              <span className="text-xs text-white/40 ml-auto">
+              <span className="text-xs text-white/65 ml-auto">
                 Step {effectiveStepIndex + 1}/{STEP_ORDER.length}
               </span>
             </div>
@@ -703,7 +732,7 @@ export default function FieldChatPage() {
       )}
 
       {/* Chat */}
-      <div className="flex-1 overflow-y-auto overscroll-none px-4 py-4 space-y-4 bg-surface">
+      <div role="log" aria-label="Chat messages" aria-live="polite" className="flex-1 overflow-y-auto overscroll-none px-4 py-4 space-y-4 bg-surface">
         {messages.length === 0 && !isStreaming && (
           <div className="flex flex-col items-center justify-center h-full gap-5 animate-fadeIn px-2">
             {/* Hero icon with layered gradient rings */}
@@ -740,14 +769,14 @@ export default function FieldChatPage() {
                   icon: '🌱',
                   label: 'Planting guide',
                   desc: 'Timing and spacing advice',
-                  prompt: 'When should I plant cassava in Casamance?',
+                  prompt: 'When should I plant cassava in Casamance, Senegal?',
                   accent: 'border-l-4 border-l-secondary',
                 },
                 {
                   icon: '💧',
                   label: 'Irrigation advice',
                   desc: 'Water management methods',
-                  prompt: 'What irrigation methods work best for rice in Casamance?',
+                  prompt: 'What irrigation methods work best for rice in Casamance, Senegal?',
                   accent: 'border-l-4 border-l-primary-light',
                 },
               ].map((card) => (
@@ -817,7 +846,7 @@ export default function FieldChatPage() {
                   <p className="text-xs text-text-muted">{msg.diagnosis.pathogen}</p>
                   <button
                     onClick={() => navigate('/field/diagnosis', { state: { image: msg.image } })}
-                    className="mt-2 text-xs font-semibold bg-secondary text-primary-dark px-3 py-2.5 rounded-lg hover:bg-secondary-light transition-colors min-h-[44px]"
+                    className="mt-2 text-xs font-semibold bg-secondary text-white px-3 py-2.5 rounded-lg hover:bg-secondary-light transition-colors min-h-[44px]"
                   >
                     View Full Diagnosis →
                   </button>
@@ -860,7 +889,7 @@ export default function FieldChatPage() {
             <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center shrink-0 mt-1">
               <Leaf size={14} className="text-primary" />
             </div>
-            <div className="max-w-[80%] bg-card rounded-xl rounded-bl-sm px-4 py-3 text-sm shadow-sm animate-fadeIn" aria-live="polite">
+            <div className="max-w-[80%] bg-card rounded-xl rounded-bl-sm px-4 py-3 text-sm shadow-sm animate-fadeIn">
               {streamingContent ? (
                 <div className="leading-relaxed">
                   <MarkdownContent content={streamingContent} />
@@ -912,7 +941,7 @@ export default function FieldChatPage() {
           )}
           <div className="flex items-end gap-2">
             <button
-              onClick={handleCamera}
+              onClick={() => { haptic('Medium'); handleCamera() }}
               className="w-11 h-11 rounded-full bg-surface border border-surface-dark flex items-center justify-center text-text-muted hover:text-primary hover:border-primary/30 hover:bg-primary/5 transition-all shrink-0"
               aria-label="Attach photo"
             >
@@ -948,6 +977,7 @@ export default function FieldChatPage() {
             {isStreaming ? (
               <button
                 onClick={() => {
+                  haptic('Medium')
                   // Save partial content as a message before stopping
                   if (streamingContent.trim()) {
                     const sources = pendingSourcesRef.current
@@ -966,12 +996,13 @@ export default function FieldChatPage() {
                   const ws = wsRef.current
                   wsRef.current = null
                   ws?.close()
+                  isStreamingRef.current = false
                   setIsStreaming(false)
                   setStreamingContent('')
                   setCurrentStep(null)
                   // Reconnect a fresh socket (onclose won't fire a competing reconnect)
                   reconnectAttempts.current = 0
-                  setTimeout(() => connectWs(), 100)
+                  setTimeout(() => connectWs(), 300)
                 }}
                 className="bg-tertiary text-white p-2.5 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg hover:bg-tertiary-light transition-colors shrink-0"
                 aria-label="Stop generating"
@@ -980,7 +1011,7 @@ export default function FieldChatPage() {
               </button>
             ) : (
               <button
-                onClick={handleSend}
+                onClick={() => { haptic('Light'); handleSend() }}
                 disabled={!input.trim() && !pendingImage}
                 className="bg-primary text-white p-2.5 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg disabled:opacity-40 hover:bg-primary-light transition-colors shrink-0 shadow-md disabled:shadow-none"
                 aria-label="Send message"

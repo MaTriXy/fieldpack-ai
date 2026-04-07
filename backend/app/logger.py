@@ -361,6 +361,7 @@ class PipelineLogger:
 
     def pipeline_start(self, user_message: str, session_id: str | None = None):
         """Mark the start of a pipeline run."""
+        self._buffer.clear()
         self._session_id = session_id
         self._pipeline_start = time.perf_counter()
         self._total_llm_calls = 0

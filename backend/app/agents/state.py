@@ -24,6 +24,7 @@ class FieldAssistantState(TypedDict, total=False):
 
     # Step 1: Classify + Extract
     classify_result: ClassifyExtractOutput | None
+    image_description: str | None
 
     # Step 2: Route
     route: SearchRoute | None

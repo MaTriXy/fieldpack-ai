@@ -223,7 +223,7 @@ def _llm_rerank(
     ]
 
     try:
-        llm = get_field_llm(temperature=0.1, num_predict=512, format="json")
+        llm = get_field_llm(temperature=0.1, num_predict=1024, format="json")
         response = llm.invoke(messages)
         response_text = extract_text(response)
     except Exception as e:

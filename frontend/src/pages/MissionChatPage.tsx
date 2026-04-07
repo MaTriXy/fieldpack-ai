@@ -1,16 +1,17 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Send, Menu, Leaf } from 'lucide-react'
+import { Send, Menu, Leaf, FileText, AlertCircle } from 'lucide-react'
 import MarkdownContent from '../components/MarkdownContent'
 import TopBar from '../components/layout/TopBar'
 import ChatSidebar from '../components/ChatSidebar'
 import { useSwipeToOpen } from '../hooks/useSwipeToOpen'
-import { apiUrl } from '../lib/config'
+import { apiUrl, isNative } from '../lib/config'
 import {
   listConversations,
   createConversation,
   getConversation,
   saveConversation,
+  chatMission,
   type ConversationSummary,
   type MessageData,
 } from '../lib/api'
@@ -28,6 +29,7 @@ interface MissionSummary {
   crops: string[]
   season: string
   focusAreas: string[]
+  scaleEstimate?: string
 }
 
 const INITIAL_MESSAGES: Message[] = [
@@ -69,10 +71,14 @@ function apiToMessages(data: MessageData[]): Message[] {
 }
 
 export default function MissionChatPage() {
+  const haptic = (style: string = 'Medium') =>
+    isNative() && import('@capacitor/haptics').then(m =>
+      m.Haptics.impact({ style: m.ImpactStyle[style as keyof typeof m.ImpactStyle] })
+    ).catch(() => {})
+
   const [messages, setMessages] = useState<Message[]>(INITIAL_MESSAGES)
   const [input, setInput] = useState('')
   const [isTyping, setIsTyping] = useState(false)
-  const [missionReady, setMissionReady] = useState(false)
   const [editing, setEditing] = useState(false)
   const [actionError, setActionError] = useState<string | null>(null)
   const [isDispatching, setIsDispatching] = useState(false)
@@ -144,7 +150,6 @@ export default function MissionChatPage() {
       setConversationId(null)
     }
     setMessages(INITIAL_MESSAGES)
-    setMissionReady(false)
     setEditing(false)
     setInput('')
     setSidebarOpen(false)
@@ -157,8 +162,6 @@ export default function MissionChatPage() {
       setConversationId(conv.id)
       setMessages(apiToMessages(conv.messages))
       // Check if mission was already configured
-      const hasMissionCard = conv.messages.some((m) => m.metadata && (m.metadata as Record<string, unknown>).missionCard)
-      setMissionReady(hasMissionCard)
       setEditing(false)
       setSidebarOpen(false)
     } catch {
@@ -166,7 +169,7 @@ export default function MissionChatPage() {
     }
   }
 
-  const handleSend = () => {
+  const handleSend = async () => {
     if (!input.trim() || isTyping) return
 
     const userMsg: Message = { id: Date.now().toString(), role: 'user', content: input.trim() }
@@ -174,80 +177,59 @@ export default function MissionChatPage() {
     setInput('')
     setIsTyping(true)
 
-    // Auto-create conversation if none active (fire-and-forget)
+    // Auto-create conversation if none active
     if (!conversationId) {
       createConversation('mission', deriveTitle(userMsg.content))
         .then((conv) => setConversationId(conv.id))
         .catch(() => {})
     }
 
-    if (editing) {
-      setTimeout(() => {
-        setMessages((prev) => [
-          ...prev,
-          {
-            id: (Date.now() + 1).toString(),
-            role: 'assistant',
-            content: "Got it, I've updated the mission plan. Here's the revised version:",
-            missionCard: {
-              region: 'Casamance, Senegal',
-              crops: ['Cassava', 'Rice'],
-              season: 'Rainy (Jul–Oct)',
-              focusAreas: ['Disease ID', 'Treatment Protocols', 'Farming Calendar'],
-            },
-            actions: [
-              { label: 'Dispatch Agents →', variant: 'primary' },
-              { label: 'Edit details', variant: 'secondary' },
-            ],
-          },
-        ])
-        setIsTyping(false)
-        setEditing(false)
-      }, 1000)
-      return
-    }
+    try {
+      const allMessages = [...messages, userMsg]
+      const response = await chatMission(userMsg.content, messagesToApi(allMessages))
 
-    if (missionReady) {
-      setTimeout(() => {
-        setMessages((prev) => [
-          ...prev,
-          {
-            id: (Date.now() + 1).toString(),
-            role: 'assistant',
-            content:
-              "I can adjust the mission plan if needed. Just tell me what to change, or hit 'Dispatch Agents' above when you're ready!",
-          },
-        ])
-        setIsTyping(false)
-      }, 1000)
-      return
-    }
-
-    // First substantive response -- show mission card
-    setTimeout(() => {
-      const response: Message = {
+      const assistantMsg: Message = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
-        content: "Great — I'll focus on that region. Here's what I'll research for you:",
-        missionCard: {
-          region: 'Casamance, Senegal',
-          crops: ['Cassava', 'Rice'],
-          season: 'Rainy (Jul–Oct)',
-          focusAreas: ['Disease ID', 'Treatment Protocols', 'Farming Calendar'],
-        },
-        actions: [
-          { label: 'Dispatch Agents →', variant: 'primary' },
-          { label: 'Edit details', variant: 'secondary' },
-        ],
+        content: response.reply,
       }
-      setMessages((prev) => [...prev, response])
+
+      if (response.mission_card) {
+        assistantMsg.missionCard = {
+          region: response.mission_card.region,
+          crops: response.mission_card.crops,
+          season: response.mission_card.season,
+          focusAreas: response.mission_card.focus_areas,
+          scaleEstimate: response.mission_card.scale_estimate || undefined,
+        }
+        assistantMsg.actions = [
+          { label: 'Dispatch Agents \u2192', variant: 'primary' },
+          { label: 'Edit details', variant: 'secondary' },
+        ]
+        setEditing(false)
+      }
+
+      setMessages((prev) => [...prev, assistantMsg])
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Unknown error'
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: (Date.now() + 1).toString(),
+          role: 'assistant',
+          content: `I couldn't process that request. ${message}`,
+        },
+      ])
+    } finally {
       setIsTyping(false)
-      setMissionReady(true)
-    }, 1500)
+    }
   }
 
   const handleAction = async (label: string) => {
     if (label.includes('Dispatch')) {
+      haptic('Heavy')
+      const latestCard = [...messages].reverse().find(m => m.missionCard)?.missionCard
+      if (!latestCard) return
       setActionError(null)
       setIsDispatching(true)
       try {
@@ -255,17 +237,20 @@ export default function MissionChatPage() {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            region: 'Casamance, Senegal',
-            crops: ['Cassava', 'Rice'],
-            season: 'Rainy (Jul-Oct)',
-            focus_areas: ['Disease ID', 'Treatment Protocols', 'Farming Calendar'],
+            description: `${latestCard.region} — ${latestCard.crops.join(', ')}`,
+            region: latestCard.region,
+            crops: latestCard.crops,
           }),
+          signal: AbortSignal.timeout(30000),
         })
         if (!res.ok) throw new Error(`Server returned ${res.status}`)
         const data = await res.json()
         navigate('/mission/progress', { state: { missionId: data.mission_id } })
       } catch (err) {
-        const message = err instanceof Error ? err.message : 'Unknown error'
+        const isTimeout = err instanceof DOMException && err.name === 'TimeoutError'
+        const message = isTimeout
+          ? 'Request timed out (30s). Is the server reachable?'
+          : err instanceof Error ? err.message : 'Unknown error'
         setActionError(`Could not reach the server. ${message}`)
       } finally {
         setIsDispatching(false)
@@ -285,6 +270,8 @@ export default function MissionChatPage() {
     }
   }
 
+  const lastActionMsgId = [...messages].reverse().find(m => m.actions)?.id
+
   return (
     <div
       className="flex flex-col h-[calc(100dvh-4rem-env(safe-area-inset-bottom,0px))]"
@@ -302,6 +289,7 @@ export default function MissionChatPage() {
 
       <TopBar
         title="Plan Your Mission"
+        subtitle="Gemma 4 · 31B orchestrator + 26B agents"
         badge={{ label: 'Online', variant: 'online' }}
         back
         backTo="/"
@@ -343,8 +331,8 @@ export default function MissionChatPage() {
                 <div className="mt-3 flex flex-wrap gap-2">
                   {[
                     { label: 'Casamance, Senegal', icon: '📍' },
-                    { label: 'Cassava and rice crops', icon: '🌾' },
-                    { label: 'Disease identification focus', icon: '🔍' },
+                    { label: 'Huambo Province, Angola', icon: '📍' },
+                    { label: 'Kano State, Nigeria', icon: '📍' },
                   ].map((chip) => (
                     <button
                       key={chip.label}
@@ -360,6 +348,10 @@ export default function MissionChatPage() {
 
               {msg.missionCard && (
                 <div className="mt-3 bg-surface rounded-lg p-3 space-y-2 text-xs">
+                  <div className="flex items-center gap-1.5 pb-1 border-b border-surface-dark mb-1">
+                    <FileText size={12} className="text-primary" />
+                    <span className="font-heading font-bold text-[11px] text-text-muted uppercase tracking-wider">Mission Brief</span>
+                  </div>
                   <div className="flex items-center gap-2">
                     <span className="font-semibold text-text-muted">Region:</span>
                     <span className="text-text">{msg.missionCard.region}</span>
@@ -388,6 +380,12 @@ export default function MissionChatPage() {
                       ))}
                     </div>
                   </div>
+                  {msg.missionCard.scaleEstimate && (
+                    <div className="flex items-center gap-2 pt-1.5 border-t border-surface-dark">
+                      <span className="font-semibold text-text-muted">Scale:</span>
+                      <span className="text-text">{msg.missionCard.scaleEstimate}</span>
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -401,8 +399,8 @@ export default function MissionChatPage() {
                         <button
                           key={a.label}
                           onClick={() => handleAction(a.label)}
-                          disabled={busy}
-                          className={`text-xs font-semibold px-4 py-2 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-wait ${
+                          disabled={busy || msg.id !== lastActionMsgId}
+                          className={`text-xs font-semibold px-4 py-2 rounded-lg transition-colors disabled:opacity-50 ${busy ? 'disabled:cursor-wait' : 'disabled:cursor-not-allowed'} ${
                             a.variant === 'primary'
                               ? 'bg-primary text-white hover:bg-primary-light min-h-[44px]'
                               : 'border border-text-muted text-text-muted hover:bg-surface-dark min-h-[44px]'
@@ -413,8 +411,11 @@ export default function MissionChatPage() {
                       )
                     })}
                   </div>
-                  {actionError && (
-                    <p className="text-xs text-red-500 mt-1">{actionError}</p>
+                  {actionError && msg.id === lastActionMsgId && (
+                    <div className="mt-2 flex items-start gap-2 bg-tertiary/10 border border-tertiary/20 rounded-lg px-3 py-2 animate-fadeIn">
+                      <AlertCircle size={14} className="text-tertiary shrink-0 mt-0.5" />
+                      <p className="text-xs text-tertiary">{actionError}</p>
+                    </div>
                   )}
                 </div>
               )}
