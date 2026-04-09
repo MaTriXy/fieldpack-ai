@@ -5,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
 from app.logger import Step, pipeline_logger as log
-from app.routers import chat, conversations, health, mission, pack, upload
+from app.routers import chat, conversations, health, mission, observations, pack, upload
 
 
 def _auto_load_first_pack() -> None:
@@ -54,6 +54,9 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+# CORS: FieldPack runs on a closed LAN (laptop hotspot + phone).
+# Origins are restricted to localhost dev + Capacitor APK.
+# No wildcard "*" — only known client origins are allowed.
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
@@ -73,3 +76,4 @@ app.include_router(conversations.router)
 app.include_router(mission.router)
 app.include_router(pack.router)
 app.include_router(upload.router)
+app.include_router(observations.router)

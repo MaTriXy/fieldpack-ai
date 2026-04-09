@@ -94,8 +94,9 @@ def _heuristic_check(state: FieldAssistantState) -> bool | None:
     ) and classify_result.confidence >= 0.5:
         return True
 
-    # Ambiguous — let LLM decide
-    return None
+    # Default: search. Searching when uncertain is cheap (~0.2s DB)
+    # vs. an LLM call to decide (~3-4s). Reranker filters noise.
+    return True
 
 
 def _parse_needs_search_response(response_text: str) -> bool:
@@ -171,7 +172,7 @@ def needs_search_node(state: FieldAssistantState) -> dict:
 
     with log.timed(Step.NEEDS_SEARCH, "llm_call") as t:
         try:
-            llm = get_field_llm(temperature=0.1, num_predict=512)
+            llm = get_field_llm(temperature=0.1, num_predict=64)
             response = llm.invoke(messages)
             response_text = extract_text(response)
             result = _parse_needs_search_response(response_text)

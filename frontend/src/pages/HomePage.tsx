@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Link, Navigate } from 'react-router-dom'
-import { Rocket, Leaf, Database, Moon, Sun, ChevronRight, WifiOff, Layers, Package, BarChart2, Wifi } from 'lucide-react'
+import { Rocket, Leaf, Database, Moon, Sun, ChevronRight, WifiOff, Layers, Package, BarChart2, Wifi, Terminal } from 'lucide-react'
 import { apiUrl } from '../lib/config'
 
 export default function HomePage() {
@@ -66,14 +66,25 @@ export default function HomePage() {
           {/* dark overlay for text readability */}
           <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-black/40 to-black/60" aria-hidden="true" />
 
-          {/* theme toggle */}
-          <button
-            onClick={toggleTheme}
-            aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
-            className="absolute top-4 right-4 w-9 h-9 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 transition-colors text-white"
-          >
-            {isDark ? <Sun size={18} /> : <Moon size={18} />}
-          </button>
+          {/* theme toggle + debug link */}
+          <div className="absolute top-4 right-4 flex items-center gap-2">
+            {import.meta.env.DEV && (
+              <Link
+                to="/debug"
+                className="w-9 h-9 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 transition-colors text-white"
+                aria-label="Debug pipeline"
+              >
+                <Terminal size={18} />
+              </Link>
+            )}
+            <button
+              onClick={toggleTheme}
+              aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
+              className="w-9 h-9 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 transition-colors text-white"
+            >
+              {isDark ? <Sun size={18} /> : <Moon size={18} />}
+            </button>
+          </div>
 
           {/* wordmark */}
           <div className="relative">

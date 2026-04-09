@@ -21,25 +21,46 @@ from app.models.offline_llm import get_field_llm
 
 
 # ============================================================
+# Observation keyword heuristic (post-LLM intent correction)
+# ============================================================
+
+_OBSERVATION_PATTERNS = [
+    re.compile(r"\bi\s+(saw|noticed|spotted|observed|found)\b", re.I),
+    re.compile(r"\bi['\u2019]?m\s+(seeing|noticing|reporting)\b", re.I),
+    re.compile(r"\b(today|yesterday|this morning|this week)\s+i\s+(saw|found|noticed)\b", re.I),
+    re.compile(r"\bfield\s*?(report|log|observation|note)\b", re.I),
+    re.compile(r"\brecord\s+(this|that|my)\b", re.I),
+    re.compile(r"\b\d+\s+(plants?|trees?|fields?)\s+(affected|infected|showing)\b", re.I),
+]
+
+_OBSERVATION_OVERRIDE_INTENTS = frozenset({
+    IntentType.DIAGNOSE_DISEASE,
+    IntentType.GET_TREATMENT,
+    IntentType.GENERAL_QUESTION,
+})
+
+
+def _should_override_to_observation(user_message: str, llm_intent: IntentType) -> bool:
+    """Check if user message looks like an observation report that the LLM misclassified."""
+    if llm_intent not in _OBSERVATION_OVERRIDE_INTENTS:
+        return False
+    return any(p.search(user_message) for p in _OBSERVATION_PATTERNS)
+
+
+# ============================================================
 # System prompt + few-shot examples
 # ============================================================
 
-CLASSIFY_SYSTEM_PROMPT = """You are a classification system for an agricultural field assistant in Casamance, Senegal.
-
-Analyze the user's message and output JSON with these fields:
-- "intent": one of: diagnose_disease, get_treatment, farming_advice, identify_image, log_observation, general_question, follow_up
-- "crop": the crop mentioned (cassava, rice, maize, groundnut, tomato) or null
-- "disease_name": specific disease name if mentioned, or null
-- "keywords": list of 3-5 important search terms from the message
-- "needs_image": true if the user is describing visual symptoms that would benefit from a photo
-- "confidence": 0.0 to 1.0, how confident you are in the classification
-- "season": "wet", "dry", or "all" if the question relates to a specific season, or null
-- "growth_stage": one of: nursery, seedling, vegetative, flowering, grain_fill, harvest, post_harvest, planning — or null if not applicable
-- "topic_subtype": one of: planting, irrigation, soil, pest, harvest, post_harvest, fertilization, varieties — or null if not a farming question
-
-If this is a follow-up to a previous conversation, determine what the user is actually asking about and classify as that intent (not as follow_up).
-
-Output ONLY valid JSON. No explanation."""
+CLASSIFY_SYSTEM_PROMPT = """Classify an agricultural field question. Output ONLY JSON:
+- "intent": diagnose_disease|get_treatment|farming_advice|identify_image|log_observation|general_question|follow_up
+- "crop": crop name or null
+- "disease_name": disease name or null
+- "keywords": 3-5 search terms
+- "needs_image": true/false
+- "confidence": 0.0-1.0
+- "season": wet|dry|all or null
+- "growth_stage": nursery|seedling|vegetative|flowering|grain_fill|harvest|post_harvest|planning or null
+- "topic_subtype": planting|irrigation|soil|pest|harvest|post_harvest|fertilization|varieties or null"""
 
 FEW_SHOT_EXAMPLES = [
     {
@@ -51,9 +72,6 @@ FEW_SHOT_EXAMPLES = [
             "keywords": ["cassava", "yellow", "patches", "curling", "leaves"],
             "needs_image": True,
             "confidence": 0.85,
-            "season": None,
-            "growth_stage": None,
-            "topic_subtype": None,
         },
     },
     {
@@ -65,23 +83,6 @@ FEW_SHOT_EXAMPLES = [
             "keywords": ["rice", "blast", "treatment", "local", "materials"],
             "needs_image": False,
             "confidence": 0.9,
-            "season": None,
-            "growth_stage": None,
-            "topic_subtype": None,
-        },
-    },
-    {
-        "user": "When should I plant rice in Casamance?",
-        "output": {
-            "intent": "farming_advice",
-            "crop": "rice",
-            "disease_name": None,
-            "keywords": ["rice", "planting", "timing", "Casamance", "season"],
-            "needs_image": False,
-            "confidence": 0.9,
-            "season": "wet",
-            "growth_stage": "planning",
-            "topic_subtype": "planting",
         },
     },
 ]
@@ -195,6 +196,10 @@ def classify_and_extract(state: FieldAssistantState) -> dict:
             symptoms = analysis.get("suspected_symptoms", [])
             if symptoms:
                 image_description += f" Symptoms: {', '.join(symptoms)}"
+            # Include crop identification if vision model detected one
+            crop_guess = analysis.get("crop_guess", "unknown")
+            if crop_guess and crop_guess.lower() != "unknown":
+                image_description += f" Identified crop: {crop_guess}."
         except Exception as e:
             log.log_step(Step.CLASSIFY, "image_analysis_failed", level="WARNING",
                          details={"error": str(e)})
@@ -205,7 +210,7 @@ def classify_and_extract(state: FieldAssistantState) -> dict:
 
     with log.timed(Step.CLASSIFY, "llm_call") as t:
         try:
-            llm = get_field_llm(temperature=0.1, num_predict=1024, format="json")
+            llm = get_field_llm(temperature=0.1, num_predict=256, format="json")
             response = llm.invoke(messages)
             response_text = extract_text(response)
         except Exception as e:
@@ -221,6 +226,14 @@ def classify_and_extract(state: FieldAssistantState) -> dict:
             }
 
         result = _parse_classify_response(response_text)
+
+        # Post-LLM observation heuristic: catch "I saw/noticed..." misclassified as disease
+        if _should_override_to_observation(user_message, result.intent):
+            log.log_step(Step.CLASSIFY, "observation_override", details={
+                "original_intent": result.intent.value,
+            })
+            result.intent = IntentType.LOG_OBSERVATION
+
         t.set(details={
             "intent": result.intent.value,
             "crop": result.crop,
@@ -229,5 +242,29 @@ def classify_and_extract(state: FieldAssistantState) -> dict:
             "confidence": result.confidence,
             "has_image_description": image_description is not None,
         })
+
+    # Ask-back: image present but crop unknown — ask the user
+    if image_path and image_description and not result.crop:
+        log.log_step(Step.CLASSIFY, "ask_crop", details={
+            "reason": "Image provided but crop not identified"})
+        from datetime import datetime, timezone
+        from app.agents.state import trim_conversation_history
+        ask_msg = (
+            "I can see signs of disease in your photo, but I'm not sure which crop this is. "
+            "Could you tell me the crop name? For example: cassava, rice, maize, groundnut, or tomato."
+        )
+        updated_history = list(history) + [
+            {"role": "user", "content": user_message,
+             "timestamp": datetime.now(timezone.utc).isoformat()},
+            {"role": "assistant", "content": ask_msg,
+             "timestamp": datetime.now(timezone.utc).isoformat()},
+        ]
+        return {
+            "classify_result": result,
+            "image_description": image_description,
+            "final_answer": ask_msg,
+            "needs_search": False,
+            "conversation_history": trim_conversation_history(updated_history),
+        }
 
     return {"classify_result": result, "image_description": image_description}

@@ -24,6 +24,7 @@ async def health_check():
     base = settings.ollama_base_url
     headers = _ollama_headers()
     result = {
+        "service": "fieldpack-ai",
         "status": "unknown",
         "ollama": "unknown",
         "ollama_version": None,

@@ -1,6 +1,7 @@
 import asyncio
 import json
 import logging
+import time
 from pathlib import Path
 
 from fastapi import APIRouter, HTTPException, WebSocket, WebSocketDisconnect
@@ -18,6 +19,10 @@ router = APIRouter(prefix="/chat", tags=["chat"])
 _logger = logging.getLogger(__name__)
 
 MAX_MESSAGE_LENGTH = 4096
+
+# Rate limit: max 10 messages per 10-second window per WebSocket connection
+_WS_RATE_LIMIT_MAX = 10
+_WS_RATE_LIMIT_WINDOW = 10.0
 
 
 class ChatMessage(BaseModel):
@@ -121,9 +126,22 @@ async def chat_ws(websocket: WebSocket):
         {"type": "error", "message": "..."}
     """
     await websocket.accept()
+    _rate_timestamps: list[float] = []
     try:
         while True:
             data = await websocket.receive_text()
+
+            # Rate limiting: evict timestamps outside the window, then check count
+            now = time.monotonic()
+            _rate_timestamps = [t for t in _rate_timestamps if now - t < _WS_RATE_LIMIT_WINDOW]
+            if len(_rate_timestamps) >= _WS_RATE_LIMIT_MAX:
+                await websocket.send_json({
+                    "type": "error",
+                    "message": "Rate limit exceeded: max 10 messages per 10 seconds",
+                })
+                await websocket.close(code=1008)
+                return
+            _rate_timestamps.append(now)
 
             try:
                 msg = json.loads(data)

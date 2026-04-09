@@ -74,11 +74,14 @@ export default function MarkdownContent({ content, className = '' }: MarkdownCon
           <td className="border-b border-surface-dark px-2 py-1.5">{children}</td>
         ),
         hr: () => <hr className="my-3 border-surface-dark" />,
-        a: ({ href, children }) => (
-          <a href={href} className="text-primary underline underline-offset-2" target="_blank" rel="noopener noreferrer">
-            {children}
-          </a>
-        ),
+        a: ({ href, children }) => {
+          const safeHref = href && /^https?:\/\//i.test(href) ? href : undefined
+          return (
+            <a href={safeHref} className="text-primary underline underline-offset-2" target="_blank" rel="noopener noreferrer nofollow">
+              {children}
+            </a>
+          )
+        },
       }}
     >
       {content}

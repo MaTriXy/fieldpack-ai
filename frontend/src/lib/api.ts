@@ -148,3 +148,61 @@ export async function chatMission(message: string, conversationHistory: MessageD
   if (!res.ok) throw new Error(`Mission chat failed: ${res.status}`)
   return res.json()
 }
+
+// ── Observations ────────────────────────────────────────────
+
+export interface Observation {
+  id: number
+  timestamp: string
+  type: 'disease_sighting' | 'crop_condition' | 'treatment_applied' | 'note'
+  location: string | null
+  details: string
+  image_path: string | null
+  synced: number
+  crop_id: number | null
+  severity_observed: string | null
+}
+
+export interface ObservationListResponse {
+  observations: Observation[]
+  total: number
+  unsynced_count: number
+}
+
+export interface ObservationStats {
+  total: number
+  unsynced: number
+  by_type: Record<string, number>
+  recent: { type: string; details: string; timestamp: string }[]
+}
+
+export interface CreateObservationRequest {
+  type: string
+  details: string
+  location?: string
+  image_path?: string
+}
+
+export async function listObservations(type?: string, limit: number = 50): Promise<ObservationListResponse> {
+  const params = new URLSearchParams({ limit: String(limit) })
+  if (type) params.set('type', type)
+  const res = await fetch(apiUrl(`/observations/?${params}`))
+  if (!res.ok) return { observations: [], total: 0, unsynced_count: 0 }
+  return res.json()
+}
+
+export async function getObservationStats(): Promise<ObservationStats> {
+  const res = await fetch(apiUrl('/observations/stats'))
+  if (!res.ok) return { total: 0, unsynced: 0, by_type: {}, recent: [] }
+  return res.json()
+}
+
+export async function createObservation(data: CreateObservationRequest): Promise<{ observation_id: number; timestamp: string }> {
+  const res = await fetch(apiUrl('/observations/'), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  })
+  if (!res.ok) throw new Error(`Failed to create observation: ${res.status}`)
+  return res.json()
+}

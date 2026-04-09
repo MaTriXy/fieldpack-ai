@@ -25,6 +25,7 @@ from app.models.offline_llm import get_field_llm
 def _template_query(
     user_message: str,
     classify_result: ClassifyExtractOutput | None,
+    image_description: str | None = None,
 ) -> CraftedQuery:
     """Build a search query from classify fields without an LLM call.
 
@@ -47,6 +48,15 @@ def _template_query(
             fts_keywords.extend(classify_result.keywords)
         if classify_result.growth_stage:
             parts.append(classify_result.growth_stage.value)
+
+    # Enrich with image symptom keywords when available
+    if image_description and "Symptoms:" in image_description:
+        symptom_str = image_description.split("Symptoms:")[-1]
+        for s in symptom_str.split(","):
+            term = s.strip().strip(".")
+            if term:
+                parts.append(term)
+                fts_keywords.append(term)
 
     # Fall back to user message only when classify gave us nothing
     if not parts:
@@ -125,7 +135,7 @@ def _parse_craft_response(response_text: str) -> CraftedQuery:
     )
 
 
-RETRY_VARIANTS_PROMPT = """You help write search queries for an agricultural knowledge base about crops and diseases in Casamance, Senegal.
+RETRY_VARIANTS_PROMPT = """You help write search queries for an agricultural knowledge base.
 
 Your PREVIOUS search query was: "{previous_query}"
 It returned insufficient results ({failure_reason}).
@@ -133,7 +143,7 @@ It returned insufficient results ({failure_reason}).
 Generate 3 DIFFERENT search queries to try instead. Each must take a different angle:
 
 1. SYNONYM variant: rephrase using different words, synonyms, or alternative descriptions of the same concept
-2. LOCAL variant: use local terminology — Wolof names, French agricultural terms, regional crop variety names used in Casamance
+2. LOCAL variant: use local terminology — indigenous names, French agricultural terms, regional crop variety names
 3. BROAD variant: broaden the concept slightly — search for the crop family, symptom category, or general treatment approach
 
 For each query, output:
@@ -243,7 +253,7 @@ def craft_search_query(state: FieldAssistantState) -> dict:
 
         with log.timed(Step.CRAFT_QUERY, "retry_variants") as t:
             try:
-                llm = get_field_llm(temperature=0.5, num_predict=1024, format="json")
+                llm = get_field_llm(temperature=0.5, num_predict=256, format="json")
                 response = llm.invoke(messages)
                 response_text = extract_text(response)
                 fts_fallback = classify_result.keywords if classify_result else []
@@ -280,7 +290,8 @@ def craft_search_query(state: FieldAssistantState) -> dict:
         return {"crafted_query": modified, "crafted_queries": [modified]}
 
     # --- FIRST ATTEMPT: template from classify fields (no LLM) ---
-    result = _template_query(user_message, classify_result)
+    image_description = state.get("image_description")
+    result = _template_query(user_message, classify_result, image_description)
 
     log.log_step(Step.CRAFT_QUERY, "template", details={
         "embedding_query_preview": result.embedding_query[:200],

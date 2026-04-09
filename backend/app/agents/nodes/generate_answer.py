@@ -24,18 +24,13 @@ from app.models.offline_llm import get_field_llm
 
 MAX_CONTEXT_WORDS = 2000
 
-GENERATE_SYSTEM_PROMPT = """You are a knowledgeable agricultural field assistant for the Casamance region of Senegal. Answer the farmer's question using the context sources provided below.
-
-RULES:
-- Use the provided context to construct your answer. The context has been retrieved from a verified knowledge base and is relevant to the question.
-- Synthesize information across multiple sources when they cover different aspects of the question.
-- Be specific, practical, and actionable. Field workers need clear steps they can follow.
-- Reference locally available materials and methods when the context mentions them.
-- Use bullet points for treatment steps or lists of actions.
-- Keep answers concise but complete. Aim for 3-8 sentences for simple questions, longer for detailed treatment plans.
-- When discussing treatments, mention safety precautions if the context includes them.
-- If the context truly contains nothing related to the question, say: "I don't have information on this topic in the knowledge pack."
-- Do NOT invent disease names, treatment methods, or statistics not in the context."""
+GENERATE_SYSTEM_PROMPT = """Agricultural field assistant. Answer using ONLY the provided context.
+- Be concise: 3-8 sentences for simple questions, longer for treatment plans
+- Be specific and actionable, reference locally available materials
+- Use bullet points for treatment steps
+- Include safety precautions for treatments
+- If context has nothing relevant, say: "I don't have information on this topic in the knowledge pack."
+- Never invent disease names, treatments, or statistics not in context."""
 
 
 def _assemble_context(
@@ -100,7 +95,7 @@ def generate_answer(state: FieldAssistantState) -> dict:
         no_context_answer = (
             "I don't have enough information in the knowledge pack to answer this question. "
             "Try asking about specific crops (cassava, rice, maize, groundnut, tomato) "
-            "or diseases that affect them in the Casamance region."
+            "or diseases that affect them in your region."
         )
         log.log_step(Step.GENERATE, "no_context",
                      details={"message": user_message[:200]})
@@ -130,8 +125,9 @@ def generate_answer(state: FieldAssistantState) -> dict:
     if image_description:
         user_prompt_parts.append(
             f"\nImage analysis of the farmer's photo: {image_description}"
-            "\nIMPORTANT: Match the visual symptoms above against the context to identify the most likely disease. "
-            "State your diagnosis confidently, then provide treatment steps."
+            "\nIMPORTANT: Compare the visual symptoms above against ALL diseases in the context. "
+            "Choose the disease whose symptoms best match what was observed in the photo, "
+            "even if it is not the top-ranked source. State your diagnosis confidently, then provide treatment steps."
         )
 
     if history_text:
@@ -143,7 +139,7 @@ def generate_answer(state: FieldAssistantState) -> dict:
 
     with log.timed(Step.GENERATE, "llm_call") as t:
         try:
-            llm = get_field_llm(temperature=0.4, num_predict=2048)
+            llm = get_field_llm(temperature=0.4, num_predict=512)
             response = llm.invoke(messages)
             answer = extract_text(response)
         except Exception as e:

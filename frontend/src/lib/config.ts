@@ -57,16 +57,65 @@ async function probeHealth(baseUrl: string, timeoutMs: number): Promise<string> 
 }
 
 /**
+ * Get the device's local IP via WebRTC (works in Android WebView, no plugins).
+ * Returns e.g. "192.168.0.42" or null if detection fails.
+ */
+async function getLocalIp(): Promise<string | null> {
+  try {
+    const pc = new RTCPeerConnection({ iceServers: [] })
+    pc.createDataChannel('')
+    const offer = await pc.createOffer()
+    await pc.setLocalDescription(offer)
+
+    return await new Promise<string | null>((resolve) => {
+      const timeout = setTimeout(() => { pc.close(); resolve(null) }, 2000)
+      pc.onicecandidate = (e) => {
+        if (!e.candidate) return
+        // ICE candidate line contains the local IP, e.g. "... 192.168.0.42 ..."
+        const match = e.candidate.candidate.match(/(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})/)
+        if (match && !match[1].startsWith('0.') && match[1] !== '0.0.0.0') {
+          clearTimeout(timeout)
+          pc.close()
+          resolve(match[1])
+        }
+      }
+    })
+  } catch {
+    return null
+  }
+}
+
+/** Build candidate URLs for a /24 subnet: all 254 hosts. */
+function subnetCandidates(localIp: string, port: number): string[] {
+  const parts = localIp.split('.')
+  const prefix = `${parts[0]}.${parts[1]}.${parts[2]}`
+  const self = parseInt(parts[3], 10)
+  const urls: string[] = []
+  for (let i = 1; i <= 254; i++) {
+    if (i === self) continue // skip own IP
+    urls.push(`http://${prefix}.${i}:${port}`)
+  }
+  return urls
+}
+
+/**
  * Scan the local network for the FieldPack backend.
  *
- * Probing order:
- *   1. Saved server URL (if any) — skip scan when it still responds.
- *   2. Windows hotspot default: 192.168.137.1:8000
- *   3. Common gateway IPs: 192.168.1.1, 192.168.0.1, 192.168.43.1, 10.0.0.1
- *   4. .1–.5 on 192.168.137.x subnet (parallel, 2 s timeout each)
+ * Strategy:
+ *   1. Saved server URL — skip scan if still alive.
+ *   2. Priority IPs: Windows hotspot + common gateways (fast, 1.5 s).
+ *   3. Smart subnet scan: detect phone's own IP via WebRTC, scan its /24.
+ *      All 253 probes fire in parallel with 2 s timeout — Promise.any
+ *      resolves as soon as the first one hits, typically <500 ms.
  *
- * Returns the first URL that responds with HTTP 200, or null if none found.
+ * Returns the first URL that responds with HTTP 200, or null.
  * Automatically saves the found URL via setServerUrl().
+ *
+ * Security note: auto-discovery trusts the first /health responder on the LAN.
+ * This is acceptable for our deployment model (closed WiFi hotspot, single
+ * laptop server). In a hostile network, an attacker could impersonate the
+ * server — but FieldPack is designed for isolated field deployments, not
+ * public WiFi. TLS certificate pinning would mitigate this if needed.
  */
 export async function autoScanForServer(): Promise<string | null> {
   if (!isNative()) return null
@@ -77,36 +126,44 @@ export async function autoScanForServer(): Promise<string | null> {
   const saved = localStorage.getItem(STORAGE_KEY)
   if (saved) {
     try {
-      const found = await probeHealth(saved, TIMEOUT)
-      return found
+      return await probeHealth(saved, TIMEOUT)
     } catch {
       // Saved URL is dead — fall through to scan
     }
   }
 
-  // 2. Parallel scan: Windows hotspot default, common gateways, subnet .2-.5
-  //    Uses Promise.any — first to respond wins (no wrong-order issue).
-  const allCandidates = [
-    'http://192.168.137.1:8000',  // Windows hotspot default (most likely)
+  // 2. Priority: hotspot & gateway IPs (field scenario)
+  const priorityIps = [
+    'http://192.168.137.1:8000',  // Windows hotspot
+    'http://192.168.43.1:8000',   // Android hotspot
     'http://192.168.1.1:8000',
     'http://192.168.0.1:8000',
-    'http://192.168.43.1:8000',   // Android hotspot
     'http://10.0.0.1:8000',
-    // .2-.5 on Windows hotspot subnet (skip .1, already above)
-    'http://192.168.137.2:8000',
-    'http://192.168.137.3:8000',
-    'http://192.168.137.4:8000',
-    'http://192.168.137.5:8000',
   ]
 
   try {
     const found = await Promise.any(
-      allCandidates.map((url) => probeHealth(url, TIMEOUT))
+      priorityIps.map((url) => probeHealth(url, 1500))
     )
     setServerUrl(found)
     return found
   } catch {
-    // All candidates failed
+    // None hit — continue to smart scan
+  }
+
+  // 3. Smart subnet scan: detect own IP, scan the /24
+  const localIp = await getLocalIp()
+  if (localIp) {
+    const candidates = subnetCandidates(localIp, 8000)
+    try {
+      const found = await Promise.any(
+        candidates.map((url) => probeHealth(url, TIMEOUT))
+      )
+      setServerUrl(found)
+      return found
+    } catch {
+      // No server found on subnet
+    }
   }
 
   return null

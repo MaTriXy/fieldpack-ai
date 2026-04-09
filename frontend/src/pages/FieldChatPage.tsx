@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { useNavigate, useLocation, Link } from 'react-router-dom'
-import { Send, Camera, ChevronDown, Menu, AlertCircle, X, Leaf, FileText, Square, Database, MapPin, ChevronRight } from 'lucide-react'
+import { Send, Camera, ChevronDown, Menu, AlertCircle, X, Leaf, FileText, Square, Database, MapPin, ChevronRight, WifiOff, Wifi, Smartphone, Loader2 } from 'lucide-react'
 import MarkdownContent from '../components/MarkdownContent'
 import TopBar from '../components/layout/TopBar'
 import ChatSidebar from '../components/ChatSidebar'
@@ -18,6 +18,13 @@ import {
   type PackSummary,
 } from '../lib/api'
 import { getWsUrl, isNative } from '../lib/config'
+import { useBackendReachable } from '../hooks/useBackendReachable'
+import {
+  enqueueChatMessage,
+  getQueuedChatMessages,
+  clearChatMessageQueue,
+  type QueuedChatMessage,
+} from '../lib/offline-queue'
 import ServerSettings, { ServerSettingsButton } from '../components/ServerSettings'
 
 interface Message {
@@ -28,6 +35,7 @@ interface Message {
   diagnosis?: DiagnosisPreview
   sources?: { name: string; score: number }[]
   suggestions?: string[]
+  _queued?: boolean
 }
 
 interface DiagnosisPreview {
@@ -94,7 +102,7 @@ function deriveTitle(firstMessage: string): string {
 }
 
 function messagesToApi(messages: Message[]): MessageData[] {
-  return messages.map((m) => ({
+  return messages.filter((m) => !m._queued).map((m) => ({
     role: m.role,
     content: m.content,
     image_path: m.image || null,
@@ -133,6 +141,16 @@ export default function FieldChatPage() {
   const [streamingContent, setStreamingContent] = useState('')
   const [showSources, setShowSources] = useState<string | null>(null)
   const [wsError, setWsError] = useState<string | null>(null)
+
+  // Offline mode
+  const { reachable } = useBackendReachable()
+  const [offlineMode, setOfflineMode] = useState(false)
+  const [queuedMessages, setQueuedMessages] = useState<QueuedChatMessage[]>([])
+  const [showSendQueueBanner, setShowSendQueueBanner] = useState(false)
+  const [sendingQueue, setSendingQueue] = useState(false)
+  const prevReachable = useRef(false)
+  const reachableRef = useRef(false)
+  const pendingQueueBanner = useRef(false)
 
   // Conversation state
   const [conversationId, setConversationId] = useState<string | null>(null)
@@ -185,6 +203,9 @@ export default function FieldChatPage() {
     }).catch(() => setPackLoading(false))
   }, [])
 
+  // Keep reachableRef in sync so connectWs closure reads latest value
+  useEffect(() => { reachableRef.current = reachable }, [reachable])
+
   // WebSocket connection management
   const connectWs = useCallback(() => {
     const rs = wsRef.current?.readyState
@@ -200,6 +221,10 @@ export default function FieldChatPage() {
     ws.onopen = () => {
       reconnectAttempts.current = 0
       setWsError(null)
+      if (pendingQueueBanner.current) {
+        pendingQueueBanner.current = false
+        setShowSendQueueBanner(true)
+      }
     }
 
     ws.onmessage = (event) => {
@@ -305,7 +330,13 @@ export default function FieldChatPage() {
           if (!wsRef.current) connectWs()
         }, delay)
       } else {
-        setWsError('Could not connect to server. Click to retry.')
+        if (!reachableRef.current) {
+          setOfflineMode(true)
+          setWsError(null)
+          setQueuedMessages(getQueuedChatMessages())
+        } else {
+          setWsError('Could not connect to server. Click to retry.')
+        }
       }
     }
 
@@ -328,6 +359,19 @@ export default function FieldChatPage() {
       }
     }
   }, [connectWs, packInfo])
+
+  // Reconnect when backend becomes reachable again while in offline mode
+  useEffect(() => {
+    if (reachable && !prevReachable.current && offlineMode) {
+      if (queuedMessages.length > 0) {
+        pendingQueueBanner.current = true
+      }
+      setOfflineMode(false)
+      reconnectAttempts.current = 0
+      connectWs()
+    }
+    prevReachable.current = reachable
+  }, [reachable, offlineMode, queuedMessages.length, connectWs])
 
   // Pre-warm the Capacitor camera module on native so first launch is instant
   useEffect(() => {
@@ -473,16 +517,9 @@ export default function FieldChatPage() {
   const handleSend = async () => {
     if ((!input.trim() && !pendingImage) || isStreaming) return
 
-    const ws = wsRef.current
-    if (!ws || ws.readyState !== WebSocket.OPEN) {
-      setWsError('Not connected to server. Please wait...')
-      connectWs()
-      return
-    }
-
     const messageText = input.trim() || (pendingImage ? 'What disease does this plant have?' : '')
     const userMsg: Message = {
-      id: Date.now().toString(),
+      id: crypto.randomUUID(),
       role: 'user',
       content: messageText,
       image: pendingImage?.preview,
@@ -490,20 +527,38 @@ export default function FieldChatPage() {
     setMessages((prev) => [...prev, userMsg])
     setInput('')
     if (textareaRef.current) textareaRef.current.style.height = 'auto'
+
+    // ── OFFLINE PATH ──
+    if (offlineMode || !wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
+      const queued = enqueueChatMessage({
+        content: messageText,
+        image_base64: pendingImage?.base64 || null,
+        image_format: pendingImage?.format || null,
+      })
+      setQueuedMessages(prev => [...prev, queued])
+      setMessages(prev => [...prev, {
+        id: crypto.randomUUID(),
+        role: 'assistant',
+        content: '',
+        _queued: true,
+      }])
+      setPendingImage(null)
+      return
+    }
+
+    // ── ONLINE PATH ──
     isStreamingRef.current = true
     setIsStreaming(true)
     setWsError(null)
     setStreamingContent('')
     setCurrentStep(null)
 
-    // Upload image if attached, then send message
     let imagePath: string | null = null
     if (pendingImage) {
       try {
         imagePath = await uploadImageBase64(pendingImage.base64, pendingImage.format)
       } catch {
         setWsError('Failed to upload image. Check server connection.')
-        // Remove the phantom user message we already added
         setMessages((prev) => prev.filter((m) => m.id !== userMsg.id))
         isStreamingRef.current = false
         setIsStreaming(false)
@@ -512,21 +567,62 @@ export default function FieldChatPage() {
       setPendingImage(null)
     }
 
-    // Auto-create conversation if none active
     if (!conversationId) {
       createConversation('field', deriveTitle(messageText))
         .then((conv) => setConversationId(conv.id))
         .catch(() => {})
     }
 
-    // Send to backend via WebSocket
-    ws.send(JSON.stringify({
+    wsRef.current.send(JSON.stringify({
       message: messageText,
       image_path: imagePath,
       conversation_history: pipelineHistory.current,
       conversation_summary: pipelineSummary.current,
       session_id: conversationId,
     }))
+  }
+
+  // ── Send queued messages as one bundled message ──
+  const handleSendQueue = async () => {
+    if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) return
+
+    setSendingQueue(true)
+    setShowSendQueueBanner(false)
+
+    // Remove all queued sentinel messages
+    setMessages(prev => prev.filter(m => !m._queued))
+
+    // Upload first image if any
+    let firstImagePath: string | null = null
+    for (const msg of queuedMessages) {
+      if (msg.image_base64 && !firstImagePath) {
+        try {
+          firstImagePath = await uploadImageBase64(msg.image_base64, msg.image_format || 'jpeg')
+        } catch {
+          // continue without image
+        }
+        break
+      }
+    }
+
+    const combined = queuedMessages.map(q => q.content).join('\n\n---\n\n')
+    const prefix = queuedMessages.length > 1
+      ? `[I recorded these ${queuedMessages.length} observations/questions while offline. Please address each one:]\n\n`
+      : ''
+
+    wsRef.current.send(JSON.stringify({
+      message: prefix + combined,
+      image_path: firstImagePath,
+      conversation_history: pipelineHistory.current,
+      conversation_summary: pipelineSummary.current,
+      session_id: conversationId,
+    }))
+
+    clearChatMessageQueue()
+    setQueuedMessages([])
+    setSendingQueue(false)
+    isStreamingRef.current = true
+    setIsStreaming(true)
   }
 
   // Compute which step index we're on for the progress dots
@@ -709,6 +805,51 @@ export default function FieldChatPage() {
         </div>
       )}
 
+      {/* Offline mode banner */}
+      {offlineMode && (
+        <div className="mx-4 mt-2 bg-surface-dark rounded-xl px-4 py-2.5 flex items-center gap-2">
+          <WifiOff size={14} className="text-text-muted flex-shrink-0" />
+          <div className="flex-1">
+            <span className="text-xs font-medium text-text">Offline Mode</span>
+            <span className="text-xs text-text-muted ml-1">— messages will send when connected</span>
+          </div>
+        </div>
+      )}
+
+      {/* Send queued messages banner */}
+      {showSendQueueBanner && !sendingQueue && queuedMessages.length > 0 && (
+        <div className="mx-4 mt-2 bg-secondary/10 border border-secondary/20 rounded-xl px-4 py-3 flex items-center justify-between animate-slideUp">
+          <div className="flex items-center gap-2">
+            <Wifi size={14} className="text-secondary" />
+            <span className="text-xs font-medium text-text">
+              {queuedMessages.length} message{queuedMessages.length !== 1 ? 's' : ''} ready to send
+            </span>
+          </div>
+          <div className="flex gap-2">
+            <button
+              onClick={handleSendQueue}
+              className="text-xs font-semibold text-white bg-primary px-3 py-1.5 rounded-lg min-h-[32px]"
+            >
+              Send All
+            </button>
+            <button
+              onClick={() => { clearChatMessageQueue(); setQueuedMessages([]); setMessages(prev => prev.filter(m => !m._queued)); setShowSendQueueBanner(false) }}
+              className="text-xs font-medium text-text-muted px-2 py-1.5"
+            >
+              Discard
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Sending progress banner */}
+      {sendingQueue && (
+        <div className="mx-4 mt-2 bg-primary/10 border border-primary/20 rounded-xl px-4 py-3 flex items-center gap-2 animate-slideUp">
+          <Loader2 size={14} className="animate-spin text-primary" />
+          <span className="text-xs font-medium text-primary">Sending queued messages...</span>
+        </div>
+      )}
+
       {/* Pipeline status */}
       {isStreaming && currentStep && (
         <div className="bg-primary-dark">
@@ -795,6 +936,17 @@ export default function FieldChatPage() {
         )}
 
         {messages.map((msg) => (
+          msg._queued ? (
+            <div key={msg.id} className="flex justify-start gap-2">
+              <div className="w-7 h-7 rounded-full bg-secondary/10 flex items-center justify-center flex-shrink-0 mt-1">
+                <Smartphone size={14} className="text-secondary" />
+              </div>
+              <div className="bg-surface text-text-muted rounded-xl rounded-bl-sm px-4 py-2.5 border border-dashed border-secondary/30 animate-slideInLeft">
+                <span className="text-xs font-medium text-secondary">Queued</span>
+                <span className="text-xs text-text-muted ml-1">— will send when connected</span>
+              </div>
+            </div>
+          ) : (
           <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start gap-2'}`}>
             {msg.role === 'assistant' && (
               <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center shrink-0 mt-1">
@@ -881,7 +1033,7 @@ export default function FieldChatPage() {
               )}
             </div>
           </div>
-        ))}
+          )))}
 
         {/* Streaming bubble — shows live tokens as they arrive */}
         {isStreaming && (
@@ -1008,6 +1160,15 @@ export default function FieldChatPage() {
                 aria-label="Stop generating"
               >
                 <Square size={16} />
+              </button>
+            ) : offlineMode ? (
+              <button
+                onClick={() => { haptic('Light'); handleSend() }}
+                disabled={!input.trim() && !pendingImage}
+                className="bg-secondary text-white p-2.5 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg disabled:opacity-40 hover:bg-secondary-light transition-colors shrink-0 shadow-md disabled:shadow-none"
+                aria-label="Queue message"
+              >
+                <Smartphone size={20} />
               </button>
             ) : (
               <button

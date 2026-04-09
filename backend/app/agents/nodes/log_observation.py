@@ -18,10 +18,10 @@ from app.agents.models import IntentType, extract_text
 from app.agents.state import FieldAssistantState, trim_conversation_history
 from app.logger import Step, pipeline_logger as log
 from app.models.offline_llm import get_field_llm
-from app.tools.observation_log import VALID_OBS_TYPES, log_observation
+from app.tools.observation_log import VALID_OBS_TYPES, get_observation_stats, log_observation
 
 
-PARSE_OBSERVATION_PROMPT = """You are a field observation parser for an agricultural assistant in Casamance, Senegal.
+PARSE_OBSERVATION_PROMPT = """You are a field observation parser for an agricultural assistant.
 
 Extract structured fields from the farmer's message:
 
@@ -134,48 +134,6 @@ def _parse_observation_response(
     }
 
 
-def _query_observation_stats(pack) -> dict:
-    """Query observation statistics from the database."""
-    import sqlite3
-    db_path = pack.path / "knowledge.db"
-    conn = None
-
-    try:
-        conn = sqlite3.connect(str(db_path))
-
-        # Total by type
-        cursor = conn.execute(
-            "SELECT type, COUNT(*) as count FROM field_observations GROUP BY type"
-        )
-        by_type = {row[0]: row[1] for row in cursor.fetchall()}
-
-        # Total count
-        total = sum(by_type.values())
-
-        # Most recent 3
-        cursor = conn.execute(
-            "SELECT type, details, timestamp FROM field_observations "
-            "ORDER BY timestamp DESC LIMIT 3"
-        )
-        recent = [
-            {"type": row[0], "details": row[1][:100], "timestamp": row[2]}
-            for row in cursor.fetchall()
-        ]
-
-        return {
-            "total_observations": total,
-            "by_type": by_type,
-            "recent": recent,
-        }
-    except Exception as e:
-        log.log_step(Step.OBSERVATION, "stats_error", level="WARNING",
-                     details={"error": str(e)})
-        return {"total_observations": 0, "by_type": {}, "recent": []}
-    finally:
-        if conn:
-            conn.close()
-
-
 def log_observation_node(state: FieldAssistantState) -> dict:
     """Parse, save, and report a field observation.
 
@@ -212,7 +170,7 @@ def log_observation_node(state: FieldAssistantState) -> dict:
 
     with log.timed(Step.OBSERVATION, "llm_call") as t:
         try:
-            llm = get_field_llm(temperature=0.2, num_predict=1024, format="json")
+            llm = get_field_llm(temperature=0.2, num_predict=256, format="json")
             response = llm.invoke(messages)
             response_text = extract_text(response)
             parsed = _parse_observation_response(response_text, fallback_type, user_message)
@@ -280,7 +238,7 @@ def log_observation_node(state: FieldAssistantState) -> dict:
 
     # Query stats
     with log.timed(Step.OBSERVATION, "stats") as t:
-        stats = _query_observation_stats(pack)
+        stats = get_observation_stats()
         t.set(details={"total": stats["total_observations"]})
 
     # Build confirmation

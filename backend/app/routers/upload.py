@@ -10,6 +10,7 @@ import uuid
 from pathlib import Path
 
 from fastapi import APIRouter, HTTPException, UploadFile
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
 from app.config import settings
@@ -56,9 +57,15 @@ async def upload_image_base64(body: Base64Upload) -> UploadResponse:
     if ext not in _ALLOWED_EXTENSIONS:
         raise HTTPException(400, f"Unsupported format: {ext}. Use: {_ALLOWED_EXTENSIONS}")
 
+    # Pre-decode size estimate: base64 encodes 3 bytes as 4 chars, so decoded
+    # size is approximately len(data) * 3 / 4.  Reject early to avoid
+    # allocating a large buffer for an oversized payload.
+    if len(body.data) * 3 // 4 > _MAX_SIZE:
+        raise HTTPException(400, "File too large (pre-decode estimate). Max: 20MB.")
+
     try:
         content = base64.b64decode(body.data)
-    except Exception:
+    except (ValueError, base64.binascii.Error):
         raise HTTPException(400, "Invalid base64 data")
 
     if len(content) > _MAX_SIZE:
@@ -89,3 +96,22 @@ def _save_image(content: bytes, ext: str) -> UploadResponse:
     filepath.write_bytes(content)
     # Use as_posix() for consistent forward-slash paths across platforms
     return UploadResponse(image_path=str(filepath.resolve().as_posix()))
+
+
+@router.get("/files/{filename}")
+async def serve_uploaded_file(filename: str) -> FileResponse:
+    """Serve an uploaded image file by filename."""
+    # Sanitize: only allow filenames, no path traversal
+    if "/" in filename or "\\" in filename or ".." in filename:
+        raise HTTPException(400, "Invalid filename")
+
+    filepath = settings.uploads_path / filename
+    if not filepath.is_file():
+        raise HTTPException(404, "File not found")
+
+    ext = filepath.suffix.lower()
+    if ext not in _ALLOWED_EXTENSIONS:
+        raise HTTPException(400, "Unsupported file type")
+
+    media_types = {".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".png": "image/png", ".webp": "image/webp"}
+    return FileResponse(filepath, media_type=media_types.get(ext, "application/octet-stream"))

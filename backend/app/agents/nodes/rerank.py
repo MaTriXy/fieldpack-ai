@@ -75,8 +75,44 @@ def _dedup_results(scored: list[ScoredResult]) -> list[ScoredResult]:
     return list(seen.values())
 
 
+def _apply_image_symptom_boost(
+    scored: list[ScoredResult],
+    image_description: str,
+) -> list[ScoredResult]:
+    """Boost results whose content mentions symptoms from the image analysis.
+
+    Each matching symptom adds a small score bump. This helps results whose
+    disease symptoms overlap with the observed visual symptoms outrank
+    diseases with weaker symptom matches.
+    """
+    # Extract symptom terms from "... Symptoms: x, y, z" suffix
+    symptom_terms = []
+    if "Symptoms:" in image_description:
+        symptom_str = image_description.split("Symptoms:")[-1]
+        for s in symptom_str.split(","):
+            term = s.strip().strip(".").lower()
+            if term:
+                symptom_terms.append(term)
+
+    if not symptom_terms:
+        return scored
+
+    BOOST_PER_MATCH = 0.04  # +0.04 per matching symptom term
+    MAX_BOOST = 0.15        # Cap total boost
+
+    for result in scored:
+        content_lower = (result.content or "").lower()
+        matches = sum(1 for t in symptom_terms if t in content_lower)
+        if matches:
+            boost = min(matches * BOOST_PER_MATCH, MAX_BOOST)
+            result.relevance_score = min(1.0, result.relevance_score + boost)
+
+    return scored
+
+
 def _heuristic_rerank(
     search_results: list[SearchResult],
+    image_description: str | None = None,
 ) -> tuple[list[ScoredResult], bool]:
     """Fast heuristic rerank: normalize, dedup, sort, check sufficiency."""
     scored = _normalize_scores(search_results)
@@ -84,6 +120,10 @@ def _heuristic_rerank(
 
     # Filter by keep threshold
     scored = [s for s in scored if s.relevance_score >= KEEP_THRESHOLD]
+
+    # Boost results matching image symptoms before sorting
+    if image_description:
+        scored = _apply_image_symptom_boost(scored, image_description)
 
     # Sort by relevance descending
     scored.sort(key=lambda s: s.relevance_score, reverse=True)
@@ -99,7 +139,7 @@ def _heuristic_rerank(
 # Tier 2: LLM rerank (slow fallback)
 # ============================================================
 
-RERANK_SYSTEM_PROMPT = """You are a relevance judge for an agricultural knowledge system in Casamance, Senegal.
+RERANK_SYSTEM_PROMPT = """You are a relevance judge for an agricultural knowledge system.
 
 Given a user question and search results, score each result for relevance.
 
@@ -223,7 +263,7 @@ def _llm_rerank(
     ]
 
     try:
-        llm = get_field_llm(temperature=0.1, num_predict=1024, format="json")
+        llm = get_field_llm(temperature=0.1, num_predict=256, format="json")
         response = llm.invoke(messages)
         response_text = extract_text(response)
     except Exception as e:
@@ -262,8 +302,9 @@ def rerank_results(state: FieldAssistantState) -> dict:
     top_results = search_results[:MAX_RESULTS_FOR_RERANK]
 
     # Tier 1: heuristic (always runs first)
+    image_description = state.get("image_description")
     with log.timed(Step.RERANK, "heuristic_rerank") as t:
-        ranked, is_sufficient = _heuristic_rerank(top_results)
+        ranked, is_sufficient = _heuristic_rerank(top_results, image_description)
         t.set(details={
             "input_count": len(top_results),
             "kept_count": len(ranked),

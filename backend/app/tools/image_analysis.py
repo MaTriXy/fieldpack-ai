@@ -41,32 +41,28 @@ _SYMPTOM_HINTS = (
 )
 
 # Vision analysis prompt — extracts maximum relevant info for later matching
-_ANALYSIS_PROMPT = """You are a plant disease visual analyst working in Casamance, Senegal.
-Examine this image of a plant carefully and extract as much relevant information as possible.
-
+_ANALYSIS_PROMPT = """Analyze this plant image for disease symptoms.
 {crop_hint}
+First, identify the crop from its leaf shape and growth pattern.
 
-Describe everything you observe that could help identify a plant disease or condition.
-Pay attention to:
-- Leaf color changes (yellowing, browning, spots, patterns)
+Then describe visible disease symptoms:
+- Leaf color changes (yellowing, browning, spots, mosaic patterns)
 - Leaf shape changes (curling, rolling, wilting, deformation)
-- Stem or root visible issues
-- Any patterns (mosaic, streaks, rings, uniform vs patchy)
-- Overall plant vigor and growth stage
+- Stem, root, or fruit issues
+- Patterns (mosaic, streaks, rings, uniform vs patchy)
 
-Common symptoms to look for: {symptoms}
+Common symptoms: {symptoms}
 
-Output your analysis as JSON with these fields:
+Output JSON:
 {{
-  "visual_description": "Detailed paragraph describing everything visible that is relevant to plant health",
-  "suspected_symptoms": ["symptom1", "symptom2", "symptom3"],
+  "visual_description": "Detailed description of visible symptoms",
+  "suspected_symptoms": ["symptom1", "symptom2"],
   "affected_parts": ["leaves", "stem", "roots", "fruit"],
   "severity_estimate": "mild or moderate or severe",
   "crop_guess": "crop name or unknown",
   "confidence": "low or medium or high"
 }}
-
-Only describe what is visible. Do not guess disease names. Focus on observable symptoms."""
+Do not guess disease names. Focus on observable symptoms."""
 
 
 def _resize_image(image_path: Path, max_dim: int = _MAX_IMAGE_DIM) -> bytes:
@@ -160,9 +156,10 @@ def _call_ollama_vision(prompt: str, image_b64: str, resolved: str = "") -> str:
             "prompt": prompt,
             "images": [image_b64],
             "stream": False,
+            "think": False,
             "options": {
                 "temperature": 0.3,
-                "num_predict": 2048,
+                "num_predict": 512,
                 "num_ctx": settings.ollama_num_ctx,
             },
         },
@@ -183,7 +180,7 @@ def _call_google_vision(prompt: str, image_bytes: bytes) -> str:
     from app.models.offline_llm import get_field_llm
 
     image_b64 = base64.b64encode(image_bytes).decode("utf-8")
-    llm = get_field_llm(temperature=0.3, num_predict=2048)
+    llm = get_field_llm(temperature=0.3, num_predict=512)
     message = HumanMessage(
         content=[
             {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{image_b64}"}},

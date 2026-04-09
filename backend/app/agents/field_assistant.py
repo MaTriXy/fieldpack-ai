@@ -65,6 +65,13 @@ def _json_safe(obj):
 # Conditional edge functions
 # ============================================================
 
+def _after_classify(state: FieldAssistantState) -> str:
+    """Route after classify. Short-circuits to END if classify already set final_answer (ask-back)."""
+    if state.get("final_answer"):
+        return END
+    return "route_intent"
+
+
 def _after_needs_search(state: FieldAssistantState) -> str:
     """Route after needs_search gate.
 
@@ -127,9 +134,16 @@ def build_field_assistant_graph() -> StateGraph:
     graph.add_node("expand_route_node", expand_route_node)
     graph.add_node("generate_answer", generate_answer)
 
-    # Linear edges
+    # Entry + classify → conditional (ask-back short-circuit or continue)
     graph.set_entry_point("classify_and_extract")
-    graph.add_edge("classify_and_extract", "route_intent")
+    graph.add_conditional_edges(
+        "classify_and_extract",
+        _after_classify,
+        {
+            END: END,
+            "route_intent": "route_intent",
+        },
+    )
     graph.add_edge("route_intent", "needs_search_node")
 
     # Conditional: after needs_search gate

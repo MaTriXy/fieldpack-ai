@@ -162,6 +162,105 @@ def get_unsynced_observations() -> list[dict]:
         conn.close()
 
 
+def count_observations(obs_type: str | None = None) -> int:
+    """Count total observations, optionally filtered by type."""
+    pack = get_active_pack()
+    if pack is None:
+        return 0
+
+    import sqlite3
+    db_path = pack.path / "knowledge.db"
+    conn = sqlite3.connect(str(db_path))
+
+    try:
+        if obs_type and obs_type in VALID_OBS_TYPES:
+            cursor = conn.execute(
+                "SELECT COUNT(*) FROM field_observations WHERE type = ?",
+                (obs_type,),
+            )
+        else:
+            cursor = conn.execute("SELECT COUNT(*) FROM field_observations")
+        return cursor.fetchone()[0]
+    finally:
+        conn.close()
+
+
+def get_observation_stats() -> dict:
+    """Query observation statistics from the database.
+
+    Returns dict with total_observations, unsynced, by_type, and recent.
+    """
+    pack = get_active_pack()
+    if pack is None:
+        return {"total_observations": 0, "unsynced": 0, "by_type": {}, "recent": []}
+
+    import sqlite3
+    db_path = pack.path / "knowledge.db"
+    conn = None
+
+    try:
+        conn = sqlite3.connect(str(db_path))
+
+        # Total by type
+        cursor = conn.execute(
+            "SELECT type, COUNT(*) as count FROM field_observations GROUP BY type"
+        )
+        by_type = {row[0]: row[1] for row in cursor.fetchall()}
+
+        total = sum(by_type.values())
+
+        # Unsynced count
+        cursor = conn.execute(
+            "SELECT COUNT(*) FROM field_observations WHERE synced = 0"
+        )
+        unsynced = cursor.fetchone()[0]
+
+        # Most recent 3
+        cursor = conn.execute(
+            "SELECT type, details, timestamp FROM field_observations "
+            "ORDER BY timestamp DESC LIMIT 3"
+        )
+        recent = [
+            {"type": row[0], "details": row[1][:100], "timestamp": row[2]}
+            for row in cursor.fetchall()
+        ]
+
+        return {
+            "total_observations": total,
+            "unsynced": unsynced,
+            "by_type": by_type,
+            "recent": recent,
+        }
+    except Exception as e:
+        log.log_step(Step.OBSERVATION, "stats_error", level="WARNING",
+                     details={"error": str(e)})
+        return {"total_observations": 0, "unsynced": 0, "by_type": {}, "recent": []}
+    finally:
+        if conn:
+            conn.close()
+
+
+def get_observation_by_id(obs_id: int) -> dict | None:
+    """Retrieve a single observation by ID."""
+    pack = get_active_pack()
+    if pack is None:
+        return None
+
+    import sqlite3
+    db_path = pack.path / "knowledge.db"
+    conn = sqlite3.connect(str(db_path))
+    conn.row_factory = sqlite3.Row
+
+    try:
+        cursor = conn.execute(
+            "SELECT * FROM field_observations WHERE id = ?", (obs_id,)
+        )
+        row = cursor.fetchone()
+        return dict(row) if row else None
+    finally:
+        conn.close()
+
+
 # ============================================================
 # @tool wrappers for LangGraph
 # ============================================================

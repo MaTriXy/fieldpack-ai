@@ -34,6 +34,7 @@ def _make_ollama(
         temperature=temperature,
         num_ctx=settings.ollama_num_ctx,
         keep_alive=settings.ollama_keep_alive,
+        reasoning=False,
     )
     if num_predict is not None:
         kwargs["num_predict"] = num_predict

@@ -123,7 +123,8 @@ async def mission_chat(req: MissionChatRequest):
     try:
         result = await invoke_structured(llm, prompt, _MissionChatLLMOutput)
     except ValueError as exc:
-        raise HTTPException(status_code=502, detail=f"LLM parsing failed: {exc}")
+        logger.warning("Mission chat LLM parsing failed: %s", exc)
+        raise HTTPException(status_code=502, detail="Mission planner could not process the request")
 
     return MissionChatResponse(
         reply=result.reply,

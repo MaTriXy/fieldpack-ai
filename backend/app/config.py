@@ -40,7 +40,7 @@ class Settings(BaseSettings):
     # Server
     host: str = "0.0.0.0"
     port: int = 8000
-    debug: bool = True
+    debug: bool = False  # Override with DEBUG=true in .env for local dev
 
     model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}
 

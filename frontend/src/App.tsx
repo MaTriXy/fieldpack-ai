@@ -11,6 +11,7 @@ import DiagnosisCardPage from './pages/DiagnosisCardPage'
 import PackInfoPage from './pages/PackInfoPage'
 import PackListPage from './pages/PackListPage'
 import PipelineDebugPage from './pages/PipelineDebugPage'
+import ObservationsPage from './pages/ObservationsPage'
 
 export default function App() {
   return (
@@ -27,6 +28,7 @@ export default function App() {
           <Route path="/packs" element={<PackListPage />} />
           <Route path="/packs/explorer" element={<KnowledgeExplorerPage />} />
           <Route path="/packs/:id" element={<PackInfoPage />} />
+          <Route path="/observations" element={<ObservationsPage />} />
           <Route path="/debug" element={<PipelineDebugPage />} />
         </Route>
       </Routes>
