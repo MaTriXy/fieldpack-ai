@@ -291,7 +291,7 @@ export default function FieldChatPage() {
   const pipelineSummary = useRef('')
 
   // Pack status
-  const [packInfo, setPackInfo] = useState<{ name: string; region: string; crops: string[]; diseases_count: number } | null>(null)
+  const [packInfo, setPackInfo] = useState<{ name: string; region: string; crops: string[]; knowledgeEntries: number; sources: number } | null>(null)
   const [packLoading, setPackLoading] = useState(true)
   const [packError, setPackError] = useState<string | null>(null)
   const [availablePacks, setAvailablePacks] = useState<PackSummary[]>([])
@@ -353,7 +353,7 @@ export default function FieldChatPage() {
       setAvailablePacks(packs)
       const loaded = packs.find(p => p.loaded)
       if (loaded) {
-        setPackInfo({ name: loaded.name, region: loaded.region, crops: loaded.crops, diseases_count: loaded.diseases_count })
+        setPackInfo({ name: loaded.name, region: loaded.region, crops: loaded.crops, knowledgeEntries: loaded.knowledge_entries, sources: (loaded.sources ?? []).length })
       }
       setPackLoading(false)
     }).catch(() => setPackLoading(false))
@@ -408,7 +408,8 @@ export default function FieldChatPage() {
 
         case 'token':
           setStreamingContent((prev) => {
-            const token = data.content as string
+            const token = typeof data.content === 'string' ? data.content : String(data.content ?? '')
+            if (!token) return prev ?? ''
             // Strip leading punctuation echoed by the LLM on first token
             if (!prev) return token.replace(/^[?!.,;:\s]+/, '')
             return prev + token
@@ -945,7 +946,7 @@ export default function FieldChatPage() {
                       try {
                         const ok = await loadPack(pack.pack_id)
                         if (ok) {
-                          setPackInfo({ name: pack.name, region: pack.region, crops: pack.crops, diseases_count: pack.diseases_count })
+                          setPackInfo({ name: pack.name, region: pack.region, crops: pack.crops, knowledgeEntries: pack.knowledge_entries, sources: (pack.sources ?? []).length })
                         } else {
                           setPackError('Failed to load pack. Check that the server is running.')
                         }
@@ -962,7 +963,7 @@ export default function FieldChatPage() {
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="font-heading font-bold text-sm text-text">{pack.name}</p>
-                        <p className="text-xs text-text-muted mt-0.5">{pack.region} · {pack.crops.length} crops · {pack.diseases_count} diseases</p>
+                        <p className="text-xs text-text-muted mt-0.5">{pack.region} · {pack.crops.length} crops · {pack.knowledge_entries} entries · {(pack.sources ?? []).length} sources</p>
                       </div>
                       <ChevronRight size={16} className="text-text-muted" />
                     </div>
@@ -1025,7 +1026,9 @@ export default function FieldChatPage() {
               <span className="text-xs text-text-muted">·</span>
               <span className="text-xs text-text-muted">{packInfo.crops.length} crops</span>
               <span className="text-xs text-text-muted">·</span>
-              <span className="text-xs text-text-muted">{packInfo.diseases_count} diseases</span>
+              <span className="text-xs text-text-muted">{packInfo.knowledgeEntries} entries</span>
+              <span className="text-xs text-text-muted">·</span>
+              <span className="text-xs text-text-muted">{packInfo.sources} sources</span>
             </div>
             <Link to="/packs" className="text-xs text-primary font-medium hover:underline shrink-0">
               Change
@@ -1273,18 +1276,21 @@ export default function FieldChatPage() {
                     />
                   </button>
                   {showSources === msg.id && (
-                    <div className="mt-1.5 space-y-1">
+                    <div className="mt-1.5 space-y-1.5">
                       {msg.sources.map((s, idx) => {
                         const sourceKey = `${msg.id}-${idx}`
                         const isExpanded = expandedSource === sourceKey
+                        const pct = Math.max(5, Math.min(100, Math.round(s.score * 20) * 5))
+                        const borderColor = s.score >= 0.7 ? 'border-l-primary' : s.score >= 0.5 ? 'border-l-secondary' : 'border-l-tertiary'
+                        const badgeBg = s.score >= 0.7 ? 'bg-primary/10 text-primary' : s.score >= 0.5 ? 'bg-secondary/15 text-secondary' : 'bg-tertiary/10 text-tertiary'
                         return (
-                          <div key={sourceKey} className="rounded-lg border border-surface-dark overflow-hidden">
+                          <div key={sourceKey} className={`rounded-lg border border-surface-dark border-l-[3px] ${borderColor} overflow-hidden`}>
                             <button
                               onClick={() => { if (s.content) setExpandedSource(isExpanded ? null : sourceKey) }}
                               className={`w-full flex items-center gap-2 text-xs px-2.5 py-2 transition-colors ${s.content ? 'hover:bg-surface-dark/50 cursor-pointer' : 'cursor-default'}`}
                             >
-                              <span className={`w-2 h-2 rounded-full shrink-0 ${s.score >= 0.7 ? 'bg-primary' : s.score >= 0.4 ? 'bg-secondary' : 'bg-text-muted/30'}`} />
                               <span className="flex-1 text-left text-text truncate">{s.name}</span>
+                              <span className={`shrink-0 text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${badgeBg}`}>{pct}%</span>
                               {s.content && (
                                 <ChevronDown
                                   size={10}

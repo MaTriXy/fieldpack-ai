@@ -19,6 +19,7 @@ import { getTextSize, applyTextSize } from './lib/settings'
 
 if (isNative()) {
   import('@capacitor/status-bar').then(({ StatusBar, Style }) => {
+    StatusBar.setOverlaysWebView({ overlay: false })
     StatusBar.setStyle({ style: Style.Light })
     StatusBar.setBackgroundColor({ color: '#1B4332' })
   }).catch(() => {})

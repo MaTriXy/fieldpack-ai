@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { Leaf, Bug, Pill, Shield, FileText, Database, MapPin, Loader2, AlertCircle, CheckCircle2 } from 'lucide-react'
+import { Leaf, Bug, Pill, Shield, FileText, Database, MapPin, Loader2, AlertCircle, CheckCircle2, BookOpen, Globe } from 'lucide-react'
 import TopBar from '../components/layout/TopBar'
 import { listPacks, loadPack, unloadPack, browseKnowledge, type PackSummary } from '../lib/api'
 import { getPackHeroImage } from '../lib/pack-images'
@@ -102,25 +102,23 @@ export default function PackInfoPage() {
     }
   }
 
-  // When browse stats are loaded, use them. When not loaded, fall back to pack metadata for crops/diseases.
-  const displayStats = stats
-    ? stats
-    : pack
-      ? { crops: pack.crops.length, diseases: pack.diseases_count, treatments: null, pests: null, practices: null, climate: null }
-      : null
-
-  const buildStats = displayStats
+  // When browse stats are loaded, show full breakdown. Otherwise fall back to pack metadata.
+  const buildStats = stats
     ? [
-        { label: `${displayStats.crops} Crop${displayStats.crops !== 1 ? 's' : ''}`, icon: Leaf, color: 'text-primary' },
-        { label: displayStats.diseases != null ? `${displayStats.diseases} Disease${displayStats.diseases !== 1 ? 's' : ''}` : 'Diseases', icon: Bug, color: 'text-tertiary' },
-        ...(stats ? [
-          { label: `${stats.treatments} Treatment${stats.treatments !== 1 ? 's' : ''}`, icon: Pill, color: 'text-primary' },
-          { label: `${stats.pests} Pest${stats.pests !== 1 ? 's' : ''}`, icon: Shield, color: 'text-secondary' },
-          { label: `${stats.practices} Practice${stats.practices !== 1 ? 's' : ''}`, icon: FileText, color: 'text-text-muted' },
-          { label: `${stats.climate} Climate`, icon: MapPin, color: 'text-text-muted' },
-        ] : []),
+        { label: `${stats.crops} Crop${stats.crops !== 1 ? 's' : ''}`, icon: Leaf, color: 'text-primary' },
+        { label: `${stats.diseases} Disease${stats.diseases !== 1 ? 's' : ''}`, icon: Bug, color: 'text-tertiary' },
+        { label: `${stats.treatments} Treatment${stats.treatments !== 1 ? 's' : ''}`, icon: Pill, color: 'text-primary' },
+        { label: `${stats.pests} Pest${stats.pests !== 1 ? 's' : ''}`, icon: Shield, color: 'text-secondary' },
+        { label: `${stats.practices} Practice${stats.practices !== 1 ? 's' : ''}`, icon: FileText, color: 'text-text-muted' },
+        { label: `${stats.climate} Climate`, icon: MapPin, color: 'text-text-muted' },
       ]
-    : []
+    : pack
+      ? [
+          { label: `${pack.crops.length} Crop${pack.crops.length !== 1 ? 's' : ''}`, icon: Leaf, color: 'text-primary' },
+          { label: `${pack.knowledge_entries} Knowledge Entries`, icon: BookOpen, color: 'text-secondary' },
+          { label: `${(pack.sources || []).length} Expert Source${(pack.sources || []).length !== 1 ? 's' : ''}`, icon: Globe, color: 'text-primary' },
+        ]
+      : []
 
   return (
     <div className="flex flex-col animate-fadeIn">

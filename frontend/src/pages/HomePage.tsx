@@ -8,7 +8,7 @@ export default function HomePage() {
   const { reachable: backendUp } = useBackendReachable()
   const [packStatus, setPackStatus] = useState<'none' | 'loading' | 'loaded'>('none')
   const [packName, setPackName] = useState('')
-  const [packMeta, setPackMeta] = useState<{ crops: string[]; diseases: number }>({ crops: [], diseases: 0 })
+  const [packMeta, setPackMeta] = useState<{ crops: string[]; knowledgeEntries: number; sources: number }>({ crops: [], knowledgeEntries: 0, sources: 0 })
   const [isDark, setIsDark] = useState(() =>
     document.documentElement.classList.contains('dark')
   )
@@ -29,10 +29,10 @@ export default function HomePage() {
     const controller = new AbortController()
     fetch(apiUrl('/packs/'), { signal: controller.signal })
       .then(r => r.ok ? r.json() : [])
-      .then((packs: { pack_id: string; name: string; region?: string; crops?: string[]; diseases_count?: number; loaded?: boolean }[]) => {
+      .then((packs: { pack_id: string; name: string; region?: string; crops?: string[]; diseases_count?: number; knowledge_entries?: number; sources?: string[]; loaded?: boolean }[]) => {
         if (packs.length === 0) return
         const alreadyLoaded = packs.find(p => p.loaded)
-        const setMeta = (p: typeof packs[0]) => setPackMeta({ crops: p.crops || [], diseases: p.diseases_count || 0 })
+        const setMeta = (p: typeof packs[0]) => setPackMeta({ crops: p.crops || [], knowledgeEntries: p.knowledge_entries || 0, sources: (p.sources || []).length })
         if (alreadyLoaded) {
           setPackStatus('loaded')
           setPackName(alreadyLoaded.name)
@@ -57,7 +57,7 @@ export default function HomePage() {
 
       {/* ── Hero ── */}
       <div className="relative">
-        <div className="px-6 pt-14 pb-24 text-center relative overflow-hidden">
+        <div className="px-6 pt-10 pb-16 text-center relative overflow-hidden">
 
           {/* hero background photo */}
           <div
@@ -97,17 +97,6 @@ export default function HomePage() {
 
           {/* wordmark */}
           <div className="relative">
-
-            {/* pulsing glow ring behind icon */}
-            <div className="flex items-center justify-center mb-5">
-              <div className="relative">
-                <span className="absolute inset-0 rounded-full bg-secondary/25 animate-ping" style={{ animationDuration: '2.6s' }} />
-                <span className="absolute inset-0 rounded-full bg-secondary/10 scale-150 animate-ping" style={{ animationDuration: '3.2s', animationDelay: '0.4s' }} />
-                <div className="relative bg-white/10 rounded-full p-4 ring-1 ring-white/20 backdrop-blur-sm animate-float">
-                  <Leaf className="text-secondary" size={32} />
-                </div>
-              </div>
-            </div>
 
             <h1
               className="font-heading text-5xl font-extrabold text-white tracking-tight leading-none"
@@ -307,8 +296,8 @@ export default function HomePage() {
               )}
             </div>
             <span className="text-[10px] text-text-muted/60 flex-shrink-0">
-              {packStatus === 'loaded' && packMeta.diseases > 0
-                ? `${packMeta.crops.length} crops · ${packMeta.diseases} diseases`
+              {packStatus === 'loaded' && packMeta.knowledgeEntries > 0
+                ? `${packMeta.crops.length} crops · ${packMeta.knowledgeEntries} entries · ${packMeta.sources} sources`
                 : packStatus === 'loading' ? 'Loading...' : 'v1.0'}
             </span>
           </div>

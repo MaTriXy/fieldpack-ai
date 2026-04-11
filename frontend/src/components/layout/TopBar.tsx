@@ -140,8 +140,18 @@ export default function TopBar({
   const showConnectionPill = isNative()
 
   return (
-    <header role="banner" className={`sticky top-0 z-40 px-4 py-3 ${dark ? 'bg-debug-bg' : 'bg-primary'}`} style={{ paddingTop: 'calc(0.75rem + env(safe-area-inset-top, 0px))' }}>
-      <div className="max-w-lg mx-auto flex items-center gap-3">
+    <header role="banner" className={`sticky top-0 z-40 px-4 py-3 relative overflow-hidden ${dark ? 'bg-debug-bg' : ''}`} style={{ paddingTop: 'calc(0.75rem + env(safe-area-inset-top, 0px))' }}>
+      {!dark && (
+        <>
+          <div
+            className="absolute inset-0 bg-cover bg-center"
+            style={{ backgroundImage: "url('/images/packs/default-2.jpg')" }}
+            aria-hidden="true"
+          />
+          <div className="absolute inset-0 bg-black/50" aria-hidden="true" />
+        </>
+      )}
+      <div className="max-w-lg mx-auto flex items-center gap-3 relative min-h-[44px]">
         {back && (
           <button onClick={handleBack} className="text-white p-2.5 -ml-2.5" aria-label="Go back">
             <ArrowLeft size={22} />

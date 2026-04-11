@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Check, Loader2, Circle } from 'lucide-react'
 import TopBar from '../components/layout/TopBar'
+import { listPacks, type PackSummary } from '../lib/api'
 
 interface AgentStep {
   name: string
@@ -12,63 +13,85 @@ interface AgentStep {
   progress?: number
 }
 
-const INITIAL_STEPS: AgentStep[] = [
-  {
-    name: 'Mission Planner',
-    status: 'completed',
-    detail: 'Identified 5 crops, 15 disease categories, 6 knowledge domains',
-    latency: '2.3s',
-  },
-  {
-    name: 'Research Agents',
-    status: 'in_progress',
-    detail: '3 of 5 agents complete',
-    progress: 60,
-    findings: [
-      'Found 12 cassava diseases',
-      'Found 8 rice blast treatments',
-      'Gathering pest data...',
-    ],
-  },
-  {
-    name: 'Knowledge Compiler',
-    status: 'pending',
-    detail: 'Waiting for research...',
-  },
-  {
-    name: 'Pack Builder',
-    status: 'pending',
-    detail: 'Will create database and vector store',
-  },
-]
+function buildSteps(pack: PackSummary | null): AgentStep[] {
+  const cropCount = pack?.crops.length ?? 0
+  const entryCount = pack?.knowledge_entries ?? 0
+  const sourceCount = (pack?.sources ?? []).length
+  return [
+    {
+      name: 'Mission Planner',
+      status: 'completed',
+      detail: `Identified ${cropCount} crops, ${entryCount} knowledge entries, ${sourceCount} expert sources`,
+      latency: '2.3s',
+    },
+    {
+      name: 'Research Agents',
+      status: 'in_progress',
+      detail: `3 of ${cropCount} agents complete`,
+      progress: 60,
+      findings: [
+        'Found 12 cassava diseases',
+        'Found 8 rice blast treatments',
+        'Gathering pest data...',
+      ],
+    },
+    {
+      name: 'Knowledge Compiler',
+      status: 'pending',
+      detail: 'Waiting for research...',
+    },
+    {
+      name: 'Pack Builder',
+      status: 'pending',
+      detail: 'Will create database and vector store',
+    },
+  ]
+}
 
-const LOG_ENTRIES = [
-  '[Agent 2] Researching rice blast treatments from PlantVillage...',
-  '[Agent 1] Found cassava mosaic data from IITA',
-  '[Agent 3] Querying FAO disease database...',
-  '[Agent 4] Gathering Casamance, Senegal climate data...',
-  '[Agent 2] Found 3 organic treatments for rice blast',
-  '[Agent 5] Collecting pest management protocols...',
-]
+function buildLogEntries(pack: PackSummary | null): string[] {
+  const sources = pack?.sources ?? []
+  return [
+    `[Agent 2] Researching rice blast treatments from ${sources[2] ?? 'PlantVillage'}...`,
+    `[Agent 1] Found cassava mosaic data from ${sources[1] ?? 'IITA'}`,
+    `[Agent 3] Querying ${sources[0] ?? 'FAO'} disease database...`,
+    `[Agent 4] Gathering ${pack?.region ?? 'target region'} climate data...`,
+    '[Agent 2] Found 3 organic treatments for rice blast',
+    '[Agent 5] Collecting pest management protocols...',
+  ]
+}
 
 export default function AgentProgressPage() {
-  const [steps] = useState<AgentStep[]>(INITIAL_STEPS)
-  const [logs, setLogs] = useState<string[]>([LOG_ENTRIES[0]])
+  const [activePack, setActivePack] = useState<PackSummary | null>(null)
+  const [steps, setSteps] = useState<AgentStep[]>(buildSteps(null))
+  const [logs, setLogs] = useState<string[]>([])
   const [overallProgress] = useState(47)
   const navigate = useNavigate()
 
   useEffect(() => {
+    listPacks()
+      .then((packs) => {
+        const loaded = packs.find((p) => p.loaded) ?? packs[0] ?? null
+        setActivePack(loaded)
+        setSteps(buildSteps(loaded))
+        const entries = buildLogEntries(loaded)
+        setLogs([entries[0]])
+      })
+      .catch(() => {})
+  }, [])
+
+  useEffect(() => {
+    const entries = buildLogEntries(activePack)
     let i = 1
     const interval = setInterval(() => {
-      if (i < LOG_ENTRIES.length) {
-        setLogs((prev) => [...prev, LOG_ENTRIES[i]])
+      if (i < entries.length) {
+        setLogs((prev) => [...prev, entries[i]])
         i++
       } else {
         clearInterval(interval)
       }
     }, 2000)
     return () => clearInterval(interval)
-  }, [])
+  }, [activePack])
 
   const StatusIcon = ({ status }: { status: AgentStep['status'] }) => {
     if (status === 'completed') return <Check size={18} className="text-white" />
@@ -89,8 +112,8 @@ export default function AgentProgressPage() {
       {/* Mission summary */}
       <div className="bg-primary/5 px-4 py-3 border-b border-surface-dark">
         <div className="max-w-lg mx-auto">
-          <p className="font-heading font-bold text-sm text-text">Casamance, Senegal &mdash; Agriculture</p>
-          <p className="text-xs text-text-muted">Cassava, Rice, Maize, Groundnut, Tomato</p>
+          <p className="font-heading font-bold text-sm text-text">{activePack?.name ?? 'Loading pack...'}</p>
+          <p className="text-xs text-text-muted">{activePack?.crops.map(c => c.charAt(0).toUpperCase() + c.slice(1)).join(', ') ?? ''}</p>
         </div>
       </div>
 

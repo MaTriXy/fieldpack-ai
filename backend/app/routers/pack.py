@@ -19,6 +19,8 @@ class PackInfo(BaseModel):
     region: str
     crops: list[str]
     diseases_count: int
+    knowledge_entries: int = 0
+    sources: list[str] = []
     loaded: bool = False
 
 
@@ -46,6 +48,7 @@ async def list_packs():
                 data = json.loads(manifest.read_text(encoding="utf-8"))
             except (json.JSONDecodeError, OSError):
                 continue
+            stats = data.get("statistics", {})
             packs.append(PackInfo(
                 pack_id=pack_dir.name,
                 name=data.get("name", pack_dir.name),
@@ -54,7 +57,9 @@ async def list_packs():
                     data.get("region", {}).get("country"),
                 ])) or "Unknown",
                 crops=data.get("crops", []),
-                diseases_count=data.get("statistics", {}).get("diseases_count", 0),
+                diseases_count=stats.get("diseases_count", 0),
+                knowledge_entries=stats.get("text_chunks", 0),
+                sources=data.get("sources", []),
                 loaded=pack_dir.resolve() == active_path,
             ))
     return packs

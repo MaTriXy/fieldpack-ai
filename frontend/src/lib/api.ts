@@ -75,6 +75,8 @@ export interface PackSummary {
   region: string
   crops: string[]
   diseases_count: number
+  knowledge_entries: number
+  sources: string[]
   loaded: boolean
 }
 

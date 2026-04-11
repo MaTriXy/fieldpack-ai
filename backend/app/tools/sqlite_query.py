@@ -16,6 +16,7 @@ from app.agents.models import ResultType, SearchResult
 from app.knowledge_pack.loader import get_active_pack
 from app.knowledge_pack.schema_sqlite import TABLE_JOINS, VALID_TABLES
 from app.logger import Step, pipeline_logger as log
+from app.tools.row_to_nl import row_to_nl
 
 
 # Operator mapping: condition dict operators → SQL
@@ -119,26 +120,7 @@ def _rows_to_search_results(
     """Convert raw SQL row dicts to SearchResult objects."""
     results = []
     for row in rows:
-        # Build readable content from key fields
-        content_parts = []
-        for key in [
-            "name", "method", "description", "symptoms_text",
-            "region", "type", "details", "visual_markers",
-            "planting_notes", "harvest_notes", "growing_season",
-            "water_needs_mm_per_week", "region_suitability",
-            "prevention_notes", "local_availability", "materials_needed",
-            "application_timing", "notes", "damage_description",
-            "identification_notes", "control_organic", "control_chemical",
-            "common_names", "local_names", "disease_resistance",
-            "seed_source_in_region", "activity", "fertilizer_type",
-            "dose_per_ha", "organic_alternative", "timing_notes",
-            "optimal_temp_c", "moisture_target_pct", "pest_risks",
-            "quality_indicators", "local_materials", "preferred_texture",
-            "drainage_needs", "amendments_needed", "preparation_notes",
-        ]:
-            if key in row and row[key]:
-                content_parts.append(f"{key}: {row[key]}")
-        content = " | ".join(content_parts) if content_parts else str(row)
+        content = row_to_nl(row, source_table)
 
         metadata = {k: str(v) for k, v in row.items() if v is not None}
 

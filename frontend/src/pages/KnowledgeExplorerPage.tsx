@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
-import { Search, ChevronDown, ChevronUp, Leaf, Database } from 'lucide-react'
+import { Search, ChevronDown, ChevronUp, Leaf, BookOpen, Globe } from 'lucide-react'
 import TopBar from '../components/layout/TopBar'
-import { browseKnowledge, type BrowseItem } from '../lib/api'
+import { browseKnowledge, listPacks, type BrowseItem, type PackSummary } from '../lib/api'
 
 type KnowledgeType = 'all' | 'diseases' | 'treatments' | 'practices' | 'pests' | 'climate'
 type ItemType = 'disease' | 'treatment' | 'practice' | 'pest' | 'climate'
@@ -32,14 +32,6 @@ const BORDER_COLORS: Record<ItemType, string> = {
   climate: 'border-l-secondary-light',
 }
 
-const STATS = [
-  { label: '5 Crops', icon: Leaf },
-  { label: '15 Diseases' },
-  { label: '31 Treatments' },
-  { label: '12 Pests' },
-  { label: '190 Chunks', icon: Database },
-]
-
 const TAB_TO_TYPE: Record<string, string> = {
   all: 'all', diseases: 'disease', treatments: 'treatment',
   practices: 'practice', pests: 'pest', climate: 'climate',
@@ -62,7 +54,17 @@ export default function KnowledgeExplorerPage() {
   const [expanded, setExpanded] = useState<string | null>(null)
   const [items, setItems] = useState<KnowledgeItem[]>([])
   const [loading, setLoading] = useState(true)
+  const [activePack, setActivePack] = useState<PackSummary | null>(null)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useEffect(() => {
+    listPacks()
+      .then((packs) => {
+        const loaded = packs.find((p) => p.loaded) ?? null
+        setActivePack(loaded)
+      })
+      .catch(() => {})
+  }, [])
 
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current)
@@ -80,7 +82,7 @@ export default function KnowledgeExplorerPage() {
 
   return (
     <div className="flex flex-col h-[calc(100dvh-4rem-env(safe-area-inset-bottom,0px))] animate-fadeIn">
-      <TopBar title="Knowledge Explorer" subtitle="Casamance, Senegal — Agriculture v1.0" back backTo="/packs" />
+      <TopBar title="Knowledge Explorer" subtitle={activePack ? `${activePack.name}` : 'No pack loaded'} back backTo="/packs" />
 
       {/* Search */}
       <div className="bg-card px-4 py-3 border-b border-surface-dark">
@@ -97,15 +99,21 @@ export default function KnowledgeExplorerPage() {
       </div>
 
       {/* Stats */}
-      <div className="bg-card px-4 py-2 border-b border-surface-dark">
-        <div className="max-w-lg mx-auto flex gap-2 overflow-x-auto scrollbar-hide">
-          {STATS.map((s) => (
-            <span key={s.label} className="shrink-0 text-xs font-medium bg-surface px-3 py-1 rounded-full text-primary">
-              {s.label}
+      {activePack && (
+        <div className="bg-card px-4 py-2 border-b border-surface-dark">
+          <div className="max-w-lg mx-auto flex gap-2 overflow-x-auto scrollbar-hide">
+            <span className="shrink-0 inline-flex items-center gap-1 text-xs font-medium bg-surface px-3 py-1 rounded-full text-primary">
+              <Leaf size={12} /> {activePack.crops.length} Crops
             </span>
-          ))}
+            <span className="shrink-0 inline-flex items-center gap-1 text-xs font-medium bg-surface px-3 py-1 rounded-full text-primary">
+              <BookOpen size={12} /> {activePack.knowledge_entries} Knowledge Entries
+            </span>
+            <span className="shrink-0 inline-flex items-center gap-1 text-xs font-medium bg-surface px-3 py-1 rounded-full text-primary">
+              <Globe size={12} /> {(activePack.sources || []).length} Expert Sources
+            </span>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Tabs */}
       <div className="bg-card px-4 border-b border-surface-dark">

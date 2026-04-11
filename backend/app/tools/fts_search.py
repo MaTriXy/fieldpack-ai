@@ -17,6 +17,7 @@ from app.agents.models import ResultType, SearchResult
 from app.knowledge_pack.loader import get_active_pack
 from app.knowledge_pack.schema_sqlite import FTS_TABLE_MAP, VALID_TABLES
 from app.logger import Step, pipeline_logger as log
+from app.tools.row_to_nl import row_to_nl
 
 
 # FTS5 special characters that must be stripped from user input
@@ -199,21 +200,7 @@ def _rows_to_search_results(rows: list[dict], source_table: str) -> list[SearchR
     """Convert raw SQL rows to SearchResult objects."""
     results = []
     for row in rows:
-        # Build content from the most informative text fields
-        content_parts = []
-        for key in [
-            "name", "method", "description", "symptoms_text", "visual_markers",
-            "planting_notes", "harvest_notes", "growing_season",
-            "water_needs_mm_per_week", "region_suitability",
-            "prevention_notes", "local_availability", "materials_needed",
-            "application_timing", "damage_description", "identification_notes",
-            "control_organic", "control_chemical", "common_names",
-            "local_names", "disease_resistance", "seed_source_in_region",
-        ]:
-            if key in row and row[key]:
-                content_parts.append(f"{key}: {row[key]}")
-
-        content = " | ".join(content_parts) if content_parts else str(row)
+        content = row_to_nl(row, source_table)
 
         # BM25 scores are negative (more negative = better match)
         # Convert to positive score: we use abs and normalize loosely

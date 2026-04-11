@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { MapPin, Leaf, Bug, Check, Database, Plus, Loader2 } from 'lucide-react'
+import { MapPin, Leaf, BookOpen, Globe, Check, Database, Plus, Loader2 } from 'lucide-react'
 import TopBar from '../components/layout/TopBar'
 import { listPacks, type PackSummary } from '../lib/api'
 import { getPackCardImage } from '../lib/pack-images'
@@ -32,7 +32,7 @@ export default function PackListPage() {
 
   return (
     <div className="flex flex-col animate-fadeIn min-h-[calc(100dvh-4rem-env(safe-area-inset-bottom,0px))]">
-      <TopBar title="Knowledge Packs" />
+      <TopBar title="Knowledge Packs" subtitle="Offline field guides for your region" back backTo="/" />
 
       <div className="flex-1 overflow-y-auto overscroll-none px-4 py-4 bg-surface">
         <div className="max-w-lg mx-auto space-y-4">
@@ -130,7 +130,7 @@ export default function PackListPage() {
 
               <div className="p-4 pt-3">
                 {/* Stats row */}
-                <div className="flex items-center gap-4 mb-3">
+                <div className="flex items-center gap-4 mb-3 flex-wrap">
                   <div className="flex items-center gap-1.5 text-xs text-text-muted">
                     <Leaf size={13} className="text-primary flex-shrink-0" />
                     <span>
@@ -140,10 +140,18 @@ export default function PackListPage() {
                   </div>
                   <div className="h-3 w-px bg-surface-dark" />
                   <div className="flex items-center gap-1.5 text-xs text-text-muted">
-                    <Bug size={13} className="text-tertiary flex-shrink-0" />
+                    <BookOpen size={13} className="text-secondary flex-shrink-0" />
                     <span>
-                      <span className="font-semibold text-text">{pack.diseases_count}</span>
-                      {' '}disease{pack.diseases_count !== 1 ? 's' : ''}
+                      <span className="font-semibold text-text">{pack.knowledge_entries || 0}</span>
+                      {' '}knowledge entries
+                    </span>
+                  </div>
+                  <div className="h-3 w-px bg-surface-dark" />
+                  <div className="flex items-center gap-1.5 text-xs text-text-muted">
+                    <Globe size={13} className="text-primary flex-shrink-0" />
+                    <span>
+                      <span className="font-semibold text-text">{(pack.sources || []).length}</span>
+                      {' '}expert source{(pack.sources || []).length !== 1 ? 's' : ''}
                     </span>
                   </div>
                 </div>

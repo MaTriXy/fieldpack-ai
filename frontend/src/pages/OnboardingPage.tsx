@@ -232,17 +232,13 @@ function KnowledgePackSlide() {
 
           {/* Pack stats */}
           <div className="bg-white/6 rounded-lg divide-y divide-white/8">
-            <div className="flex items-center justify-between px-3 py-2">
-              <span className="text-white/65 text-xs">Crops</span>
-              <span className="text-white/80 text-xs font-medium">Cassava, Rice, Millet, Groundnut</span>
+            <div className="px-3 py-2.5">
+              <span className="text-white/65 text-xs block mb-1.5">Crops</span>
+              <span className="text-white/80 text-xs font-medium">Cassava &middot; Rice &middot; Maize &middot; Groundnut &middot; Tomato &middot; Millet</span>
             </div>
-            <div className="flex items-center justify-between px-3 py-2">
-              <span className="text-white/65 text-xs">Diseases</span>
-              <span className="text-white/80 text-xs font-medium">47 disease profiles</span>
-            </div>
-            <div className="flex items-center justify-between px-3 py-2">
-              <span className="text-white/65 text-xs">Records</span>
-              <span className="text-white/80 text-xs font-medium">847 entries &middot; 4 search indexes</span>
+            <div className="px-3 py-2.5">
+              <span className="text-white/65 text-xs block mb-1.5">Coverage</span>
+              <span className="text-white/80 text-xs font-medium">Disease diagnosis &middot; Pest ID &middot; Treatment plans &middot; Planting calendars &middot; Local varieties</span>
             </div>
           </div>
         </div>
