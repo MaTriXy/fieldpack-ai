@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { useNavigate, useLocation, Link } from 'react-router-dom'
-import { Send, Camera, ChevronDown, Menu, AlertCircle, X, Leaf, FileText, Square, Database, MapPin, ChevronRight, WifiOff, Wifi, Smartphone, Loader2 } from 'lucide-react'
+import { Send, Camera, ChevronDown, Menu, AlertCircle, X, Leaf, FileText, Square, Database, MapPin, ChevronRight, WifiOff, Wifi, Smartphone, Loader2, BookOpen, Check } from 'lucide-react'
 import MarkdownContent from '../components/MarkdownContent'
 import TopBar from '../components/layout/TopBar'
 import ChatSidebar from '../components/ChatSidebar'
@@ -13,11 +13,13 @@ import {
   uploadImageBase64,
   listPacks,
   loadPack,
+  saveConversationToJournal,
   type ConversationSummary,
   type MessageData,
   type PackSummary,
 } from '../lib/api'
 import { getWsUrl, isNative } from '../lib/config'
+import { getCameraConfig, getLanguage } from '../lib/settings'
 import { useBackendReachable } from '../hooks/useBackendReachable'
 import {
   enqueueChatMessage,
@@ -33,7 +35,7 @@ interface Message {
   content: string
   image?: string
   diagnosis?: DiagnosisPreview
-  sources?: { name: string; score: number }[]
+  sources?: { name: string; score: number; content?: string }[]
   suggestions?: string[]
   _queued?: boolean
 }
@@ -43,6 +45,34 @@ interface DiagnosisPreview {
   confidence: number
   severity: 'High' | 'Medium' | 'Low'
   pathogen: string
+}
+
+function parseDiagnosisFromAnswer(answer: string, imageDescription: string): DiagnosisPreview | null {
+  if (!answer || !imageDescription) return null
+  // Extract the first bold heading or first sentence as the disease name
+  const boldMatch = answer.match(/\*\*(.+?)\*\*/)
+  const headingMatch = answer.match(/^#+\s+(.+)/m)
+  let disease = boldMatch?.[1] || headingMatch?.[1] || ''
+  // Fallback: first line/sentence
+  if (!disease) {
+    const firstLine = answer.split('\n')[0].replace(/[#*_]/g, '').trim()
+    disease = firstLine.split(/[.!:]/)[0].trim()
+  }
+  // Strip common prefixes
+  disease = disease.replace(/^(diagnosis|disease|identified|it appears to be|this (looks|appears) like)[:\s]*/i, '').trim()
+  if (!disease || disease.length > 80) return null
+
+  // Severity heuristic from keywords
+  const lower = answer.toLowerCase()
+  const severity: 'High' | 'Medium' | 'Low' =
+    /severe|serious|critical|urgent|immediate/.test(lower) ? 'High' :
+    /moderate|medium|some concern/.test(lower) ? 'Medium' : 'Low'
+
+  // Pathogen: try to extract from image description or answer
+  const pathogenMatch = imageDescription.match(/Symptoms:\s*(.+?)(?:\.|$)/)
+  const pathogen = pathogenMatch?.[1]?.trim() || 'Visual symptoms identified'
+
+  return { disease, confidence: 0, severity, pathogen }
 }
 
 const PHOTO_ANALYSIS_PHASES = [
@@ -77,21 +107,116 @@ function PhotoAnalysisOverlay() {
   )
 }
 
-// Maps backend step names to display labels
-const STEP_LABELS: Record<string, string> = {
-  classifying: 'Classifying',
-  routing: 'Routing',
-  evaluating: 'Evaluating',
-  crafting: 'Crafting Query',
-  searching: 'Searching',
-  reranking: 'Reranking',
-  expanding: 'Expanding Search',
-  generating: 'Generating',
-  saving: 'Saving Observation',
+const FIELD_FACTS = [
+  // Staple crops
+  { icon: '🌾', text: 'Cassava feeds over 500 million people across Africa every day' },
+  { icon: '🌽', text: 'Maize is the most widely grown crop in sub-Saharan Africa' },
+  { icon: '🍚', text: 'West Africa produces over 19 million tonnes of rice per year' },
+  { icon: '🥜', text: 'Groundnuts fix nitrogen in the soil, benefiting the next crop rotation' },
+  { icon: '🫘', text: 'Cowpeas can grow in poor soils and tolerate drought better than most legumes' },
+  { icon: '🍠', text: 'Orange-fleshed sweet potato is rich in vitamin A and grows in 3-4 months' },
+  { icon: '🌾', text: 'Sorghum and millet can survive where rainfall is below 500mm per year' },
+  { icon: '🫛', text: 'Pigeon pea roots can break through compacted soil layers up to 2 meters deep' },
+  // Soil & water
+  { icon: '🧪', text: 'You can test soil pH with litmus strips from any pharmacy' },
+  { icon: '💧', text: 'Mulching with crop residues can reduce water evaporation by up to 70%' },
+  { icon: '🌱', text: 'Intercropping legumes with cereals naturally adds nitrogen to the soil' },
+  { icon: '🌿', text: 'Cover crops reduce soil erosion by up to 90% during heavy rains' },
+  { icon: '🪨', text: 'Contour stone bunds slow rainwater runoff and reduce erosion on slopes' },
+  { icon: '💧', text: 'Half-moon water harvesting pits can triple millet yields in the Sahel' },
+  { icon: '🧱', text: 'Zai pits \u2014 small planting holes with compost \u2014 restore degraded Sahel land' },
+  // Pests & disease
+  { icon: '🐛', text: 'Neem leaf extract is a natural pesticide used across West Africa' },
+  { icon: '🐔', text: 'Free-range chickens can eat up to 80 armyworms per hour in maize fields' },
+  { icon: '🦗', text: 'A single healthy bat can eat up to 1,000 mosquitoes per hour' },
+  { icon: '🍅', text: 'You can test for tomato bacterial wilt by placing a cut stem in clear water' },
+  { icon: '🐜', text: 'Push-pull farming uses Napier grass to trap stem borers away from maize' },
+  { icon: '🌼', text: 'Planting marigolds between vegetable rows repels root-knot nematodes' },
+  { icon: '🦟', text: 'Rice paddies with alternating wet-dry cycles reduce mosquito breeding by 60%' },
+  { icon: '🪲', text: 'Lady beetles are natural aphid predators \u2014 one can eat 50 aphids a day' },
+  // Post-harvest & storage
+  { icon: '🌡️', text: 'Grain stored above 14% moisture can develop dangerous aflatoxin mould' },
+  { icon: '☀️', text: 'Solar drying on raised racks prevents grain spoilage after harvest' },
+  { icon: '🏺', text: 'Hermetic (airtight) grain bags can protect stored grain without chemicals' },
+  { icon: '🧂', text: 'Mixing wood ash into stored beans repels weevils naturally' },
+  { icon: '📦', text: 'Africa loses up to 40% of harvested food due to poor post-harvest handling' },
+  // Climate & seasons
+  { icon: '🌍', text: 'The Sahel rainy season has shifted later by 2-3 weeks over the past 30 years' },
+  { icon: '🌧️', text: 'Most of West Africa receives 80% of its annual rainfall in just 4 months' },
+  { icon: '🌤️', text: 'Agroforestry trees provide shade that can lower soil temperature by 5-8\u00B0C' },
+  { icon: '🌊', text: 'Mangrove restoration in coastal West Africa protects rice paddies from salt intrusion' },
+  // Techniques & innovation
+  { icon: '🐄', text: 'Composting cow manure for 3 weeks kills most weed seeds and pathogens' },
+  { icon: '🐟', text: 'Rice-fish farming in flooded paddies provides protein and controls weeds' },
+  { icon: '🌳', text: 'Farmer-managed natural regeneration has re-greened 5 million hectares in the Sahel' },
+  { icon: '🐝', text: 'Beehive fences in East Africa protect farms from elephants and produce honey' },
+  { icon: '🧑\u200D🌾', text: 'Seed fairs help farmers access diverse local varieties adapted to their climate' },
+  { icon: '🔬', text: 'Simple seed float tests \u2014 discard seeds that float \u2014 improve germination rates' },
+  { icon: '🪴', text: 'Grafting local rootstock with improved varieties gives disease resistance and better yield' },
+  { icon: '🐐', text: 'Integrating small ruminants with crops turns crop residues into manure and income' },
+]
+
+function ThinkingBubble({ step, mode }: { step: string | null; mode: 'quick' | 'rag' | null }) {
+  const [factIndex, setFactIndex] = useState(() => Math.floor(Math.random() * FIELD_FACTS.length))
+  const [fadeKey, setFadeKey] = useState(0)
+
+  useEffect(() => {
+    if (mode !== 'rag') return
+    const id = setInterval(() => {
+      setFactIndex((i) => (i + 1) % FIELD_FACTS.length)
+      setFadeKey((k) => k + 1)
+    }, 6000)
+    return () => clearInterval(id)
+  }, [mode])
+
+  const fact = FIELD_FACTS[factIndex]
+  const stepLabel = step ? (STEP_LABELS[step] || step) : null
+
+  if (mode === 'quick' || mode === null) {
+    // Minimal typing indicator for fast responses
+    return (
+      <div className="flex gap-1.5 items-center h-5">
+        <span className="w-2 h-2 bg-primary/40 rounded-full animate-bounceTyping" />
+        <span className="w-2 h-2 bg-primary/40 rounded-full animate-bounceTyping [animation-delay:0.15s]" />
+        <span className="w-2 h-2 bg-primary/40 rounded-full animate-bounceTyping [animation-delay:0.3s]" />
+      </div>
+    )
+  }
+
+  // RAG pipeline — show fact + step
+  return (
+    <div className="space-y-2.5">
+      <div key={fadeKey} className="flex items-start gap-2.5 animate-fadeIn">
+        <span className="text-lg leading-none mt-0.5">{fact.icon}</span>
+        <div>
+          <p className="text-xs text-text-muted italic leading-relaxed">{fact.text}</p>
+        </div>
+      </div>
+      {stepLabel && (
+        <div className="flex items-center gap-2">
+          <div className="w-3.5 h-3.5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+          <span className="text-[11px] text-primary font-medium">{stepLabel}...</span>
+        </div>
+      )}
+    </div>
+  )
 }
 
-// Ordered steps for the progress dots
-const STEP_ORDER = ['classifying', 'routing', 'searching', 'reranking', 'generating']
+// Maps backend step names to user-friendly labels (matches real pipeline order)
+const STEP_LABELS: Record<string, string> = {
+  classifying: 'Understanding your question',
+  evaluating: 'Checking what I know',
+  routing: 'Planning search strategy',
+  crafting: 'Building search queries',
+  searching: 'Searching knowledge base',
+  reranking: 'Picking the best results',
+  expanding: 'Widening the search',
+  generating: 'Writing your answer',
+  saving: 'Saving observation',
+}
+
+// Ordered steps for the progress bar (matches real pipeline order)
+const STEP_ORDER = ['classifying', 'evaluating', 'crafting', 'searching', 'reranking', 'generating']
 
 function deriveTitle(firstMessage: string): string {
   const cleaned = firstMessage.replace(/\n/g, ' ').trim()
@@ -122,7 +247,7 @@ function apiToMessages(data: MessageData[]): Message[] {
       content: m.content,
       image: (m.image_path as string) || undefined,
       diagnosis: (meta?.diagnosis as DiagnosisPreview) || undefined,
-      sources: (meta?.sources as { name: string; score: number }[]) || undefined,
+      sources: (meta?.sources as { name: string; score: number; content?: string }[]) || undefined,
       suggestions: (meta?.suggestions as string[]) || undefined,
     }
   })
@@ -140,7 +265,9 @@ export default function FieldChatPage() {
   const [isStreaming, setIsStreaming] = useState(false)
   const [streamingContent, setStreamingContent] = useState('')
   const [showSources, setShowSources] = useState<string | null>(null)
+  const [expandedSource, setExpandedSource] = useState<string | null>(null)
   const [wsError, setWsError] = useState<string | null>(null)
+  const [pipelineMode, setPipelineMode] = useState<'quick' | 'rag' | null>(null)
 
   // Offline mode
   const { reachable } = useBackendReachable()
@@ -171,6 +298,11 @@ export default function FieldChatPage() {
   // Server settings modal (native only)
   const [showServerSettings, setShowServerSettings] = useState(false)
 
+  // Save to Journal
+  const [savingToJournal, setSavingToJournal] = useState(false)
+  const [savedToJournal, setSavedToJournal] = useState(false)
+  const [journalToast, setJournalToast] = useState<string | null>(null)
+
   // Pending photo to attach to next message
   const [pendingImage, setPendingImage] = useState<{ base64: string; format: string; preview: string } | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -182,7 +314,8 @@ export default function FieldChatPage() {
   const scrollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const isStreamingRef = useRef(false)
   const skipNextSave = useRef(false)
-  const pendingSourcesRef = useRef<{ name: string; score: number }[] | null>(null)
+  const pendingSourcesRef = useRef<{ name: string; score: number; content?: string }[] | null>(null)
+  const lastImagePathRef = useRef<string | null>(null)
   const reconnectAttempts = useRef(0)
   const MAX_RECONNECT_ATTEMPTS = 5
   const navigate = useNavigate()
@@ -235,24 +368,34 @@ export default function FieldChatPage() {
         setWsError('Received invalid data from server')
         setStreamingContent('')
         setCurrentStep(null)
+        setPipelineMode(null)
         isStreamingRef.current = false
         setIsStreaming(false)
         return
       }
 
       switch (data.type) {
+        case 'pipeline_mode':
+          setPipelineMode(data.mode as 'quick' | 'rag')
+          break
+
         case 'status':
           setCurrentStep(data.step as string)
           break
 
         case 'token':
-          setStreamingContent((prev) => prev + (data.content as string))
+          setStreamingContent((prev) => {
+            const token = data.content as string
+            // Strip leading punctuation echoed by the LLM on first token
+            if (!prev) return token.replace(/^[?!.,;:\s]+/, '')
+            return prev + token
+          })
           break
 
         case 'sources':
           // Store sources — will attach to the assistant message on done
-          pendingSourcesRef.current = ((data.sources as { title: string; score: number }[]) || []).map(
-            (s) => ({ name: s.title, score: s.score })
+          pendingSourcesRef.current = ((data.sources as { title: string; score: number; content?: string }[]) || []).map(
+            (s) => ({ name: s.title, score: s.score, content: s.content })
           )
           break
 
@@ -281,6 +424,12 @@ export default function FieldChatPage() {
           const sources = pendingSourcesRef.current
           pendingSourcesRef.current = null
 
+          // Parse diagnosis only when this turn included an image upload
+          const imageDesc = (data.image_description as string) || ''
+          const diagnosis = (lastImagePathRef.current && imageDesc)
+            ? parseDiagnosisFromAnswer(content, imageDesc) || undefined
+            : undefined
+
           setMessages((prev) => [
             ...prev,
             {
@@ -288,10 +437,13 @@ export default function FieldChatPage() {
               role: 'assistant',
               content,
               sources: sources || undefined,
+              diagnosis,
             },
           ])
+          setSavedToJournal(false)
           setStreamingContent('')
           setCurrentStep(null)
+          setPipelineMode(null)
           isStreamingRef.current = false
           setIsStreaming(false)
           break
@@ -312,6 +464,7 @@ export default function FieldChatPage() {
           }
           setStreamingContent('')
           setCurrentStep(null)
+          setPipelineMode(null)
           isStreamingRef.current = false
           setIsStreaming(false)
           break
@@ -443,6 +596,7 @@ export default function FieldChatPage() {
       setInput('')
       pipelineHistory.current = []
       pipelineSummary.current = ''
+      lastImagePathRef.current = null
       setSidebarOpen(false)
     } catch {
       setConversationId(null)
@@ -450,6 +604,7 @@ export default function FieldChatPage() {
       setInput('')
       pipelineHistory.current = []
       pipelineSummary.current = ''
+      lastImagePathRef.current = null
       setSidebarOpen(false)
     }
   }
@@ -463,6 +618,7 @@ export default function FieldChatPage() {
       // Reset pipeline context — loaded conversation starts fresh context
       pipelineHistory.current = []
       pipelineSummary.current = ''
+      lastImagePathRef.current = null
       setSidebarOpen(false)
     } catch {
       // Conversation may have been deleted
@@ -474,13 +630,14 @@ export default function FieldChatPage() {
       // Capacitor native camera
       try {
         const { Camera: CapCamera, CameraResultType, CameraSource } = await import('@capacitor/camera')
+        const camCfg = getCameraConfig()
         const photo = await CapCamera.getPhoto({
-          quality: 80,
+          quality: camCfg.quality,
           allowEditing: false,
           resultType: CameraResultType.Base64,
           source: CameraSource.Camera,
-          width: 1024, // Cap resolution to reduce payload size
-          height: 1024,
+          width: camCfg.width,
+          height: camCfg.height,
         })
         if (photo.base64String) {
           setPendingImage({
@@ -557,6 +714,7 @@ export default function FieldChatPage() {
     if (pendingImage) {
       try {
         imagePath = await uploadImageBase64(pendingImage.base64, pendingImage.format)
+        lastImagePathRef.current = imagePath
       } catch {
         setWsError('Failed to upload image. Check server connection.')
         setMessages((prev) => prev.filter((m) => m.id !== userMsg.id))
@@ -579,6 +737,7 @@ export default function FieldChatPage() {
       conversation_history: pipelineHistory.current,
       conversation_summary: pipelineSummary.current,
       session_id: conversationId,
+      language: getLanguage(),
     }))
   }
 
@@ -625,14 +784,35 @@ export default function FieldChatPage() {
     setIsStreaming(true)
   }
 
-  // Compute which step index we're on for the progress dots
+  const handleSaveToJournal = async () => {
+    const chatMessages = messages.filter(m => m.content && !m._queued)
+    if (chatMessages.length === 0) return
+    setSavingToJournal(true)
+    try {
+      const hasImage = messages.some(m => m.image)
+      const imagePath = hasImage ? lastImagePathRef.current : null
+      const result = await saveConversationToJournal(
+        chatMessages.map(m => ({ role: m.role, content: m.content })),
+        imagePath,
+      )
+      setJournalToast(result.summary ? 'Conversation saved to Journal' : 'Saved to Journal')
+      setTimeout(() => setJournalToast(null), 3000)
+      setSavedToJournal(true)
+    } catch {
+      setJournalToast('Could not save — check backend connection')
+      setTimeout(() => setJournalToast(null), 3000)
+    } finally {
+      setSavingToJournal(false)
+    }
+  }
+
+  // Compute which step index we're on for the progress bar
   const stepIndex = currentStep ? STEP_ORDER.indexOf(currentStep) : -1
-  // Map non-standard steps (evaluating, crafting, expanding, saving) to nearest dot
+  // Map steps not in STEP_ORDER to nearest position
   const effectiveStepIndex = stepIndex >= 0
     ? stepIndex
-    : currentStep === 'evaluating' ? 1
-    : currentStep === 'crafting' ? 2
-    : currentStep === 'expanding' ? 2
+    : currentStep === 'routing' ? 1
+    : currentStep === 'expanding' ? 4
     : currentStep === 'saving' ? 4
     : 0
 
@@ -805,6 +985,14 @@ export default function FieldChatPage() {
         </div>
       )}
 
+      {/* Journal save toast */}
+      {journalToast && (
+        <div className="mx-4 mt-2 bg-primary/10 border border-primary/20 rounded-xl px-4 py-2.5 flex items-center gap-2 animate-slideUp">
+          <BookOpen size={14} className="text-primary shrink-0" />
+          <span className="text-xs font-medium text-primary">{journalToast}</span>
+        </div>
+      )}
+
       {/* Offline mode banner */}
       {offlineMode && (
         <div className="mx-4 mt-2 bg-surface-dark rounded-xl px-4 py-2.5 flex items-center gap-2">
@@ -850,24 +1038,14 @@ export default function FieldChatPage() {
         </div>
       )}
 
-      {/* Pipeline status */}
-      {isStreaming && currentStep && (
+      {/* Pipeline status — only show for RAG pipeline, hidden for quick mode */}
+      {isStreaming && currentStep && pipelineMode === 'rag' && (
         <div className="bg-primary-dark">
-          <div className="h-[3px] bg-white/10 w-full overflow-hidden">
+          <div className="h-[2px] bg-white/10 w-full overflow-hidden">
             <div
-              className="h-full bg-secondary transition-all duration-500 ease-out"
+              className="h-full bg-secondary transition-all duration-700 ease-out"
               style={{ width: `${Math.max(((effectiveStepIndex + 1) / STEP_ORDER.length) * 100, 10)}%` }}
             />
-          </div>
-          <div className="px-4 py-1.5">
-            <div className="max-w-lg mx-auto flex items-center gap-2">
-              <span className="text-xs text-white/85">
-                {STEP_LABELS[currentStep] || currentStep}...
-              </span>
-              <span className="text-xs text-white/65 ml-auto">
-                Step {effectiveStepIndex + 1}/{STEP_ORDER.length}
-              </span>
-            </div>
           </div>
         </div>
       )}
@@ -987,7 +1165,7 @@ export default function FieldChatPage() {
                   <p className="font-heading font-bold text-sm">{msg.diagnosis.disease}</p>
                   <div className="flex gap-1.5 flex-wrap">
                     <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full font-semibold">
-                      {msg.diagnosis.confidence}% Confidence
+                      {msg.diagnosis.confidence ? `${msg.diagnosis.confidence}% Confidence` : 'Visual Match'}
                     </span>
                     <span
                       className={`text-xs px-2 py-0.5 rounded-full font-semibold ${severityColor(msg.diagnosis.severity)}`}
@@ -1005,10 +1183,11 @@ export default function FieldChatPage() {
                 </div>
               )}
 
+
               {msg.sources && (
                 <div className="mt-2">
                   <button
-                    onClick={() => setShowSources(showSources === msg.id ? null : msg.id)}
+                    onClick={() => { const closing = showSources === msg.id; setShowSources(closing ? null : msg.id); if (closing) setExpandedSource(null) }}
                     className="flex items-center gap-1.5 text-xs text-text-muted hover:text-text py-1"
                   >
                     <FileText size={12} className="shrink-0" />
@@ -1019,14 +1198,35 @@ export default function FieldChatPage() {
                     />
                   </button>
                   {showSources === msg.id && (
-                    <div className="mt-1.5 space-y-1.5">
-                      {msg.sources.map((s) => (
-                        <div key={s.name} className="flex items-center gap-2 text-xs text-text-muted">
-                          <FileText size={10} className="shrink-0" />
-                          <span className="flex-1 truncate">{s.name}</span>
-                          <span className={`w-2 h-2 rounded-full shrink-0 ${s.score >= 0.7 ? 'bg-primary' : s.score >= 0.4 ? 'bg-secondary' : 'bg-text-muted/30'}`} />
-                        </div>
-                      ))}
+                    <div className="mt-1.5 space-y-1">
+                      {msg.sources.map((s, idx) => {
+                        const sourceKey = `${msg.id}-${idx}`
+                        const isExpanded = expandedSource === sourceKey
+                        return (
+                          <div key={sourceKey} className="rounded-lg border border-surface-dark overflow-hidden">
+                            <button
+                              onClick={() => { if (s.content) setExpandedSource(isExpanded ? null : sourceKey) }}
+                              className={`w-full flex items-center gap-2 text-xs px-2.5 py-2 transition-colors ${s.content ? 'hover:bg-surface-dark/50 cursor-pointer' : 'cursor-default'}`}
+                            >
+                              <span className={`w-2 h-2 rounded-full shrink-0 ${s.score >= 0.7 ? 'bg-primary' : s.score >= 0.4 ? 'bg-secondary' : 'bg-text-muted/30'}`} />
+                              <span className="flex-1 text-left text-text truncate">{s.name}</span>
+                              {s.content && (
+                                <ChevronDown
+                                  size={10}
+                                  className={`shrink-0 text-text-muted transition-transform ${isExpanded ? 'rotate-180' : ''}`}
+                                />
+                              )}
+                            </button>
+                            {isExpanded && s.content && (
+                              <div className="px-2.5 pb-2.5 pt-0">
+                                <div className="text-[11px] text-text-muted leading-relaxed whitespace-pre-line bg-surface rounded-md p-2 max-h-48 overflow-y-auto">
+                                  {s.content}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        )
+                      })}
                     </div>
                   )}
                 </div>
@@ -1048,11 +1248,7 @@ export default function FieldChatPage() {
                   <span className="inline-block w-0.5 h-4 bg-primary ml-0.5 animate-blink align-text-bottom" />
                 </div>
               ) : (
-                <div className="flex gap-1.5 items-center h-5">
-                  <span className="w-2 h-2 bg-primary/40 rounded-full animate-bounceTyping" />
-                  <span className="w-2 h-2 bg-primary/40 rounded-full animate-bounceTyping [animation-delay:0.15s]" />
-                  <span className="w-2 h-2 bg-primary/40 rounded-full animate-bounceTyping [animation-delay:0.3s]" />
-                </div>
+                <ThinkingBubble step={currentStep} mode={pipelineMode} />
               )}
             </div>
           </div>
@@ -1126,6 +1322,17 @@ export default function FieldChatPage() {
               className="flex-1 bg-surface rounded-lg px-4 py-2.5 text-base outline-none focus:ring-2 focus:ring-primary/30 resize-none leading-normal"
               style={{ maxHeight: '120px' }}
             />
+            {messages.some(m => m.role === 'assistant' && m.content && !m._queued) && !isStreaming && (
+              <button
+                onClick={() => { if (!savedToJournal) { haptic('Light'); handleSaveToJournal() } }}
+                disabled={savingToJournal || savedToJournal}
+                className={`p-2.5 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg transition-colors shrink-0 disabled:opacity-60 ${savedToJournal ? 'bg-green-500/10 text-green-600' : 'bg-primary/10 text-primary hover:bg-primary/20'}`}
+                aria-label={savedToJournal ? 'Saved to journal' : 'Save conversation to journal'}
+                title={savedToJournal ? 'Saved to Journal' : 'Save to Journal'}
+              >
+                {savingToJournal ? <Loader2 size={18} className="animate-spin" /> : savedToJournal ? <Check size={18} /> : <BookOpen size={18} />}
+              </button>
+            )}
             {isStreaming ? (
               <button
                 onClick={() => {
@@ -1152,6 +1359,7 @@ export default function FieldChatPage() {
                   setIsStreaming(false)
                   setStreamingContent('')
                   setCurrentStep(null)
+                  setPipelineMode(null)
                   // Reconnect a fresh socket (onclose won't fire a competing reconnect)
                   reconnectAttempts.current = 0
                   setTimeout(() => connectWs(), 300)

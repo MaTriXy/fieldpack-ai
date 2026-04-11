@@ -21,6 +21,9 @@
   --font-mono: 'JetBrains Mono', ui-monospace, monospace;
 }
 
+html.text-size-sm { font-size: 14px; }
+html.text-size-lg { font-size: 18px; }
+
 html.dark {
   --color-surface: #0F1419 !important;
   --color-surface-dark: #1A1F2B !important;

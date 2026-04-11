@@ -1,7 +1,8 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { X, Camera, Loader2, AlertTriangle, Leaf, Droplets, FileText, MapPin, Smartphone } from 'lucide-react'
 import { createObservation, uploadImageBase64 } from '../lib/api'
 import { isNative } from '../lib/config'
+import { getCameraConfig } from '../lib/settings'
 import { enqueueObservation } from '../lib/offline-queue'
 
 type ObsType = 'disease_sighting' | 'crop_condition' | 'treatment_applied' | 'note'
@@ -16,11 +17,12 @@ const TYPE_OPTIONS: { type: ObsType; label: string; Icon: typeof AlertTriangle; 
 interface QuickObservationModalProps {
   isOpen: boolean
   onClose: () => void
-  onSaved: () => void
+  onSaved: (wasOffline: boolean) => void
   reachable: boolean
+  initialData?: { type?: string; details?: string; location?: string } | null
 }
 
-export default function QuickObservationModal({ isOpen, onClose, onSaved, reachable }: QuickObservationModalProps) {
+export default function QuickObservationModal({ isOpen, onClose, onSaved, reachable, initialData }: QuickObservationModalProps) {
   const [obsType, setObsType] = useState<ObsType>('note')
   const [details, setDetails] = useState('')
   const [location, setLocation] = useState('')
@@ -29,19 +31,31 @@ export default function QuickObservationModal({ isOpen, onClose, onSaved, reacha
   const [pendingImage, setPendingImage] = useState<{ base64: string; format: string; preview: string } | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
+  // Pre-fill from initialData when modal opens
+  const prevOpen = useRef(false)
+  useEffect(() => {
+    if (isOpen && !prevOpen.current && initialData) {
+      if (initialData.type) setObsType(initialData.type as ObsType)
+      if (initialData.details) setDetails(initialData.details)
+      if (initialData.location) setLocation(initialData.location)
+    }
+    prevOpen.current = isOpen
+  }, [isOpen, initialData])
+
   const canSave = details.trim().length > 0
 
   const handleCamera = async () => {
     if (isNative()) {
       try {
         const { Camera: CapCamera, CameraResultType, CameraSource } = await import('@capacitor/camera')
+        const camCfg = getCameraConfig()
         const photo = await CapCamera.getPhoto({
-          quality: 80,
+          quality: camCfg.quality,
           allowEditing: false,
           resultType: CameraResultType.Base64,
           source: CameraSource.Camera,
-          width: 1024,
-          height: 1024,
+          width: camCfg.width,
+          height: camCfg.height,
         })
         if (photo.base64String) {
           setPendingImage({
@@ -102,11 +116,12 @@ export default function QuickObservationModal({ isOpen, onClose, onSaved, reacha
       }
 
       // Reset and close
+      const wasOffline = !reachable
       setDetails('')
       setLocation('')
       setObsType('note')
       setPendingImage(null)
-      onSaved()
+      onSaved(wasOffline)
       onClose()
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to save observation')

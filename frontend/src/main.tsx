@@ -15,6 +15,7 @@ import '@fontsource/jetbrains-mono/500.css'
 import './index.css'
 import App from './App.tsx'
 import { isNative } from './lib/config'
+import { getTextSize, applyTextSize } from './lib/settings'
 
 if (isNative()) {
   import('@capacitor/status-bar').then(({ StatusBar, Style }) => {
@@ -28,6 +29,9 @@ const savedTheme = localStorage.getItem('theme')
 if (savedTheme === 'dark') {
   document.documentElement.classList.add('dark')
 }
+
+// Apply saved text size
+applyTextSize(getTextSize())
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

@@ -6,6 +6,7 @@ import TopBar from '../components/layout/TopBar'
 import ChatSidebar from '../components/ChatSidebar'
 import { useSwipeToOpen } from '../hooks/useSwipeToOpen'
 import { apiUrl, isNative } from '../lib/config'
+import { getLanguage } from '../lib/settings'
 import {
   listConversations,
   createConversation,
@@ -186,7 +187,7 @@ export default function MissionChatPage() {
 
     try {
       const allMessages = [...messages, userMsg]
-      const response = await chatMission(userMsg.content, messagesToApi(allMessages))
+      const response = await chatMission(userMsg.content, messagesToApi(allMessages), getLanguage())
 
       const assistantMsg: Message = {
         id: (Date.now() + 1).toString(),

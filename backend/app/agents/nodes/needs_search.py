@@ -44,6 +44,26 @@ Example: "YES - user asks about a new disease not discussed before"
 """
 
 
+_CONVERSATIONAL_PATTERNS = [
+    re.compile(r"^(hi|hello|hey|yo|bonjour|salut|bonsoir)\b", re.I),
+    re.compile(r"^(good\s+(morning|afternoon|evening|day))\b", re.I),
+    re.compile(r"^(thanks?|thank\s*you|merci|ndeysaan)\b", re.I),
+    re.compile(r"^(bye|goodbye|see\s+you|au\s*revoir)\b", re.I),
+    re.compile(r"^(ok|okay|got\s+it|understood|alright|sure)\s*[.!?]*$", re.I),
+    re.compile(r"^(how\s+are\s+you|what'?s\s+up|how'?s\s+it\s+going)\b", re.I),
+    re.compile(r"^(yes|no|yeah|nah|yep|nope)\s*[.!?]*$", re.I),
+    re.compile(r"^(who\s+are\s+you|what\s+can\s+you\s+do|what\s+are\s+you)\b", re.I),
+]
+
+
+def _is_conversational(message: str) -> bool:
+    """Detect greetings, thanks, and small talk via fast regex."""
+    text = message.strip()
+    if len(text) > 80:
+        return False
+    return any(p.search(text) for p in _CONVERSATIONAL_PATTERNS)
+
+
 def _heuristic_check(state: FieldAssistantState) -> bool | None:
     """Fast heuristic check. Returns True/False if certain, None if ambiguous.
 
@@ -52,6 +72,7 @@ def _heuristic_check(state: FieldAssistantState) -> bool | None:
     route = state.get("route")
     classify_result = state.get("classify_result")
     ranked_results = state.get("ranked_results", [])
+    user_message = state.get("user_message", "")
 
     # No engines → definitely no search (observation, etc.)
     if route and not route.engines:
@@ -61,24 +82,20 @@ def _heuristic_check(state: FieldAssistantState) -> bool | None:
     if classify_result and classify_result.intent == IntentType.LOG_OBSERVATION:
         return False
 
-    # FOLLOW_UP with existing ranked results → skip search only if
-    # the topic hasn't changed (crop/disease still matches)
+    # Conversational messages (hi, thanks, bye, etc.) → skip search
+    if _is_conversational(user_message):
+        return False
+
+    # FOLLOW_UP with conversation history → skip search (LLM has enough
+    # context from prior turns to answer without re-searching)
     if classify_result and classify_result.intent == IntentType.FOLLOW_UP:
-        if ranked_results:
-            # Check that current topic is consistent with existing results
+        history = state.get("conversation_history", [])
+        if history:
             new_crop = (classify_result.crop or "").lower()
             new_disease = (classify_result.disease_name or "").lower()
             if not new_crop and not new_disease:
-                # No specific topic extracted → follow-up on same context
                 return False
-            # If a new crop/disease was extracted, check if results mention it
-            for r in ranked_results[:3]:
-                source = (r.source or "").lower() if hasattr(r, "source") else ""
-                content = (r.content or "").lower() if hasattr(r, "content") else ""
-                text = f"{source} {content}"
-                if (new_crop and new_crop in text) or (new_disease and new_disease in text):
-                    return False
-            # Topic changed — need new search
+            # Topic changed to something new → need search
             return True
 
     # No classify result → play it safe, search

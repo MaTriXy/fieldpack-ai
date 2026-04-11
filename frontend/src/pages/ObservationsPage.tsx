@@ -1,14 +1,17 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { ClipboardList, Camera, Loader2, WifiOff, Smartphone, Check } from 'lucide-react'
+import { useLocation } from 'react-router-dom'
+import { ClipboardList, Camera, Loader2, WifiOff, Smartphone, Check, Sparkles, ChevronDown } from 'lucide-react'
 import TopBar from '../components/layout/TopBar'
 import ObservationCard from '../components/ObservationCard'
 import QuickObservationModal from '../components/QuickObservationModal'
 import {
   listObservations,
   getObservationStats,
+  summarizeObservations,
   type Observation,
   type ObservationStats,
 } from '../lib/api'
+import MarkdownContent from '../components/MarkdownContent'
 import { getQueuedObservations, flushObservationQueue, type QueuedObservation } from '../lib/offline-queue'
 import { useBackendReachable } from '../hooks/useBackendReachable'
 
@@ -21,9 +24,26 @@ export default function ObservationsPage() {
   const [queuedObs, setQueuedObs] = useState<QueuedObservation[]>([])
   const [syncing, setSyncing] = useState(false)
   const [syncResult, setSyncResult] = useState<{ synced: number; failed: number } | null>(null)
+  const [saveToast, setSaveToast] = useState<string | null>(null)
+  const [summary, setSummary] = useState<string | null>(null)
+  const [summaryLoading, setSummaryLoading] = useState(false)
+  const [summaryExpanded, setSummaryExpanded] = useState(true)
 
   const { reachable } = useBackendReachable()
   const prevReachable = useRef(reachable)
+
+  // Prefill from chat diagnosis navigation
+  const location = useLocation()
+  const prefill = (location.state as { prefill?: { type?: string; details?: string; location?: string } } | null)?.prefill || null
+  const prefillConsumed = useRef(false)
+
+  useEffect(() => {
+    if (prefill && !prefillConsumed.current) {
+      prefillConsumed.current = true
+      setShowModal(true)
+      window.history.replaceState({}, '')
+    }
+  }, [prefill])
 
   const refreshQueue = useCallback(() => {
     setQueuedObs(getQueuedObservations())
@@ -55,6 +75,19 @@ export default function ObservationsPage() {
         setStats(statsRes)
       })
       .catch(() => {})
+  }
+
+  const handleSummarize = async () => {
+    setSummaryLoading(true)
+    try {
+      const result = await summarizeObservations()
+      setSummary(result.summary)
+      setSummaryExpanded(true)
+    } catch {
+      setSummary('Could not generate summary. Make sure the AI backend is available.')
+    } finally {
+      setSummaryLoading(false)
+    }
   }
 
   // Auto-sync when backend reconnects
@@ -122,6 +155,14 @@ export default function ObservationsPage() {
             </div>
           )}
 
+          {/* Save toast */}
+          {saveToast && (
+            <div className="bg-primary/10 border border-primary/20 rounded-xl px-4 py-3 flex items-center gap-2 animate-slideUp">
+              <Check size={14} className="text-primary" />
+              <span className="text-xs font-medium text-primary">{saveToast}</span>
+            </div>
+          )}
+
           {/* Offline banner */}
           {!reachable && (
             <div className="bg-surface-dark rounded-xl px-4 py-2.5 flex items-center gap-2 animate-slideUp">
@@ -164,6 +205,42 @@ export default function ObservationsPage() {
                     <span className="text-xs font-medium text-secondary">{queueCount} on phone</span>
                   </div>
                 </>
+              )}
+            </div>
+          )}
+
+          {/* AI Summary */}
+          {!loading && !error && allObservations.length > 0 && reachable && !summary && (
+            <button
+              onClick={handleSummarize}
+              disabled={summaryLoading}
+              className="w-full bg-card border border-primary/20 rounded-xl px-4 py-3 flex items-center justify-center gap-2 shadow-sm animate-slideUp hover:bg-primary/5 transition-colors disabled:opacity-60"
+            >
+              {summaryLoading
+                ? <Loader2 size={14} className="animate-spin text-primary" />
+                : <Sparkles size={14} className="text-primary" />}
+              <span className="text-xs font-semibold text-primary">
+                {summaryLoading ? 'Analyzing all observations...' : 'Summarize All Observations'}
+              </span>
+            </button>
+          )}
+
+          {summary && (
+            <div className="bg-card border border-primary/20 rounded-xl shadow-sm overflow-hidden animate-slideUp">
+              <button
+                onClick={() => setSummaryExpanded(e => !e)}
+                className="w-full px-4 py-3 flex items-center justify-between"
+              >
+                <div className="flex items-center gap-2">
+                  <Sparkles size={14} className="text-primary" />
+                  <span className="text-xs font-semibold text-text">AI Summary</span>
+                </div>
+                <ChevronDown size={14} className={`text-text-muted transition-transform ${summaryExpanded ? 'rotate-180' : ''}`} />
+              </button>
+              {summaryExpanded && (
+                <div className="px-4 pb-4 -mt-1">
+                  <MarkdownContent content={summary} />
+                </div>
               )}
             </div>
           )}
@@ -234,8 +311,13 @@ export default function ObservationsPage() {
       <QuickObservationModal
         isOpen={showModal}
         onClose={() => setShowModal(false)}
-        onSaved={refresh}
+        onSaved={(wasOffline) => {
+          setSaveToast(wasOffline ? 'Saved to phone — will sync when connected' : 'Observation saved')
+          setTimeout(() => setSaveToast(null), 3000)
+          refresh()
+        }}
         reachable={reachable}
+        initialData={prefill}
       />
     </div>
   )

@@ -12,6 +12,7 @@ import PackInfoPage from './pages/PackInfoPage'
 import PackListPage from './pages/PackListPage'
 import PipelineDebugPage from './pages/PipelineDebugPage'
 import ObservationsPage from './pages/ObservationsPage'
+import SettingsPage from './pages/SettingsPage'
 
 export default function App() {
   return (
@@ -29,6 +30,7 @@ export default function App() {
           <Route path="/packs/explorer" element={<KnowledgeExplorerPage />} />
           <Route path="/packs/:id" element={<PackInfoPage />} />
           <Route path="/observations" element={<ObservationsPage />} />
+          <Route path="/settings" element={<SettingsPage />} />
           <Route path="/debug" element={<PipelineDebugPage />} />
         </Route>
       </Routes>

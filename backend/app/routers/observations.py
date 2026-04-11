@@ -106,6 +106,52 @@ def create_observation(body: ObservationCreate):
     }
 
 
+class SummaryResponse(BaseModel):
+    summary: str
+    observation_count: int
+
+
+@router.post("/summary", response_model=SummaryResponse)
+def summarize_observations(limit: int = Query(default=20, ge=1, le=100)):
+    """Generate AI summary of recent observations."""
+    pack = get_active_pack()
+    if pack is None:
+        raise HTTPException(503, "No Knowledge Pack loaded")
+
+    observations = get_observations(limit=limit)
+    if not observations:
+        raise HTTPException(404, "No observations to summarize")
+
+    from langchain_core.messages import HumanMessage, SystemMessage
+    from app.agents.models import extract_text
+    from app.models.offline_llm import get_field_llm
+
+    obs_text = "\n".join(
+        f"- [{o['type']}] {o['timestamp'][:10]}: {o['details']}"
+        + (f" (location: {o['location']})" if o.get("location") else "")
+        + (f" (severity: {o['severity_observed']})" if o.get("severity_observed") else "")
+        for o in observations
+    )
+
+    try:
+        llm = get_field_llm(temperature=0.3, num_predict=512)
+        response = llm.invoke([
+            SystemMessage(content=(
+                "You are a field agriculture analyst. Summarize these field observations "
+                "into a concise actionable intelligence brief for a humanitarian field worker. "
+                "Highlight: (1) key patterns or trends, (2) areas needing urgent attention, "
+                "(3) recommended next steps. Be specific and practical. "
+                "Use bullet points. Keep under 300 words."
+            )),
+            HumanMessage(content=f"Here are the {len(observations)} most recent field observations:\n\n{obs_text}"),
+        ])
+        summary = extract_text(response)
+    except Exception as e:
+        raise HTTPException(503, "AI unavailable — check that Ollama is running")
+
+    return SummaryResponse(summary=summary, observation_count=len(observations))
+
+
 @router.get("/{obs_id}", response_model=ObservationOut)
 def get_observation(obs_id: int):
     """Get a single observation by ID."""

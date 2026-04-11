@@ -14,6 +14,9 @@ import {
   Globe,
   Cloud,
   CloudOff,
+  Smartphone,
+  Laptop,
+  NotebookPen,
 } from 'lucide-react'
 import { useConnection } from '../hooks/ServerConnectionContext'
 import { getServerUrl, setServerUrl, isNative } from '../lib/config'
@@ -121,74 +124,78 @@ function HeroWorkflowSlide() {
   )
 }
 
-// ── Slide 3: Online vs Offline ──────────────────────────────────────────────────
+// ── Slide 3: Three Modes ────────────────────────────────────────────────────────
 
-function OnlineOfflineSlide() {
+function ThreeModesSlide() {
   return (
     <div className="flex flex-col items-center justify-center flex-1 px-6 text-center">
       <h2 className="font-heading text-2xl font-bold text-white mb-2">
-        Two modes, one app
+        Works in any situation
       </h2>
-      <p className="text-white/70 text-sm mb-8 max-w-xs">
-        FieldPack works in the office and in the field
+      <p className="text-white/70 text-sm mb-5 max-w-xs">
+        The app adapts to your connectivity
       </p>
 
-      <div className="w-full max-w-sm space-y-3">
-        {/* Online card */}
-        <div className="bg-white/8 border border-white/12 rounded-xl p-4 text-left animate-slideUp" style={{ animationDelay: '0.1s' }}>
-          <div className="flex items-center gap-3 mb-3">
-            <div className="bg-blue-500/20 rounded-full p-2">
-              <Globe size={18} className="text-blue-400" />
+      <div className="w-full max-w-sm space-y-2">
+
+        {/* ── Mode 1: Phone + Laptop (HERO — the main field mode) ── */}
+        <div className="relative bg-white/10 border-2 border-secondary/50 rounded-xl p-4 text-left animate-slideUp" style={{ animationDelay: '0.1s' }}>
+          {/* recommended badge */}
+          <span className="absolute -top-2.5 left-4 text-[9px] font-bold uppercase tracking-widest bg-secondary text-white px-2.5 py-0.5 rounded-full">
+            Recommended
+          </span>
+          <div className="flex items-center gap-3 mt-1 mb-2">
+            <div className="bg-secondary/25 rounded-full p-2.5">
+              <Laptop size={20} className="text-secondary" />
             </div>
-            <div>
-              <h3 className="text-white font-semibold text-sm">Online Mode</h3>
-              <p className="text-white/65 text-xs">Requires internet</p>
+            <div className="flex-1 min-w-0">
+              <h3 className="text-white font-bold text-[15px]">Phone + Laptop</h3>
+              <p className="text-secondary text-xs">Connect phone to laptop&apos;s WiFi hotspot</p>
             </div>
-            <Cloud size={14} className="text-white/40 ml-auto" />
           </div>
-          <ul className="space-y-1.5 ml-1">
-            <li className="flex items-center gap-2 text-white/75 text-xs">
-              <span className="w-1 h-1 rounded-full bg-blue-400 flex-shrink-0" />
-              Create Knowledge Packs for your region
-            </li>
-            <li className="flex items-center gap-2 text-white/75 text-xs">
-              <span className="w-1 h-1 rounded-full bg-blue-400 flex-shrink-0" />
-              AI agents research crops, diseases, treatments
-            </li>
-            <li className="flex items-center gap-2 text-white/75 text-xs">
-              <span className="w-1 h-1 rounded-full bg-blue-400 flex-shrink-0" />
-              Done once at the office before field deployment
-            </li>
-          </ul>
+          <p className="text-white/90 text-xs leading-relaxed mb-2">
+            The laptop runs the AI. You take photos on your phone, get instant diagnosis and treatment plans.
+          </p>
+          <div className="flex items-center gap-2 text-secondary text-[11px] font-semibold">
+            <CheckCircle2 size={12} />
+            <span>Full AI &middot; Photo diagnosis &middot; No internet needed</span>
+          </div>
         </div>
 
-        {/* Offline card */}
-        <div className="bg-white/8 border border-secondary/25 rounded-xl p-4 text-left animate-slideUp" style={{ animationDelay: '0.2s' }}>
-          <div className="flex items-center gap-3 mb-3">
-            <div className="bg-secondary/20 rounded-full p-2">
-              <WifiOff size={18} className="text-secondary" />
+        {/* ── Mode 2: Phone Only ── */}
+        <div className="bg-white/6 border border-amber-500/30 rounded-xl p-3.5 text-left animate-slideUp" style={{ animationDelay: '0.2s' }}>
+          <div className="flex items-center gap-3 mb-1.5">
+            <div className="bg-amber-500/20 rounded-full p-2">
+              <Smartphone size={16} className="text-amber-400" />
             </div>
-            <div>
-              <h3 className="text-white font-semibold text-sm">Offline Mode</h3>
-              <p className="text-secondary text-xs">No internet needed</p>
+            <div className="flex-1 min-w-0">
+              <h3 className="text-white font-semibold text-sm">Phone Only</h3>
+              <p className="text-amber-400/80 text-[11px]">No laptop nearby, no internet</p>
             </div>
-            <CloudOff size={14} className="text-white/40 ml-auto" />
           </div>
-          <ul className="space-y-1.5 ml-1">
-            <li className="flex items-center gap-2 text-white/75 text-xs">
-              <span className="w-1 h-1 rounded-full bg-secondary flex-shrink-0" />
-              Diagnose diseases from photos
-            </li>
-            <li className="flex items-center gap-2 text-white/75 text-xs">
-              <span className="w-1 h-1 rounded-full bg-secondary flex-shrink-0" />
-              Get treatment plans with local materials
-            </li>
-            <li className="flex items-center gap-2 text-white/75 text-xs">
-              <span className="w-1 h-1 rounded-full bg-secondary flex-shrink-0" />
-              Works anywhere &mdash; no signal, no cloud
-            </li>
-          </ul>
+          <p className="text-white/70 text-xs leading-relaxed">
+            No AI, but you can still log observations with photos &amp; notes.
+            Everything queues on the phone and syncs automatically when you reconnect to the laptop.
+          </p>
         </div>
+
+        {/* ── Mode 3: Online ── */}
+        <div className="bg-white/6 border border-white/12 rounded-xl p-3.5 text-left animate-slideUp" style={{ animationDelay: '0.3s' }}>
+          <div className="flex items-center gap-3 mb-1.5">
+            <div className="bg-blue-500/20 rounded-full p-2">
+              <Globe size={16} className="text-blue-400" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <h3 className="text-white font-semibold text-sm">Online</h3>
+              <p className="text-blue-400/80 text-[11px]">At the office, with internet</p>
+            </div>
+          </div>
+          <p className="text-white/70 text-xs leading-relaxed">
+            Create Knowledge Packs before going to the field.
+            AI agents research your region&apos;s crops, diseases, and treatments.
+          </p>
+        </div>
+
       </div>
     </div>
   )
@@ -585,7 +592,7 @@ export default function OnboardingPage() {
       <div key={slide} className={`relative z-10 flex flex-col flex-1 overflow-hidden ${slideAnimation}`}>
         {slide === 0 && <WelcomeSlide />}
         {slide === 1 && <HeroWorkflowSlide />}
-        {slide === 2 && <OnlineOfflineSlide />}
+        {slide === 2 && <ThreeModesSlide />}
         {slide === 3 && <KnowledgePackSlide />}
         {slide === 4 && <ConnectSlide onComplete={handleComplete} />}
       </div>

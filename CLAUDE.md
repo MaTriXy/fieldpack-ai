@@ -1,19 +1,18 @@
 # FieldPack AI
 
-Hackathon entry for **Kaggle Gemma 4 Good Hackathon** ($200K prize, deadline May 18 2026). Two-phase offline AI for humanitarian field workers. Phase 1 (online): LangGraph agents curate knowledge into portable Knowledge Packs. Phase 2 (offline): Gemma 4 E2B on Ollama serves that knowledge via agentic RAG on a laptop, with a phone thin-client APK for camera + UI.
+Hackathon entry for **Kaggle Gemma 4 Good Hackathon** (deadline May 18 2026). Offline AI for humanitarian field workers — Gemma 4 E2B on Ollama serves curated Knowledge Packs via agentic RAG on a laptop, with a phone thin-client APK for camera + UI.
 
-See `PHILOSOPHY.md` for strategy, `TECH_FRAMEWORK.md` for full architecture.
+See `docs/PHILOSOPHY.md` for strategy, `docs/TECH_FRAMEWORK.md` for architecture.
 
 ## Commands
 
 ```bash
-# Venv (at repo root, not backend/)
-source venv/Scripts/activate
+source venv/Scripts/activate  # venv is at repo root
 
 # Backend
 cd backend && PYTHONPATH=. uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 
-# Frontend dev
+# Frontend
 cd frontend && npm run dev   # localhost:5173, Vite proxy -> :8000
 
 # Tests
@@ -21,21 +20,40 @@ cd backend && PYTHONPATH=. ../venv/Scripts/python.exe -m pytest tests/ -v --igno
 
 # Ollama
 ollama serve
-ollama create fieldpack-assistant -f backend/modelfiles/fieldpack-assistant.Modelfile
 
-# APK rebuild (only needed for frontend/Capacitor/Android changes, NOT backend)
+# APK (only for frontend/Capacitor/Android changes)
 cd frontend && npm run build && npx cap sync android
 JAVA_HOME="/c/fieldpack-ai/jdk-21.0.10+7" ANDROID_SDK_ROOT="/c/fieldpack-ai/.android-sdk" \
   PATH="$JAVA_HOME/bin:$PATH" ./android/gradlew -p android assembleDebug
-# Output: frontend/android/app/build/outputs/apk/debug/app-debug.apk
 ```
 
-## Architecture Decisions
+## Pipeline
 
-- **Thin-client APK**: phone is camera + UI only, laptop runs all AI over WiFi hotspot. Same React code serves browser and APK — `config.ts:isNative()` switches URL resolution.
-- **LLM fallback chain**: tunnel Ollama -> local Ollama -> Google AI Studio. Set via `FIELD_LLM_PROVIDER` env var.
-- **Two-tier rerank**: fast heuristic first, LLM rerank only on retry when heuristic marks insufficient.
-- **Agentic RAG is non-deterministic**: the LLM decides retrieval strategy each turn. Not a fixed pipeline.
+```
+classify → route → needs_search
+  → [no search] → generate_answer → END
+  → [search]    → craft_query → execute_search → rerank
+      → [sufficient OR max 3 attempts] → generate_answer → END
+      → [retry] → expand_route → craft_query (loop)
+```
+
+- Conversational messages ("hi", follow-ups) skip RAG via regex gate in `needs_search.py`
+- `generate_answer` is async — streams tokens via `llm.astream()` for word-by-word frontend UX
+- `reasoning=False` globally on all Ollama calls (`offline_llm.py`) — E2B thinking wastes tokens
+- LLM provider set via `FIELD_LLM_PROVIDER` env: `ollama-local`, `ollama` (tunnel), or `google`
+
+## Stack
+
+- **Backend**: FastAPI, LangGraph, ChromaDB, sentence-transformers (MiniLM-L6-v2), pydantic-settings
+- **Frontend**: React 19, Vite 8, Tailwind v4, Capacitor 8, TypeScript, Lucide icons
+- **LLM**: Gemma 4 E2B Q4_K_M via Ollama (5.1B params, ~7.5GB VRAM)
+
+## Architecture
+
+- **Thin-client APK**: phone = camera + UI, laptop = all AI over WiFi hotspot. `config.ts:isNative()` switches URL resolution
+- **Two-tier rerank**: fast heuristic first, LLM rerank only on retry
+- **Parent/child chunking**: search matches child chunks, context uses parent chunks for detail
+- **WebSocket streaming**: `field_assistant.py` emits status/token/sources/done events, frontend renders progressively
 
 ## Style
 
@@ -43,20 +61,21 @@ JAVA_HOME="/c/fieldpack-ai/jdk-21.0.10+7" ANDROID_SDK_ROOT="/c/fieldpack-ai/.and
 - `.env` + `pydantic-settings` for config, never hardcoded keys
 - ChromaDB: always `PersistentClient(path=...)`, never in-memory for pack data
 - Error handling at boundaries only (API calls, file I/O, Ollama), not internal logic
-- No comments on obvious code
 
 ## Gotchas
 
-- `CapacitorHttp: { enabled: false }` in `capacitor.config.ts` — NEVER enable, silently breaks WebSocket
-- `cleartext: true` in Capacitor config — required for HTTP over LAN (Android 9+ blocks by default)
-- Tailwind v4 uses `oklch()` — demo device must be Android 12+ (Chrome 111+ WebView)
-- JDK 21 required for APK builds (Capacitor 8 / SDK 36). Local JDK at `jdk-21.0.10+7/`
-- Vite proxy (`vite.config.ts`) rewrites `/api` -> strips prefix -> port 8000. Native mode bypasses this entirely.
-- Backend must bind `0.0.0.0` for LAN access (set in config.py)
+- `CapacitorHttp: { enabled: false }` — NEVER enable, silently breaks WebSocket
+- `cleartext: true` in Capacitor config — required for HTTP over LAN (Android 9+)
+- Tailwind v4 `oklch()` — demo device must be Android 12+ (Chrome 111+ WebView)
+- JDK 21 required for APK builds. Local JDK at `jdk-21.0.10+7/`
+- Vite proxy rewrites `/api` → strips prefix → port 8000. Native mode bypasses entirely
+- Backend must bind `0.0.0.0` for LAN access (set in `config.py`)
+- `ollama_num_ctx: 4096` must match Modelfile — oversized KV cache degrades attention on small models
+- `_resolve_provider` in `offline_llm.py` has a TTL cache — `.env` changes require server restart
 
-## Non-Negotiable Rules
+## Non-Negotiable
 
-1. **Hero shot must work every time**: plant photo -> diagnosis -> local treatment plan
-2. **Offline is the point**: internet-requiring features belong in Phase 1 only
-3. **Narrow execution**: ONE Knowledge Pack (Casamance agriculture). Platform concept in writeup/video only.
-4. **Google ecosystem optics**: AI Studio + Stitch + Gemma + Kaggle = all Google. Intentional.
+1. **Hero shot must work**: plant photo → diagnosis → treatment plan, every time
+2. **Offline is the point**: internet features belong in Phase 1 only
+3. **One pack**: Casamance agriculture. Platform concept in writeup/video only
+4. **Google ecosystem**: AI Studio + Stitch + Gemma + Kaggle = all Google. Intentional

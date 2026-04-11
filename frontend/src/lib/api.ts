@@ -132,12 +132,13 @@ export interface MissionChatResponse {
   }
 }
 
-export async function chatMission(message: string, conversationHistory: MessageData[]): Promise<MissionChatResponse> {
+export async function chatMission(message: string, conversationHistory: MessageData[], language?: string): Promise<MissionChatResponse> {
   const res = await fetch(apiUrl('/mission/chat'), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       message,
+      language: language || undefined,
       conversation_history: conversationHistory.slice(0, -1).map(m => ({
         role: m.role,
         content: m.content,
@@ -194,6 +195,29 @@ export async function listObservations(type?: string, limit: number = 50): Promi
 export async function getObservationStats(): Promise<ObservationStats> {
   const res = await fetch(apiUrl('/observations/stats'))
   if (!res.ok) return { total: 0, unsynced: 0, by_type: {}, recent: [] }
+  return res.json()
+}
+
+export async function summarizeObservations(limit: number = 20): Promise<{ summary: string; observation_count: number }> {
+  const res = await fetch(apiUrl(`/observations/summary?limit=${limit}`), {
+    method: 'POST',
+    signal: AbortSignal.timeout(60000),
+  })
+  if (!res.ok) throw new Error(`Summary failed: ${res.status}`)
+  return res.json()
+}
+
+export async function saveConversationToJournal(
+  messages: { role: string; content: string }[],
+  imagePath: string | null = null,
+): Promise<{ observation_id: number; summary: string }> {
+  const res = await fetch(apiUrl('/chat/save-to-journal'), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ messages, image_path: imagePath }),
+    signal: AbortSignal.timeout(60000),
+  })
+  if (!res.ok) throw new Error(`Save to journal failed: ${res.status}`)
   return res.json()
 }
 

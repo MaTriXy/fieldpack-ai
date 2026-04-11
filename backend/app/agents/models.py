@@ -130,6 +130,7 @@ class ScoredResult(BaseModel):
     relevance_score: float = Field(default=0.0, ge=0.0, le=1.0)
     parent_id: str | None = None
     parent_content: str | None = None
+    metadata: dict = Field(default_factory=dict)
 
 
 # --- LLM Call #3: Re-Rank ---

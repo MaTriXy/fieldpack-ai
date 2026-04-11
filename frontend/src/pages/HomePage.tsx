@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react'
 import { Link, Navigate } from 'react-router-dom'
-import { Rocket, Leaf, Database, Moon, Sun, ChevronRight, WifiOff, Layers, Package, BarChart2, Wifi, Terminal } from 'lucide-react'
+import { Rocket, Leaf, Database, Moon, Sun, ChevronRight, WifiOff, Layers, Package, BarChart2, Wifi, Terminal, Settings, Laptop } from 'lucide-react'
 import { apiUrl } from '../lib/config'
+import { useBackendReachable } from '../hooks/useBackendReachable'
 
 export default function HomePage() {
+  const { reachable: backendUp } = useBackendReachable()
   const [packStatus, setPackStatus] = useState<'none' | 'loading' | 'loaded'>('none')
   const [packName, setPackName] = useState('')
   const [packMeta, setPackMeta] = useState<{ crops: string[]; diseases: number }>({ crops: [], diseases: 0 })
@@ -66,7 +68,7 @@ export default function HomePage() {
           {/* dark overlay for text readability */}
           <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-black/40 to-black/60" aria-hidden="true" />
 
-          {/* theme toggle + debug link */}
+          {/* settings + theme toggle + debug link */}
           <div className="absolute top-4 right-4 flex items-center gap-2">
             {import.meta.env.DEV && (
               <Link
@@ -77,6 +79,13 @@ export default function HomePage() {
                 <Terminal size={18} />
               </Link>
             )}
+            <Link
+              to="/settings"
+              className="w-9 h-9 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 transition-colors text-white"
+              aria-label="Settings"
+            >
+              <Settings size={18} />
+            </Link>
             <button
               onClick={toggleTheme}
               aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
@@ -116,7 +125,7 @@ export default function HomePage() {
               className="text-white/75 text-[13px] mt-3 leading-relaxed max-w-xs mx-auto"
               style={{ textShadow: '0 1px 5px rgba(0,0,0,0.85)' }}
             >
-              3.7 billion people lack internet. Their field workers deserve AI that doesn't need it.
+              3.7 billion people lack internet. The field workers who serve them deserve AI that works without it.
             </p>
             <p
               className="text-white/60 text-xs mt-2 tracking-widest uppercase"
@@ -213,7 +222,7 @@ export default function HomePage() {
         {/* pipeline connector */}
         <div className="flex items-center justify-center gap-2 -my-1 py-0.5 text-text-muted/40">
           <div className="h-px flex-1 bg-surface-dark" />
-          <span className="text-[10px] tracking-widest uppercase font-medium">then deploy offline</span>
+          <span className="text-[10px] tracking-widest uppercase font-medium">then deploy to the field</span>
           <div className="h-px flex-1 bg-surface-dark" />
         </div>
 
@@ -250,7 +259,7 @@ export default function HomePage() {
                   </h2>
                   <span className="text-[10px] font-bold uppercase tracking-widest bg-secondary/25 text-secondary px-1.5 py-0.5 rounded-md border border-secondary/30 flex items-center gap-1">
                     <WifiOff size={8} />
-                    Offline
+                    No Internet
                   </span>
                 </div>
                 <p className="text-white/80 text-sm leading-snug">
@@ -268,40 +277,41 @@ export default function HomePage() {
 
       {/* ── Status bar ── */}
       <div className="px-4 mt-3 pb-6 max-w-lg mx-auto space-y-2">
-        <Link to="/packs" className="bg-card border border-surface-dark rounded-xl px-4 py-3 flex items-center justify-between shadow-sm active:scale-[0.98] transition-transform">
-          {/* offline ready indicator */}
-          <div className="flex items-center gap-2">
+        <Link to="/packs" className="bg-card border border-surface-dark rounded-xl px-4 py-3 shadow-sm active:scale-[0.98] transition-transform block">
+          {/* connectivity mode */}
+          <div className="flex items-center gap-2.5 mb-2">
             <span className="relative flex h-2.5 w-2.5 flex-shrink-0">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-500 opacity-60" />
-              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-green-500" />
+              {backendUp && (
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-500 opacity-60" />
+              )}
+              <span className={`relative inline-flex rounded-full h-2.5 w-2.5 ${backendUp ? 'bg-green-500' : 'bg-amber-400'}`} />
             </span>
-            <span className="text-xs font-medium text-text-muted flex items-center gap-1">
-              <WifiOff size={11} />
-              Offline Ready
+            <span className="text-xs font-semibold text-text flex items-center gap-1.5">
+              {backendUp ? <><Laptop size={12} /> Laptop Connected &mdash; AI Ready</> : <><WifiOff size={12} /> Phone Only &mdash; Logging Mode</>}
             </span>
           </div>
-
-          <div className="h-4 w-px bg-surface-dark" />
-
-          {/* active pack */}
-          <div className="flex items-center gap-1.5 text-xs text-text-muted min-w-0">
-            <Database size={12} className="text-secondary flex-shrink-0" />
-            <span className="truncate max-w-[130px]">
-              {packStatus === 'loaded' ? packName : packStatus === 'loading' ? 'Loading pack...' : 'No pack loaded'}
+          <p className="text-[11px] text-text-muted leading-snug mb-2.5">
+            {backendUp
+              ? 'Take a photo in Field Chat to get instant diagnosis and treatment plans.'
+              : 'No laptop found. You can log observations — they\u2019ll sync when you reconnect.'}
+          </p>
+          {/* active pack row */}
+          <div className="flex items-center justify-between pt-2 border-t border-surface-dark">
+            <div className="flex items-center gap-1.5 text-xs text-text-muted min-w-0">
+              <Database size={12} className="text-secondary flex-shrink-0" />
+              <span className="truncate max-w-[180px]">
+                {packStatus === 'loaded' ? packName : packStatus === 'loading' ? 'Loading pack...' : 'No pack loaded'}
+              </span>
+              {packStatus === 'loaded' && (
+                <span className="flex-shrink-0 w-1.5 h-1.5 rounded-full bg-secondary" />
+              )}
+            </div>
+            <span className="text-[10px] text-text-muted/60 flex-shrink-0">
+              {packStatus === 'loaded' && packMeta.diseases > 0
+                ? `${packMeta.crops.length} crops · ${packMeta.diseases} diseases`
+                : packStatus === 'loading' ? 'Loading...' : 'v1.0'}
             </span>
-            {packStatus === 'loaded' && (
-              <span className="flex-shrink-0 w-1.5 h-1.5 rounded-full bg-secondary" />
-            )}
           </div>
-
-          <div className="h-4 w-px bg-surface-dark" />
-
-          {/* pack stats instead of version */}
-          <span className="text-[10px] text-text-muted/60 flex-shrink-0">
-            {packStatus === 'loaded' && packMeta.diseases > 0
-              ? `${packMeta.crops.length} crops · ${packMeta.diseases} diseases`
-              : 'v1.0'}
-          </span>
         </Link>
 
         {/* demo context line */}

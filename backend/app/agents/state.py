@@ -21,6 +21,7 @@ class FieldAssistantState(TypedDict, total=False):
     image_path: str | None
     conversation_history: list[dict]
     conversation_summary: str
+    language: str | None
 
     # Step 1: Classify + Extract
     classify_result: ClassifyExtractOutput | None

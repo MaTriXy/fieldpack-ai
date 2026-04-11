@@ -205,6 +205,7 @@ async def run_field_assistant(
     conversation_history: list[dict] | None = None,
     conversation_summary: str = "",
     session_id: str | None = None,
+    language: str | None = None,
 ) -> dict:
     """Run the field assistant pipeline.
 
@@ -228,6 +229,7 @@ async def run_field_assistant(
         "image_path": image_path,
         "conversation_history": conversation_history or [],
         "conversation_summary": conversation_summary,
+        "language": language,
     }
 
     try:
@@ -259,12 +261,41 @@ async def run_field_assistant(
         raise
 
 
+def _build_source_title(metadata: dict, source_id: str) -> str:
+    """Build a human-readable source title from chunk metadata."""
+    disease = metadata.get("disease_name", "")
+    crop = metadata.get("crop", "")
+    topic = metadata.get("topic", "")
+
+    # Disease/treatment chunks have disease_name + crop
+    if disease and crop:
+        topic_id = metadata.get("topic_id", "")
+        if "treatment" in topic_id:
+            return f"{disease} — Treatment ({crop})"
+        elif "prevention" in topic_id:
+            return f"{disease} — Prevention ({crop})"
+        else:
+            return f"{disease} — Symptoms ({crop})"
+
+    # Farming practices have topic + crop
+    if topic and crop:
+        return f"{topic.replace('_', ' ').title()} — {crop.title()}"
+
+    # Regional context has topic only
+    if topic:
+        return topic.replace("_", " ").title()
+
+    # Fallback: clean up the doc ID
+    return source_id.replace("_", " ").rsplit(" child", 1)[0].rsplit(" parent", 1)[0].title()
+
+
 async def run_field_assistant_stream(
     message: str,
     image_path: str | None = None,
     conversation_history: list[dict] | None = None,
     conversation_summary: str = "",
     session_id: str | None = None,
+    language: str | None = None,
 ):
     """Stream the field assistant pipeline via astream_events.
 
@@ -285,6 +316,7 @@ async def run_field_assistant_stream(
         "image_path": image_path,
         "conversation_history": conversation_history or [],
         "conversation_summary": conversation_summary,
+        "language": language,
     }
 
     _NODE_STATUS_MAP = {
@@ -310,12 +342,15 @@ async def run_field_assistant_stream(
         }
         pipeline_start = time.perf_counter()
 
+        in_generate = False
+
         async for event in graph.astream_events(initial_state, version="v2"):
             kind = event.get("event", "")
             name = event.get("name", "")
 
             # Node start → status event + record start time
             if kind == "on_chain_start" and name in _NODE_STATUS_MAP:
+                in_generate = (name == "generate_answer")
                 node_timings[name] = time.perf_counter()
                 step, detail = _NODE_STATUS_MAP[name]
                 tcl = log.to_tool_calls_log()
@@ -328,6 +363,8 @@ async def run_field_assistant_stream(
 
             # Node end → emit tool_calls_log + node_stats with latency
             if kind == "on_chain_end" and name in _NODE_STATUS_MAP:
+                if name == "generate_answer":
+                    in_generate = False
                 latency_ms = None
                 if name in node_timings:
                     latency_ms = round((time.perf_counter() - node_timings[name]) * 1000)
@@ -355,14 +392,21 @@ async def run_field_assistant_stream(
                 if isinstance(output, dict):
                     final_state.update(output)
 
+                # After needs_search decision, tell frontend which path we're on
+                if name == "needs_search_node":
+                    yield {
+                        "type": "pipeline_mode",
+                        "mode": "rag" if final_state.get("needs_search", True) else "quick",
+                    }
+
             # Stream LLM tokens from generate_answer only
-            if kind == "on_chat_model_stream" and "generate_answer" in (event.get("tags") or []):
+            if kind == "on_chat_model_stream" and in_generate:
                 chunk = event.get("data", {}).get("chunk")
                 if chunk and hasattr(chunk, "content") and chunk.content:
                     yield {"type": "token", "content": chunk.content}
 
         # Build summary from final state
-        if final_state and (final_state.get("final_answer") or final_state.get("observation_stats") is not None):
+        if final_state and (final_state.get("final_answer") is not None or final_state.get("observation_stats") is not None):
             summary = build_conversation_summary(
                 classify_result=final_state.get("classify_result"),
                 final_answer=final_state.get("final_answer", ""),
@@ -371,10 +415,17 @@ async def run_field_assistant_stream(
 
             # Sources from ranked results
             ranked = final_state.get("ranked_results", [])
-            sources = [
-                {"title": r.source, "score": round(r.relevance_score, 3)}
-                for r in ranked if hasattr(r, "relevance_score")
-            ] if ranked else []
+            sources = []
+            for r in ranked:
+                if not hasattr(r, "relevance_score"):
+                    continue
+                meta = getattr(r, "metadata", {}) or {}
+                title = _build_source_title(meta, r.source)
+                sources.append({
+                    "title": title,
+                    "score": round(r.relevance_score, 3),
+                    "content": r.parent_content or r.content or "",
+                })
 
             if sources:
                 yield {"type": "sources", "sources": sources}
@@ -396,6 +447,7 @@ async def run_field_assistant_stream(
                 "total_latency_ms": total_latency_ms,
                 "llm_calls": llm_call_count,
                 "model": settings.ollama_model,
+                "image_description": final_state.get("image_description"),
             })
         else:
             log.pipeline_end(success=False, error="No final state produced")

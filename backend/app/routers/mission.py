@@ -59,6 +59,7 @@ class MissionChatMessage(BaseModel):
 class MissionChatRequest(BaseModel):
     message: str = Field(max_length=2000)
     conversation_history: list[MissionChatMessage] = Field(default_factory=list)
+    language: str | None = None
 
 
 class MissionCard(BaseModel):
@@ -103,8 +104,29 @@ Rules:
 """
 
 
-def _build_mission_chat_prompt(message: str, history: list[MissionChatMessage]) -> str:
-    parts = [_MISSION_CHAT_SYSTEM, ""]
+_MISSION_LANGUAGE_INSTRUCTIONS = {
+    "fr": "IMPORTANT: Respond entirely in French (Francais).",
+    "wo": "IMPORTANT: Respond entirely in Wolof.",
+    "pt": "IMPORTANT: Respond entirely in Portuguese (Portugues).",
+}
+
+
+def _build_mission_chat_prompt(
+    message: str,
+    history: list[MissionChatMessage],
+    language: str | None = None,
+) -> str:
+    lang_instruction = (
+        _MISSION_LANGUAGE_INSTRUCTIONS.get(language)
+        if language and language != "en"
+        else None
+    )
+    system = (
+        lang_instruction + "\n\n" + _MISSION_CHAT_SYSTEM
+        if lang_instruction
+        else _MISSION_CHAT_SYSTEM
+    )
+    parts = [system, ""]
     for msg in history:
         role_label = "User" if msg.role == "user" else "Assistant"
         parts.append(f"{role_label}: {msg.content}")
@@ -114,19 +136,51 @@ def _build_mission_chat_prompt(message: str, history: list[MissionChatMessage]) 
 
 @router.post("/chat", response_model=MissionChatResponse)
 async def mission_chat(req: MissionChatRequest):
-    """Parse a mission description via Gemma 4 31B and extract structured fields."""
-    from app.models.online_llm import get_planner_llm, invoke_structured
+    """Parse a mission description via LLM (Google AI Studio with Ollama fallback)."""
+    prompt = _build_mission_chat_prompt(req.message, req.conversation_history, req.language)
 
-    llm = get_planner_llm(temperature=0.3)
-    prompt = _build_mission_chat_prompt(req.message, req.conversation_history)
+    # Try Google AI Studio first (online planner)
+    result = await _try_google_planner(prompt)
 
-    try:
-        result = await invoke_structured(llm, prompt, _MissionChatLLMOutput)
-    except ValueError as exc:
-        logger.warning("Mission chat LLM parsing failed: %s", exc)
-        raise HTTPException(status_code=502, detail="Mission planner could not process the request")
+    # Fallback to Ollama (tunnel or local) if Google fails
+    if result is None:
+        result = await _try_ollama_planner(prompt)
+
+    if result is None:
+        raise HTTPException(status_code=502, detail="Mission planner unavailable. No LLM reachable.")
 
     return MissionChatResponse(
         reply=result.reply,
         mission_card=result.mission_card if result.ready else None,
     )
+
+
+async def _try_google_planner(prompt: str) -> _MissionChatLLMOutput | None:
+    try:
+        from app.models.online_llm import get_planner_llm, invoke_structured
+        llm = get_planner_llm(temperature=0.3)
+        return await invoke_structured(llm, prompt, _MissionChatLLMOutput)
+    except Exception as exc:
+        logger.warning("Google AI Studio planner failed, trying Ollama: %s", exc)
+        return None
+
+
+async def _try_ollama_planner(prompt: str) -> _MissionChatLLMOutput | None:
+    import json as _json
+    try:
+        from app.models.offline_llm import get_field_llm
+        from langchain_core.messages import HumanMessage, SystemMessage
+
+        schema = _json.dumps(_MissionChatLLMOutput.model_json_schema(), indent=2)
+        llm = get_field_llm(temperature=0.3, format="json")
+        messages = [
+            SystemMessage(content=f"Respond with JSON matching this schema:\n{schema}"),
+            HumanMessage(content=prompt),
+        ]
+        response = await llm.ainvoke(messages)
+        text = response.content if isinstance(response.content, str) else str(response.content)
+        parsed = _json.loads(text)
+        return _MissionChatLLMOutput.model_validate(parsed)
+    except Exception as exc:
+        logger.warning("Ollama planner fallback also failed: %s", exc)
+        return None

@@ -59,6 +59,7 @@ def _normalize_scores(results: list[SearchResult]) -> list[ScoredResult]:
             relevance_score=min(1.0, max(0.0, norm_score)),
             parent_id=r.parent_id,
             parent_content=r.parent_content,
+            metadata=r.metadata,
         ))
 
     return scored
@@ -222,6 +223,7 @@ def _parse_rerank_response(
                     relevance_score=min(1.0, max(0.0, score)),
                     parent_id=r.parent_id,
                     parent_content=r.parent_content,
+                    metadata=r.metadata,
                 ))
     else:
         log.log_step(Step.RERANK, "llm_parse_fallback", level="WARNING",
@@ -233,6 +235,7 @@ def _parse_rerank_response(
                 relevance_score=min(1.0, r.score),
                 parent_id=r.parent_id,
                 parent_content=r.parent_content,
+                metadata=r.metadata,
             ))
 
     scored.sort(key=lambda s: s.relevance_score, reverse=True)

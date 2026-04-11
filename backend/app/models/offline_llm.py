@@ -27,6 +27,7 @@ def _make_ollama(
     token: str = "",
     num_predict: int | None = None,
     format: str | None = None,
+    reasoning: bool | None = None,
 ) -> ChatOllama:
     kwargs = dict(
         model=settings.ollama_model,
@@ -34,12 +35,14 @@ def _make_ollama(
         temperature=temperature,
         num_ctx=settings.ollama_num_ctx,
         keep_alive=settings.ollama_keep_alive,
-        reasoning=False,
     )
     if num_predict is not None:
         kwargs["num_predict"] = num_predict
     if format is not None:
         kwargs["format"] = format
+    # E2B is a thinking model — always disable reasoning to avoid
+    # wasting tokens on internal chain-of-thought
+    kwargs["reasoning"] = reasoning if reasoning is not None else False
     client_kwargs = {"timeout": settings.ollama_timeout}
     if token:
         client_kwargs["headers"] = {"Authorization": f"Bearer {token}"}
@@ -66,13 +69,14 @@ def _make_google(
 # Cache resolved provider so we only probe once per process
 _resolved_provider: str | None = None
 _resolved_at: float = 0.0
-_RESOLVE_TTL: float = 300.0  # Re-probe every 5 minutes
+_RESOLVE_TTL: float = 30.0  # Re-probe every 30 seconds
 
 
 def get_field_llm(
     temperature: float = 0.3,
     num_predict: int | None = None,
     format: str | None = None,
+    reasoning: bool | None = None,
 ) -> BaseChatModel:
     """Field assistant LLM with automatic fallback.
 
@@ -93,7 +97,7 @@ def get_field_llm(
         log.info("field_llm_provider=ollama-local, using local Ollama")
         return _make_ollama(
             "http://localhost:11434", temperature,
-            num_predict=num_predict, format=format,
+            num_predict=num_predict, format=format, reasoning=reasoning,
         )
 
     # Auto-resolve: probe once, cache with TTL
@@ -104,14 +108,14 @@ def get_field_llm(
     if _resolved_provider == "tunnel":
         return _make_ollama(
             settings.ollama_base_url, temperature, settings.ollama_tunnel_token,
-            num_predict=num_predict, format=format,
+            num_predict=num_predict, format=format, reasoning=reasoning,
         )
     if _resolved_provider == "google":
         return _make_google(temperature, max_output_tokens=num_predict)
     if _resolved_provider == "local":
         return _make_ollama(
             "http://localhost:11434", temperature,
-            num_predict=num_predict, format=format,
+            num_predict=num_predict, format=format, reasoning=reasoning,
         )
 
     raise RuntimeError(

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { AlertTriangle, Leaf, Droplets, FileText, MapPin, Smartphone } from 'lucide-react'
+import { AlertTriangle, Leaf, Droplets, FileText, MapPin } from 'lucide-react'
 import type { Observation } from '../lib/api'
 import { apiUrl } from '../lib/config'
 
@@ -42,6 +42,12 @@ export default function ObservationCard({ observation, style }: ObservationCardP
   const { border, label, iconColor, Icon } = config
   const isQueued = observation._queued || observation.synced === -1
 
+  // Split details into bold first sentence + rest
+  const details = observation.details || ''
+  const sentenceEnd = details.search(/[.!?](\s|$)/)
+  const firstSentence = sentenceEnd > 0 ? details.slice(0, sentenceEnd + 1) : details
+  const restText = sentenceEnd > 0 ? details.slice(sentenceEnd + 1).trim() : ''
+
   const hasImage = !!observation.image_path && !imgError
   const imageSrc = observation.image_path?.startsWith('data:')
     ? observation.image_path
@@ -51,7 +57,7 @@ export default function ObservationCard({ observation, style }: ObservationCardP
 
   return (
     <div
-      className={`bg-card rounded-xl shadow-sm border border-surface-dark border-l-4 ${border} overflow-hidden animate-slideUp active:scale-[0.985] transition-transform ${isQueued ? 'opacity-85 border-dashed' : ''}`}
+      className={`bg-card rounded-xl shadow-sm border border-surface-dark border-l-4 ${border} overflow-hidden animate-slideUp active:scale-[0.985] transition-transform ${isQueued ? 'border-secondary ring-1 ring-secondary/20' : ''}`}
       style={style}
     >
       <button
@@ -82,7 +88,8 @@ export default function ObservationCard({ observation, style }: ObservationCardP
 
             {/* Details text */}
             <p className={`text-sm text-text leading-snug ${expanded ? '' : 'line-clamp-3'}`}>
-              {observation.details}
+              <span className="font-semibold">{firstSentence}</span>
+              {restText && <> {restText}</>}
             </p>
 
             {/* Expanded image */}
@@ -111,10 +118,9 @@ export default function ObservationCard({ observation, style }: ObservationCardP
                 </span>
               )}
               {isQueued ? (
-                <div className="flex items-center gap-1">
-                  <Smartphone size={10} className="text-secondary" />
-                  <span className="text-xs text-secondary font-medium">saved on phone</span>
-                </div>
+                <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-secondary/15 text-secondary uppercase tracking-wide">
+                  Pending
+                </span>
               ) : observation.synced === 0 ? (
                 <div className="flex items-center gap-1">
                   <span className="relative flex h-1.5 w-1.5">

@@ -24,13 +24,21 @@ from app.models.offline_llm import get_field_llm
 
 MAX_CONTEXT_WORDS = 2000
 
-GENERATE_SYSTEM_PROMPT = """Agricultural field assistant. Answer using ONLY the provided context.
+LANGUAGE_INSTRUCTIONS = {
+    "fr": "IMPORTANT: Respond entirely in French (Francais).",
+    "wo": "IMPORTANT: Respond entirely in Wolof.",
+    "pt": "IMPORTANT: Respond entirely in Portuguese (Portugues).",
+}
+
+GENERATE_SYSTEM_PROMPT = """Agricultural field assistant for Casamance, Senegal. Answer using ONLY the provided context.
 - Be concise: 3-8 sentences for simple questions, longer for treatment plans
 - Be specific and actionable, reference locally available materials
 - Use bullet points for treatment steps
 - Include safety precautions for treatments
 - If context has nothing relevant, say: "I don't have information on this topic in the knowledge pack."
 - Never invent disease names, treatments, or statistics not in context."""
+
+CONVERSATIONAL_SYSTEM_PROMPT = """You are FieldPack AI, an agricultural field assistant for Casamance, Senegal. You help farmers with crop diseases, treatments, and farming. Reply briefly and helpfully."""
 
 
 def _assemble_context(
@@ -76,73 +84,90 @@ def _format_conversation(
     return history_to_nl(history, summary=summary, max_recent=max_messages)
 
 
-def generate_answer(state: FieldAssistantState) -> dict:
+async def generate_answer(state: FieldAssistantState) -> dict:
     """Generate the final answer from ranked context + conversation history.
 
     LLM call #4. Assembles context with score-proportional space allocation,
     formats conversation history, and generates a grounded answer.
+    Async so LangGraph can capture streaming tokens via astream_events.
 
     Returns dict with: final_answer, conversation_history updates.
     """
     user_message = state.get("user_message", "")
     ranked_results = state.get("ranked_results", [])
     history = state.get("conversation_history", [])
+    language = state.get("language")
+
+    lang_instruction = LANGUAGE_INSTRUCTIONS.get(language) if language and language != "en" else None
 
     # Assemble context
     context_text = _assemble_context(ranked_results)
 
-    if not context_text:
-        no_context_answer = (
-            "I don't have enough information in the knowledge pack to answer this question. "
-            "Try asking about specific crops (cassava, rice, maize, groundnut, tomato) "
-            "or diseases that affect them in your region."
-        )
+    is_conversational = not context_text
+
+    # Pick system prompt: RAG prompt when we have context, conversational otherwise
+    base_prompt = CONVERSATIONAL_SYSTEM_PROMPT if is_conversational else GENERATE_SYSTEM_PROMPT
+    system_prompt = (
+        lang_instruction + "\n\n" + base_prompt
+        if lang_instruction
+        else base_prompt
+    )
+
+    if is_conversational:
         log.log_step(Step.GENERATE, "no_context",
                      details={"message": user_message[:200]})
-
-        # Update conversation history
-        updated_history = list(history) + [
-            {"role": "user", "content": user_message,
-             "timestamp": datetime.now(timezone.utc).isoformat()},
-            {"role": "assistant", "content": no_context_answer,
-             "timestamp": datetime.now(timezone.utc).isoformat()},
-        ]
-        return {
-            "final_answer": no_context_answer,
-            "conversation_history": trim_conversation_history(updated_history),
-        }
 
     # Format conversation history as natural language
     summary = state.get("conversation_summary", "")
     history_text = _format_conversation(history, summary=summary)
 
     # Build prompt
-    messages = [SystemMessage(content=GENERATE_SYSTEM_PROMPT)]
+    messages = [SystemMessage(content=system_prompt)]
 
-    user_prompt_parts = [f"Context:\n{context_text}"]
+    if is_conversational:
+        # Structured document with labeled fields — anchors the model in English
+        # and gives it enough structure to pattern-match against instruction tuning
+        user_prompt_parts = []
+        if history_text:
+            user_prompt_parts.append(f"Conversation history:\n{history_text}")
+        user_prompt_parts.append(f"Farmer message: {user_message}")
+        user_prompt_parts.append("Task: Reply to the farmer. Be brief and helpful.")
+        messages.append(HumanMessage(content="\n".join(user_prompt_parts)))
+    else:
+        # RAG path — context-grounded prompt
+        user_prompt_parts = [f"Context:\n{context_text}"]
 
-    image_description = state.get("image_description")
-    if image_description:
-        user_prompt_parts.append(
-            f"\nImage analysis of the farmer's photo: {image_description}"
-            "\nIMPORTANT: Compare the visual symptoms above against ALL diseases in the context. "
-            "Choose the disease whose symptoms best match what was observed in the photo, "
-            "even if it is not the top-ranked source. State your diagnosis confidently, then provide treatment steps."
-        )
+        image_description = state.get("image_description")
+        if image_description:
+            user_prompt_parts.append(
+                f"\nImage analysis of the farmer's photo: {image_description}"
+                "\nIMPORTANT: Compare the visual symptoms above against ALL diseases in the context. "
+                "Choose the disease whose symptoms best match what was observed in the photo, "
+                "even if it is not the top-ranked source. State your diagnosis confidently, then provide treatment steps."
+            )
 
-    if history_text:
-        user_prompt_parts.append(f"\nConversation history:\n{history_text}")
+        if history_text:
+            user_prompt_parts.append(f"\nConversation history:\n{history_text}")
 
-    user_prompt_parts.append(f"\nQuestion: {user_message}")
+        user_prompt_parts.append(f"Question: {user_message}")
+        messages.append(HumanMessage(content="\n".join(user_prompt_parts)))
 
-    messages.append(HumanMessage(content="\n".join(user_prompt_parts)))
+    temperature = 0.1 if is_conversational else 0.4
+    max_tokens = 128 if is_conversational else 512
+    fmt = None
 
     with log.timed(Step.GENERATE, "llm_call") as t:
         try:
-            llm = get_field_llm(temperature=0.4, num_predict=512)
-            response = llm.invoke(messages)
-            answer = extract_text(response)
+            llm = get_field_llm(temperature=temperature, num_predict=max_tokens, format=fmt)
+            # Use astream() so LangGraph's astream_events can capture
+            # individual tokens and forward them to the frontend
+            chunks = []
+            async for chunk in llm.astream(messages):
+                chunks.append(chunk)
+            answer = "".join(extract_text(c) for c in chunks).lstrip("?!.,;: \n")
         except Exception as e:
+            import logging
+            logging.getLogger(__name__).exception("generate_answer LLM call failed")
             log.log_step(Step.GENERATE, "llm_error", level="ERROR",
                          details={"error": str(e)})
             t.set(level="ERROR")

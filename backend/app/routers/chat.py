@@ -10,6 +10,7 @@ from pydantic import BaseModel, Field
 from app.agents.field_assistant import run_field_assistant, run_field_assistant_stream
 from app.config import settings
 from app.knowledge_pack.loader import get_active_pack
+from app.tools.observation_log import log_observation
 
 # Serialize pipeline runs — the singleton PipelineLogger is not safe
 # for concurrent pipelines sharing the same session counters.
@@ -31,6 +32,7 @@ class ChatMessage(BaseModel):
     conversation_history: list[dict] = Field(default_factory=list, max_length=50)
     conversation_summary: str = ""
     session_id: str | None = None
+    language: str | None = None
 
 
 class SourceInfo(BaseModel):
@@ -81,6 +83,7 @@ async def chat(msg: ChatMessage):
                 conversation_history=msg.conversation_history,
                 conversation_summary=msg.conversation_summary,
                 session_id=msg.session_id,
+                language=msg.language,
             )
     except Exception as e:
         _logger.exception("Pipeline error")
@@ -99,6 +102,84 @@ async def chat(msg: ChatMessage):
         tool_calls_log=result.get("tool_calls_log", []),
         sources=sources,
         observation_stats=result.get("observation_stats"),
+    )
+
+
+class SaveToJournalRequest(BaseModel):
+    messages: list[dict] = Field(..., min_length=1, max_length=100)
+    image_path: str | None = None
+
+
+class SaveToJournalResponse(BaseModel):
+    observation_id: int
+    summary: str
+
+
+@router.post("/save-to-journal", response_model=SaveToJournalResponse)
+def save_conversation_to_journal(body: SaveToJournalRequest):
+    """Summarize a chat conversation and save it as a field observation."""
+    pack = get_active_pack()
+    if pack is None:
+        raise HTTPException(503, "No Knowledge Pack loaded")
+
+    # Build conversation text for the LLM
+    conv_lines = []
+    for m in body.messages:
+        role = m.get("role", "unknown")
+        content = m.get("content", "")
+        if content:
+            conv_lines.append(f"{role.upper()}: {content[:500]}")
+    conv_text = "\n".join(conv_lines[-20:])  # last 20 messages max
+
+    from langchain_core.messages import HumanMessage, SystemMessage
+    from app.agents.models import extract_text
+    from app.models.offline_llm import get_field_llm
+
+    try:
+        llm = get_field_llm(temperature=0.2, num_predict=256)
+        response = llm.invoke([
+            SystemMessage(content=(
+                "Summarize this field conversation into a concise observation log entry "
+                "for a humanitarian field worker's journal. Include: what was discussed, "
+                "any diagnosis or findings, and recommended actions. "
+                "Write in first person as if the field worker is logging it. "
+                "Keep under 150 words. No markdown headings."
+            )),
+            HumanMessage(content=conv_text),
+        ])
+        summary = extract_text(response)
+    except Exception:
+        # Fallback: use last assistant message as the summary
+        assistant_msgs = [m.get("content", "").strip() for m in body.messages if m.get("role") == "assistant" and m.get("content", "").strip()]
+        summary = assistant_msgs[-1][:300] if assistant_msgs else "Chat conversation logged."
+
+    # Determine observation type from conversation content
+    lower = summary.lower()
+    if any(w in lower for w in ("disease", "infect", "blight", "wilt", "rot", "virus", "fungal", "bacterial")):
+        obs_type = "disease_sighting"
+    elif any(w in lower for w in ("treatment", "spray", "apply", "fertiliz")):
+        obs_type = "treatment_applied"
+    else:
+        obs_type = "note"
+
+    # Validate image path — gracefully skip if file was cleaned up
+    try:
+        validated_image = _validate_image_path(body.image_path)
+    except HTTPException:
+        validated_image = None
+
+    try:
+        result = log_observation(
+            obs_type=obs_type,
+            details=summary,
+            image_path=validated_image,
+        )
+    except RuntimeError:
+        raise HTTPException(503, "Knowledge Pack was unloaded during save")
+
+    return SaveToJournalResponse(
+        observation_id=result["observation_id"],
+        summary=summary,
     )
 
 
@@ -182,6 +263,7 @@ async def chat_ws(websocket: WebSocket):
                         conversation_history=msg.get("conversation_history", [])[:50],
                         conversation_summary=msg.get("conversation_summary", ""),
                         session_id=msg.get("session_id"),
+                        language=msg.get("language"),
                     ):
                         await websocket.send_json(event)
             except Exception as e:
