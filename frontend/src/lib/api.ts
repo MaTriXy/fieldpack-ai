@@ -1,5 +1,12 @@
 import { apiUrl } from './config'
 
+/** Create an AbortController + timer that aborts after `ms` milliseconds. */
+function withTimeout(ms: number): { signal: AbortSignal; clear: () => void } {
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), ms)
+  return { signal: controller.signal, clear: () => clearTimeout(timer) }
+}
+
 export interface ConversationSummary {
   id: string
   type: string
@@ -110,15 +117,20 @@ export async function browseKnowledge(type: string = 'all', search: string = '',
 
 /** Upload a base64-encoded image and return the server file path. */
 export async function uploadImageBase64(base64Data: string, format: string = 'jpeg'): Promise<string> {
-  const res = await fetch(apiUrl('/upload/image/base64'), {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ data: base64Data, format }),
-    signal: AbortSignal.timeout(15000),
-  })
-  if (!res.ok) throw new Error(`Upload failed: ${res.status}`)
-  const result = await res.json()
-  return result.image_path
+  const timeout = withTimeout(15000)
+  try {
+    const res = await fetch(apiUrl('/upload/image/base64'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ data: base64Data, format }),
+      signal: timeout.signal,
+    })
+    if (!res.ok) throw new Error(`Upload failed: ${res.status}`)
+    const result = await res.json()
+    return result.image_path
+  } finally {
+    timeout.clear()
+  }
 }
 
 export interface MissionChatResponse {
@@ -133,21 +145,26 @@ export interface MissionChatResponse {
 }
 
 export async function chatMission(message: string, conversationHistory: MessageData[], language?: string): Promise<MissionChatResponse> {
-  const res = await fetch(apiUrl('/mission/chat'), {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      message,
-      language: language || undefined,
-      conversation_history: conversationHistory.slice(0, -1).map(m => ({
-        role: m.role,
-        content: m.content,
-      })),
-    }),
-    signal: AbortSignal.timeout(60000),
-  })
-  if (!res.ok) throw new Error(`Mission chat failed: ${res.status}`)
-  return res.json()
+  const timeout = withTimeout(60000)
+  try {
+    const res = await fetch(apiUrl('/mission/chat'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        message,
+        language: language || undefined,
+        conversation_history: conversationHistory.slice(0, -1).map(m => ({
+          role: m.role,
+          content: m.content,
+        })),
+      }),
+      signal: timeout.signal,
+    })
+    if (!res.ok) throw new Error(`Mission chat failed: ${res.status}`)
+    return res.json()
+  } finally {
+    timeout.clear()
+  }
 }
 
 // ── Observations ────────────────────────────────────────────
@@ -199,26 +216,36 @@ export async function getObservationStats(): Promise<ObservationStats> {
 }
 
 export async function summarizeObservations(limit: number = 20): Promise<{ summary: string; observation_count: number }> {
-  const res = await fetch(apiUrl(`/observations/summary?limit=${limit}`), {
-    method: 'POST',
-    signal: AbortSignal.timeout(60000),
-  })
-  if (!res.ok) throw new Error(`Summary failed: ${res.status}`)
-  return res.json()
+  const timeout = withTimeout(60000)
+  try {
+    const res = await fetch(apiUrl(`/observations/summary?limit=${limit}`), {
+      method: 'POST',
+      signal: timeout.signal,
+    })
+    if (!res.ok) throw new Error(`Summary failed: ${res.status}`)
+    return res.json()
+  } finally {
+    timeout.clear()
+  }
 }
 
 export async function saveConversationToJournal(
   messages: { role: string; content: string }[],
   imagePath: string | null = null,
 ): Promise<{ observation_id: number; summary: string }> {
-  const res = await fetch(apiUrl('/chat/save-to-journal'), {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ messages, image_path: imagePath }),
-    signal: AbortSignal.timeout(60000),
-  })
-  if (!res.ok) throw new Error(`Save to journal failed: ${res.status}`)
-  return res.json()
+  const timeout = withTimeout(60000)
+  try {
+    const res = await fetch(apiUrl('/chat/save-to-journal'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ messages, image_path: imagePath }),
+      signal: timeout.signal,
+    })
+    if (!res.ok) throw new Error(`Save to journal failed: ${res.status}`)
+    return res.json()
+  } finally {
+    timeout.clear()
+  }
 }
 
 export async function createObservation(data: CreateObservationRequest): Promise<{ observation_id: number; timestamp: string }> {

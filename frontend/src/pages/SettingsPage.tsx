@@ -5,6 +5,7 @@ import {
   RefreshCw, RotateCcw, Info, Cpu, Database, HardDrive, Package,
 } from 'lucide-react'
 import TopBar from '../components/layout/TopBar'
+import { useConnection } from '../hooks/ServerConnectionContext'
 import { isNative, getServerUrl, setServerUrl, apiUrl } from '../lib/config'
 import {
   getLanguage, setLanguage, LANGUAGE_LABELS, LANGUAGE_OPTIONS,
@@ -103,6 +104,7 @@ function InfoRow({ label, value, icon }: { label: string; value: string; icon?: 
 
 export default function SettingsPage() {
   const navigate = useNavigate()
+  const { status: liveStatus, serverInfo, retry } = useConnection()
 
   // ── Connection state ───────────────────────────────────
   const [serverUrl, setUrl] = useState(getServerUrl() || 'http://192.168.1.100:8000')
@@ -142,10 +144,14 @@ export default function SettingsPage() {
 
   const testConnection = async () => {
     setConnStatus('testing')
+    const controller = new AbortController()
+    const timer = setTimeout(() => controller.abort(), 5000)
     try {
-      const res = await fetch(`${serverUrl.replace(/\/+$/, '')}/health`, { signal: AbortSignal.timeout(5000) })
+      const res = await fetch(`${serverUrl.replace(/\/+$/, '')}/health`, { signal: controller.signal })
+      clearTimeout(timer)
       setConnStatus(res.ok ? 'ok' : 'error')
     } catch {
+      clearTimeout(timer)
       setConnStatus('error')
     }
   }
@@ -218,6 +224,43 @@ export default function SettingsPage() {
         {/* ── Connection (native only) ── */}
         {isNative() ? (
           <Section title="Connection">
+            {/* Live status banner */}
+            <div className="px-4 py-3 flex items-center gap-3">
+              <span className={`relative flex h-2.5 w-2.5 flex-shrink-0 ${liveStatus === 'scanning' ? '' : ''}`}>
+                {liveStatus === 'scanning' && (
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75" />
+                )}
+                <span className={`relative inline-flex rounded-full h-2.5 w-2.5 ${
+                  liveStatus === 'connected' ? 'bg-green-500' :
+                  liveStatus === 'scanning'  ? 'bg-amber-400' :
+                                               'bg-red-400'
+                }`} />
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-medium text-text">
+                  {liveStatus === 'connected' ? 'Connected' :
+                   liveStatus === 'scanning'  ? 'Scanning...' :
+                                                'Disconnected'}
+                </p>
+                {liveStatus === 'connected' && serverInfo && (
+                  <p className="text-xs text-text-muted truncate">
+                    {serverInfo.ip} · {serverInfo.pack}
+                  </p>
+                )}
+                {liveStatus === 'disconnected' && (
+                  <p className="text-xs text-text-muted">No FieldStation found on the network</p>
+                )}
+              </div>
+              {liveStatus === 'disconnected' && (
+                <button
+                  onClick={retry}
+                  className="px-3 py-1.5 text-xs font-medium bg-surface rounded-lg border border-surface-dark hover:bg-surface-dark transition-colors"
+                >
+                  Retry
+                </button>
+              )}
+            </div>
+
             <div className="px-4 py-4 space-y-3">
               <label className="text-xs font-medium text-text-muted block">Server URL</label>
               <input

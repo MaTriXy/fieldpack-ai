@@ -223,10 +223,13 @@ async def execute_searches(state: FieldAssistantState) -> dict:
     fts_keywords = _collect_fts_keywords(state)
     metadata_filters = route.metadata_filters or {}
 
-    # Only 'crop' is reliably present on chunks across all collections.
-    # disease_name exists on disease_knowledge/treatment_guides but not
-    # farming_practices/regional_context — would cause 0 results there.
-    chroma_filters = {"crop": metadata_filters["crop"]} if "crop" in metadata_filters else {}
+    # Build crop filter for ChromaDB, but also search WITHOUT it.
+    # Chunks tagged crop="general" or missing crop field (regional_context)
+    # would be silently dropped by a strict crop filter — but they often
+    # contain the most relevant content (planting calendars, regional info).
+    # We search both ways and let the reranker sort by relevance.
+    crop_filter = metadata_filters.get("crop")
+    chroma_filters_with_crop = {"crop": crop_filter} if crop_filter is not None else {}
 
     log.log_step(Step.SEARCH, "execute_start", details={
         "query_count": len(embedding_queries),
@@ -238,14 +241,25 @@ async def execute_searches(state: FieldAssistantState) -> dict:
         tasks = []
         task_labels = []
 
-        # ChromaDB: one search task per query per collection
+        # ChromaDB: search with crop filter AND without, merge results.
+        # Filtered search boosts precision; unfiltered catches general chunks.
         if SearchEngineType.CHROMA_EMBEDDING in route.engines:
             for eq in embedding_queries:
+                if chroma_filters_with_crop:
+                    # Filtered search (crop-specific chunks)
+                    tasks.append(asyncio.to_thread(
+                        _run_chroma_searches,
+                        eq,
+                        route.collections,
+                        chroma_filters_with_crop,
+                    ))
+                    task_labels.append(f"chroma_filtered:{','.join(route.collections)}")
+                # Unfiltered search (general + cross-crop chunks)
                 tasks.append(asyncio.to_thread(
                     _run_chroma_searches,
                     eq,
                     route.collections,
-                    chroma_filters,
+                    {},
                 ))
                 task_labels.append(f"chroma:{','.join(route.collections)}")
 

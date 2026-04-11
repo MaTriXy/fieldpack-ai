@@ -12,11 +12,8 @@ import {
   Search,
   Database,
   Globe,
-  Cloud,
-  CloudOff,
   Smartphone,
   Laptop,
-  NotebookPen,
 } from 'lucide-react'
 import { useConnection } from '../hooks/ServerConnectionContext'
 import { getServerUrl, setServerUrl, isNative } from '../lib/config'
@@ -279,8 +276,10 @@ function ConnectSlide({ onComplete }: { onComplete: () => void }) {
       return
     }
     setConnectState('testing')
+    const ctrl = new AbortController()
+    const tmr = setTimeout(() => ctrl.abort(), 5000)
     try {
-      const res = await fetch(`${cleaned}/health`, { signal: AbortSignal.timeout(5000) })
+      const res = await fetch(`${cleaned}/health`, { signal: ctrl.signal })
       if (res.ok) {
         setServerUrl(cleaned)
         setConnectState('ok')
@@ -290,6 +289,8 @@ function ConnectSlide({ onComplete }: { onComplete: () => void }) {
       }
     } catch {
       setConnectState('error')
+    } finally {
+      clearTimeout(tmr)
     }
   }
 

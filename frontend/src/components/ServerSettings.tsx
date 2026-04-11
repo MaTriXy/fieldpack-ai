@@ -14,14 +14,14 @@ export default function ServerSettings({ onClose }: ServerSettingsProps) {
   const testConnection = async () => {
     setTesting(true)
     setStatus('idle')
+    const controller = new AbortController()
+    const timer = setTimeout(() => controller.abort(), 5000)
     try {
-      const res = await fetch(`${url.replace(/\/+$/, '')}/health`, { signal: AbortSignal.timeout(5000) })
-      if (res.ok) {
-        setStatus('ok')
-      } else {
-        setStatus('error')
-      }
+      const res = await fetch(`${url.replace(/\/+$/, '')}/health`, { signal: controller.signal })
+      clearTimeout(timer)
+      setStatus(res.ok ? 'ok' : 'error')
     } catch {
+      clearTimeout(timer)
       setStatus('error')
     }
     setTesting(false)

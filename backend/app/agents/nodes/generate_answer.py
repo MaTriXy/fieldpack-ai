@@ -18,6 +18,7 @@ from langchain_core.messages import HumanMessage, SystemMessage
 from app.agents.models import ScoredResult, extract_text
 from app.agents.state import FieldAssistantState, trim_conversation_history
 from app.agents.history import history_to_nl
+from app.knowledge_pack.loader import get_active_pack
 from app.logger import Step, pipeline_logger as log
 from app.models.offline_llm import get_field_llm
 
@@ -30,15 +31,35 @@ LANGUAGE_INSTRUCTIONS = {
     "pt": "IMPORTANT: Respond entirely in Portuguese (Portugues).",
 }
 
-GENERATE_SYSTEM_PROMPT = """Agricultural field assistant for Casamance, Senegal. Answer using ONLY the provided context.
+GENERATE_SYSTEM_PROMPT = """Agricultural field assistant. Answer using ONLY the provided context.
 - Be concise: 3-8 sentences for simple questions, longer for treatment plans
 - Be specific and actionable, reference locally available materials
 - Use bullet points for treatment steps
 - Include safety precautions for treatments
-- If context has nothing relevant, say: "I don't have information on this topic in the knowledge pack."
+- Answer from whatever relevant information is in the context, even if it only partially addresses the question
+- Only say "I don't have information on this topic" if NONE of the sources relate to the question at all
 - Never invent disease names, treatments, or statistics not in context."""
 
-CONVERSATIONAL_SYSTEM_PROMPT = """You are FieldPack AI, an agricultural field assistant for Casamance, Senegal. You help farmers with crop diseases, treatments, and farming. Reply briefly and helpfully."""
+CONVERSATIONAL_SYSTEM_PROMPT = "You are FieldPack AI, an agricultural field assistant{region_suffix}. You help farmers with crop diseases, treatments, and farming. Reply briefly and helpfully."
+
+SEARCH_EXHAUSTED_CONTEXT = "[No relevant information was found in the knowledge base for this question.]"
+
+SEARCH_EXHAUSTED_SYSTEM_PROMPT = """You are FieldPack AI, an agricultural field assistant. The knowledge base was searched but no relevant information was found for this question.
+- Honestly tell the farmer you don't have information on this specific topic
+- Suggest they rephrase their question or ask about a different crop or topic
+- Be brief (2-3 sentences)
+- Never invent disease names, treatments, or statistics."""
+
+
+def _get_pack_region() -> str:
+    """Get the loaded pack's region name, or empty string if no pack."""
+    try:
+        pack = get_active_pack()
+        if pack and pack.manifest and pack.manifest.region:
+            return pack.manifest.region.name
+    except Exception:
+        pass
+    return ""
 
 
 def _assemble_context(
@@ -103,17 +124,39 @@ async def generate_answer(state: FieldAssistantState) -> dict:
     # Assemble context
     context_text = _assemble_context(ranked_results)
 
-    is_conversational = not context_text
+    # Distinguish "user is chatting" from "search failed after retries"
+    retrieval_attempts = state.get("retrieval_attempts", 0)
+    needs_search = state.get("needs_search", True)
+    search_exhausted = needs_search and not context_text and retrieval_attempts >= 1
 
-    # Pick system prompt: RAG prompt when we have context, conversational otherwise
-    base_prompt = CONVERSATIONAL_SYSTEM_PROMPT if is_conversational else GENERATE_SYSTEM_PROMPT
+    is_conversational = not context_text and not search_exhausted
+
+    # Inject sentinel so the model sees an explicit "no results" rather than
+    # an empty context block with instructions to "answer from context"
+    if search_exhausted:
+        context_text = SEARCH_EXHAUSTED_CONTEXT
+
+    # Pick system prompt: RAG when we have context, conversational for chat,
+    # and a knowledge-aware fallback when search was attempted but found nothing
+    if is_conversational:
+        region = _get_pack_region()
+        region_suffix = f" for {region}" if region else ""
+        base_prompt = CONVERSATIONAL_SYSTEM_PROMPT.format(region_suffix=region_suffix)
+    elif search_exhausted:
+        base_prompt = SEARCH_EXHAUSTED_SYSTEM_PROMPT
+    else:
+        base_prompt = GENERATE_SYSTEM_PROMPT
     system_prompt = (
         lang_instruction + "\n\n" + base_prompt
         if lang_instruction
         else base_prompt
     )
 
-    if is_conversational:
+    if search_exhausted:
+        log.log_step(Step.GENERATE, "search_exhausted",
+                     details={"message": user_message[:200],
+                              "retrieval_attempts": retrieval_attempts})
+    elif is_conversational:
         log.log_step(Step.GENERATE, "no_context",
                      details={"message": user_message[:200]})
 
@@ -153,7 +196,9 @@ async def generate_answer(state: FieldAssistantState) -> dict:
         messages.append(HumanMessage(content="\n".join(user_prompt_parts)))
 
     temperature = 0.1 if is_conversational else 0.4
-    max_tokens = 128 if is_conversational else 512
+    # 256 for search_exhausted: deliberate cap to limit hallucination length
+    # when the model has no real context to ground on
+    max_tokens = 128 if is_conversational else 256 if search_exhausted else 512
     fmt = None
 
     with log.timed(Step.GENERATE, "llm_call") as t:

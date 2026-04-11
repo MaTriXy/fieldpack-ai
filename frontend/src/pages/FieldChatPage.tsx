@@ -5,6 +5,7 @@ import MarkdownContent from '../components/MarkdownContent'
 import TopBar from '../components/layout/TopBar'
 import ChatSidebar from '../components/ChatSidebar'
 import { useSwipeToOpen } from '../hooks/useSwipeToOpen'
+import { useAndroidBack } from '../hooks/useAndroidBack'
 import {
   listConversations,
   createConversation,
@@ -165,7 +166,7 @@ function ThinkingBubble({ step, mode }: { step: string | null; mode: 'quick' | '
     const id = setInterval(() => {
       setFactIndex((i) => (i + 1) % FIELD_FACTS.length)
       setFadeKey((k) => k + 1)
-    }, 6000)
+    }, 15000)
     return () => clearInterval(id)
   }, [mode])
 
@@ -303,6 +304,9 @@ export default function FieldChatPage() {
   const [savedToJournal, setSavedToJournal] = useState(false)
   const [journalToast, setJournalToast] = useState<string | null>(null)
 
+  // Camera error (permission denied)
+  const [cameraError, setCameraError] = useState<string | null>(null)
+
   // Pending photo to attach to next message
   const [pendingImage, setPendingImage] = useState<{ base64: string; format: string; preview: string } | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -323,6 +327,25 @@ export default function FieldChatPage() {
 
   const openSidebar = useCallback(() => setSidebarOpen(true), [])
   useSwipeToOpen(openSidebar)
+  useAndroidBack([
+    () => { if (sidebarOpen) { setSidebarOpen(false); return true } return false },
+    () => {
+      if (isStreamingRef.current && wsRef.current) {
+        const ws = wsRef.current
+        wsRef.current = null
+        ws.close()
+        setStreamingContent('')
+        setCurrentStep(null)
+        setPipelineMode(null)
+        isStreamingRef.current = false
+        setIsStreaming(false)
+        reconnectAttempts.current = 0
+        setTimeout(() => connectWs(), 300)
+        return true
+      }
+      return false
+    },
+  ])
 
   // Fetch pack status on mount
   useEffect(() => {
@@ -475,6 +498,30 @@ export default function FieldChatPage() {
       // If wsRef was already nulled (e.g. by stop button or unmount), skip reconnect
       if (wsRef.current !== ws) return
       wsRef.current = null
+
+      // Flush partial streaming content on disconnect
+      if (isStreamingRef.current) {
+        setStreamingContent((prev) => {
+          if (prev) {
+            setMessages((msgs) => [
+              ...msgs,
+              {
+                id: Date.now().toString(),
+                role: 'assistant',
+                content: prev + '\n\n*[Connection interrupted]*',
+                sources: pendingSourcesRef.current || undefined,
+              },
+            ])
+          }
+          return ''
+        })
+        pendingSourcesRef.current = null
+        setCurrentStep(null)
+        setPipelineMode(null)
+        isStreamingRef.current = false
+        setIsStreaming(false)
+      }
+
       // Auto-reconnect with exponential backoff
       reconnectAttempts.current += 1
       if (reconnectAttempts.current < MAX_RECONNECT_ATTEMPTS) {
@@ -504,12 +551,30 @@ export default function FieldChatPage() {
   useEffect(() => {
     if (!packInfo) return
     connectWs()
+
+    // Reset reconnect on app resume (phone wake from sleep)
+    let appListener: { remove: () => void } | null = null
+    if (isNative()) {
+      import('@capacitor/app').then(({ App }) => {
+        App.addListener('appStateChange', ({ isActive }) => {
+          if (isActive) {
+            reconnectAttempts.current = 0
+            setWsError(null)
+            if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
+              connectWs()
+            }
+          }
+        }).then(listener => { appListener = listener })
+      }).catch(() => {})
+    }
+
     return () => {
       const ws = wsRef.current
       if (ws) {
         wsRef.current = null // prevent reconnect
         ws.close()
       }
+      appListener?.remove()
     }
   }, [connectWs, packInfo])
 
@@ -646,8 +711,13 @@ export default function FieldChatPage() {
             preview: `data:image/${photo.format || 'jpeg'};base64,${photo.base64String}`,
           })
         }
-      } catch {
-        // User cancelled or camera unavailable
+      } catch (err) {
+        const msg = err instanceof Error ? err.message.toLowerCase() : ''
+        if (msg.includes('permission') || msg.includes('denied')) {
+          setCameraError('Camera access denied. Enable it in Android Settings → Apps → FieldPack AI → Permissions.')
+          setTimeout(() => setCameraError(null), 8000)
+        }
+        // else: user cancelled — stay silent
       }
     } else {
       // Web fallback: trigger file input
@@ -685,20 +755,25 @@ export default function FieldChatPage() {
     setInput('')
     if (textareaRef.current) textareaRef.current.style.height = 'auto'
 
-    // ── OFFLINE PATH ──
-    if (offlineMode || !wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
-      const queued = enqueueChatMessage({
-        content: messageText,
-        image_base64: pendingImage?.base64 || null,
-        image_format: pendingImage?.format || null,
-      })
-      setQueuedMessages(prev => [...prev, queued])
-      setMessages(prev => [...prev, {
-        id: crypto.randomUUID(),
-        role: 'assistant',
-        content: '',
-        _queued: true,
-      }])
+    // ── OFFLINE PATH ── (navigator.onLine is an instant fast-path check)
+    const wsReady = wsRef.current?.readyState === WebSocket.OPEN
+    if (offlineMode || !wsReady || (isNative() && !navigator.onLine)) {
+      try {
+        const queued = enqueueChatMessage({
+          content: messageText,
+          image_base64: pendingImage?.base64 || null,
+          image_format: pendingImage?.format || null,
+        })
+        setQueuedMessages(prev => [...prev, queued])
+        setMessages(prev => [...prev, {
+          id: crypto.randomUUID(),
+          role: 'assistant',
+          content: '',
+          _queued: true,
+        }])
+      } catch (err) {
+        setWsError(err instanceof Error ? err.message : 'Failed to save offline message')
+      }
       setPendingImage(null)
       return
     }
@@ -731,7 +806,7 @@ export default function FieldChatPage() {
         .catch(() => {})
     }
 
-    wsRef.current.send(JSON.stringify({
+    wsRef.current!.send(JSON.stringify({
       message: messageText,
       image_path: imagePath,
       conversation_history: pipelineHistory.current,
@@ -1273,6 +1348,10 @@ export default function FieldChatPage() {
                 </button>
               ))}
             </div>
+          )}
+          {/* Camera error */}
+          {cameraError && (
+            <p className="text-xs text-tertiary mb-1 animate-fadeIn">{cameraError}</p>
           )}
           {/* Image preview */}
           {pendingImage && (

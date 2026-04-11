@@ -81,7 +81,6 @@ class TestTemplateQuery:
         result = _template_query("My cassava has yellow leaves", classify)
         assert "cassava" in result.embedding_query
         assert "yellow" in result.embedding_query
-        assert "Casamance" in result.embedding_query
         assert "cassava" in result.fts_keywords
         assert "yellow" in result.fts_keywords
         # Raw user message excluded when classify provides fields
@@ -119,7 +118,6 @@ class TestTemplateQuery:
     def test_no_classify_result_falls_back_to_user_message(self):
         result = _template_query("help with my crops", None)
         assert "help with my crops" in result.embedding_query
-        assert "Casamance" in result.embedding_query
 
     def test_empty_classify_falls_back_to_user_message(self):
         classify = ClassifyExtractOutput()

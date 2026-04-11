@@ -57,7 +57,7 @@ soil, fertilization, storage, planting, practice, regional)
 - Include any structured data you can extract in raw_data (numbers, percentages, ranges)
 - Set confidence based on how specific and reliable the source text is
 
-Focus on information useful for a field worker in Casamance, Senegal.
+Focus on information useful for a field worker in {region}.
 """
 
 
@@ -70,6 +70,7 @@ async def _extract_section(
     section: PageSection,
     llm,
     semaphore: asyncio.Semaphore,
+    region: str,
 ) -> list[Finding]:
     """Extract findings from a single section via LLM call."""
     async with semaphore:
@@ -81,6 +82,7 @@ async def _extract_section(
             section_type=section.section_type or "general",
             source=section.source_url,
             content=section.content,
+            region=region,
         )
 
         # Include table content if present
@@ -182,6 +184,7 @@ async def knowledge_extraction(state: AgentFarmState) -> dict[str, Any]:
     """
     sections = state.get("sections", [])
     climate_records = state.get("climate_records", [])
+    region = state.get("region", "the target region")
     messages: list[str] = list(state.get("status_messages", []))
     messages.append(f"Phase B: Extracting knowledge from {len(sections)} sections...")
 
@@ -199,7 +202,7 @@ async def knowledge_extraction(state: AgentFarmState) -> dict[str, Any]:
     semaphore = asyncio.Semaphore(_MAX_CONCURRENT)
 
     tasks = [
-        _extract_section(section, llm, semaphore)
+        _extract_section(section, llm, semaphore, region)
         for section in sections
     ]
 

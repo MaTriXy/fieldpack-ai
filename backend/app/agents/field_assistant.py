@@ -38,6 +38,7 @@ from app.agents.nodes import (
     rerank_results,
     route_intent,
 )
+from app.agents.nodes.rerank import MAX_RESULTS_FOR_RERANK
 from app.agents.state import FieldAssistantState
 from app.logger import Step, pipeline_logger as log
 
@@ -261,6 +262,20 @@ async def run_field_assistant(
         raise
 
 
+_TABLE_LABELS = {
+    "crops": "Crop Profile",
+    "diseases": "Disease Record",
+    "treatments": "Treatment Record",
+    "varieties": "Variety Info",
+    "climate": "Climate Data",
+    "fertilization_schedule": "Fertilization Schedule",
+    "planting_calendar": "Planting Calendar",
+    "storage_guidelines": "Storage Guidelines",
+    "soil_requirements": "Soil Requirements",
+    "pests": "Pest Record",
+}
+
+
 def _build_source_title(metadata: dict, source_id: str) -> str:
     """Build a human-readable source title from chunk metadata."""
     disease = metadata.get("disease_name", "")
@@ -285,8 +300,14 @@ def _build_source_title(metadata: dict, source_id: str) -> str:
     if topic:
         return topic.replace("_", " ").title()
 
+    # FTS/structured results use "table:id" format
+    if ":" in source_id:
+        table, _, row_id = source_id.partition(":")
+        label = _TABLE_LABELS.get(table, table.replace("_", " ").title())
+        return f"{label} #{row_id}"
+
     # Fallback: clean up the doc ID
-    return source_id.replace("_", " ").rsplit(" child", 1)[0].rsplit(" parent", 1)[0].title()
+    return source_id.replace("_", " ").rsplit(" child", 1)[0].rsplit(" parent", 1)[0].title() or "Unknown Source"
 
 
 async def run_field_assistant_stream(
@@ -413,8 +434,8 @@ async def run_field_assistant_stream(
                 previous_summary=conversation_summary,
             )
 
-            # Sources from ranked results
-            ranked = final_state.get("ranked_results", [])
+            # Sources from ranked results — cap at MAX_RESULTS_FOR_RERANK
+            ranked = final_state.get("ranked_results", [])[:MAX_RESULTS_FOR_RERANK]
             sources = []
             for r in ranked:
                 if not hasattr(r, "relevance_score"):

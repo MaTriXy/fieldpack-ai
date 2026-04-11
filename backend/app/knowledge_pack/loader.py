@@ -16,8 +16,40 @@ from app.knowledge_pack.schema_chroma import (
     verify_chroma_collections,
 )
 from app.knowledge_pack.schema_manifest import ManifestSchema, validate_manifest
-from app.knowledge_pack.schema_sqlite import verify_sqlite_schema
+from app.knowledge_pack.schema_sqlite import (
+    FTS5_DDL,
+    FTS5_TRIGGERS_DDL,
+    verify_sqlite_schema,
+)
 from app.logger import Step, pipeline_logger as log
+
+
+def _ensure_fts_tables(db_path: Path) -> None:
+    """Create any missing FTS5 virtual tables and backfill them.
+
+    Opens the DB read-write briefly. All DDL uses IF NOT EXISTS so this
+    is idempotent and safe to run on every pack load.
+    """
+    conn = sqlite3.connect(str(db_path))
+    try:
+        conn.executescript(FTS5_DDL)
+        conn.executescript(FTS5_TRIGGERS_DDL)
+        # Backfill any FTS table that's empty but whose source table has data.
+        # FTS5 'rebuild' command re-reads all rows from the content table.
+        for fts_table in [
+            "diseases_fts", "treatments_fts", "crops_fts", "pests_fts",
+            "varieties_fts", "fertilization_schedule_fts",
+            "storage_guidelines_fts", "planting_calendar_fts",
+        ]:
+            try:
+                count = conn.execute(f"SELECT COUNT(*) FROM {fts_table}").fetchone()[0]
+                if count == 0:
+                    conn.execute(f"INSERT INTO {fts_table}({fts_table}) VALUES('rebuild')")
+            except Exception:
+                pass
+        conn.commit()
+    finally:
+        conn.close()
 
 
 class KnowledgePack:
@@ -55,6 +87,8 @@ class KnowledgePack:
             db_path = self._pack_path / "knowledge.db"
             if not db_path.exists():
                 raise FileNotFoundError(f"No knowledge.db in {self._pack_path}")
+            # Ensure FTS tables exist (migration for packs built before new FTS tables)
+            _ensure_fts_tables(db_path)
             self._sqlite_conn = sqlite3.connect(
                 f"file:{db_path}?mode=ro", uri=True, check_same_thread=False,
             )

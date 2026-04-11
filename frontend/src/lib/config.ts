@@ -51,9 +51,17 @@ export function apiUrl(path: string): string {
 
 /** Probe a single candidate URL; resolves to the base URL on success, rejects otherwise. */
 async function probeHealth(baseUrl: string, timeoutMs: number): Promise<string> {
-  const res = await fetch(`${baseUrl}/health`, { signal: AbortSignal.timeout(timeoutMs) })
-  if (!res.ok) throw new Error('not ok')
-  return baseUrl
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), timeoutMs)
+  try {
+    const res = await fetch(`${baseUrl}/health`, { signal: controller.signal })
+    clearTimeout(timer)
+    if (!res.ok) throw new Error('not ok')
+    return baseUrl
+  } catch (err) {
+    clearTimeout(timer)
+    throw err
+  }
 }
 
 /**
@@ -119,21 +127,26 @@ function subnetCandidates(localIp: string, port: number): string[] {
  */
 export async function autoScanForServer(): Promise<string | null> {
   if (!isNative()) return null
+  console.log('[scan] starting, native=true')
 
   const TIMEOUT = 2000
 
   // 1. Saved URL still alive — no scan needed
   const saved = localStorage.getItem(STORAGE_KEY)
   if (saved) {
+    console.log('[scan] probing saved URL:', saved)
     try {
-      return await probeHealth(saved, TIMEOUT)
-    } catch {
-      // Saved URL is dead — fall through to scan
+      const result = await probeHealth(saved, TIMEOUT)
+      console.log('[scan] saved URL alive:', result)
+      return result
+    } catch (e) {
+      console.log('[scan] saved URL dead:', (e as Error).message)
     }
   }
 
   // 2. Priority: hotspot & gateway IPs (field scenario)
   const priorityIps = [
+    'http://10.0.2.2:8000',       // Android emulator → host loopback
     'http://192.168.137.1:8000',  // Windows hotspot
     'http://192.168.43.1:8000',   // Android hotspot
     'http://192.168.1.1:8000',
@@ -141,30 +154,41 @@ export async function autoScanForServer(): Promise<string | null> {
     'http://10.0.0.1:8000',
   ]
 
+  console.log('[scan] probing priority IPs...')
   try {
     const found = await Promise.any(
       priorityIps.map((url) => probeHealth(url, 1500))
     )
+    console.log('[scan] priority hit:', found)
     setServerUrl(found)
     return found
-  } catch {
-    // None hit — continue to smart scan
+  } catch (e) {
+    console.log('[scan] all priority IPs failed:', (e as Error).message)
   }
 
   // 3. Smart subnet scan: detect own IP, scan the /24
   const localIp = await getLocalIp()
+  console.log('[scan] local IP:', localIp)
   if (localIp) {
     const candidates = subnetCandidates(localIp, 8000)
-    try {
-      const found = await Promise.any(
-        candidates.map((url) => probeHealth(url, TIMEOUT))
-      )
-      setServerUrl(found)
-      return found
-    } catch {
-      // No server found on subnet
+    console.log('[scan] scanning', candidates.length, 'subnet candidates in batches')
+    const BATCH_SIZE = 30
+    for (let i = 0; i < candidates.length; i += BATCH_SIZE) {
+      const batch = candidates.slice(i, i + BATCH_SIZE)
+      try {
+        const found = await Promise.any(
+          batch.map((url) => probeHealth(url, TIMEOUT))
+        )
+        console.log('[scan] subnet hit:', found)
+        setServerUrl(found)
+        return found
+      } catch {
+        // batch had no hits — continue to next batch
+      }
     }
+    console.log('[scan] subnet scan failed')
   }
 
+  console.log('[scan] no server found')
   return null
 }

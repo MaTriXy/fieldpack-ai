@@ -62,8 +62,6 @@ def _template_query(
     if not parts:
         parts.append(user_message)
 
-    parts.append("Casamance")
-
     # Deduplicate while preserving order
     seen: set[str] = set()
     deduped: list[str] = []

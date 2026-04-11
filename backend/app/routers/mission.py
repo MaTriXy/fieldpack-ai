@@ -63,7 +63,7 @@ class MissionChatRequest(BaseModel):
 
 
 class MissionCard(BaseModel):
-    region: str = Field(description="Geographic region, e.g. 'Casamance, Senegal'")
+    region: str = Field(description="Geographic region, e.g. 'Eastern Kenya'")
     crops: list[str] = Field(description="List of crop names, e.g. ['Cassava', 'Rice']")
     season: str = Field(description="Growing season, e.g. 'Rainy (Jul-Oct)'")
     focus_areas: list[str] = Field(description="Research focus areas, e.g. ['Disease ID', 'Treatment Protocols']")
@@ -95,7 +95,7 @@ Farming Calendar, Pest Management, Soil Health, Seed Varieties, Post-Harvest Sto
 
 Rules:
 - If the user provides partial info, acknowledge what you understood and ask for the rest.
-- Infer season from the region if not stated (e.g., Casamance → "Rainy (Jul–Oct)").
+- Infer season from the region if not stated.
 - Infer reasonable focus_areas if not stated (default to ["Disease ID", "Treatment Protocols", "Farming Calendar"]).
 - Once you have at least region + 1 crop, set ready=true and fill the mission_card.
 - Estimate scale_estimate based on crop count (roughly 30 records per crop from 4 sources).

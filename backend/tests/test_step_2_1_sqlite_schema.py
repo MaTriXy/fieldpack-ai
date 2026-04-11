@@ -305,7 +305,8 @@ def test_fts_table_map():
     assert FTS_TABLE_MAP["varieties"] == "varieties_fts"
     assert FTS_TABLE_MAP["fertilization_schedule"] == "fertilization_schedule_fts"
     assert FTS_TABLE_MAP["storage_guidelines"] == "storage_guidelines_fts"
-    assert len(FTS_TABLE_MAP) == 7
+    assert FTS_TABLE_MAP["planting_calendar"] == "planting_calendar_fts"
+    assert len(FTS_TABLE_MAP) == 8
 
 
 def test_table_joins():

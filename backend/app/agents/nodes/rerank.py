@@ -27,7 +27,7 @@ from app.models.offline_llm import get_field_llm
 KEEP_THRESHOLD = 0.4
 SUFFICIENT_THRESHOLD = 0.5
 SUFFICIENT_MIN_COUNT = 2
-MAX_RESULTS_FOR_RERANK = 8
+MAX_RESULTS_FOR_RERANK = 5
 MAX_WORDS_PER_RESULT = 200
 
 
@@ -36,10 +36,16 @@ MAX_WORDS_PER_RESULT = 200
 # ============================================================
 
 def _normalize_scores(results: list[SearchResult]) -> list[ScoredResult]:
-    """Normalize scores across engine types to a common 0-1 scale."""
-    # Find max BM25 score for FTS normalization
-    fts_scores = [r.score for r in results if r.result_type == ResultType.FTS and r.score > 0]
-    max_fts = max(fts_scores) if fts_scores else 1.0
+    """Normalize scores across engine types to a common 0-1 scale.
+
+    BM25 scores arrive already normalized to [0,1] by execute_search.
+    FTS/structured results are capped at 0.8 because they lack the rich
+    parent-chunk prose that ChromaDB results provide — this prevents
+    thin tabular content from outranking detailed narrative chunks.
+    """
+    # FTS scores already normalized 0-1 by execute_search._normalize_bm25_scores
+    FTS_SCORE_CAP = 0.8
+    STRUCTURED_SCORE = 0.65
 
     scored = []
     for r in results:
@@ -47,11 +53,11 @@ def _normalize_scores(results: list[SearchResult]) -> list[ScoredResult]:
             # Cosine similarity already 0-1
             norm_score = r.score
         elif r.result_type == ResultType.FTS:
-            # BM25 normalized to 0-1 within batch, floor at 0.3
-            norm_score = max(0.3, r.score / max_fts) if max_fts > 0 else 0.5
+            # Already 0-1 from execute_search; cap to avoid outranking ChromaDB
+            norm_score = min(FTS_SCORE_CAP, max(0.3, r.score))
         else:
-            # Structured: neutral 0.7
-            norm_score = 0.7
+            # Structured: fixed score, useful for context but not primary
+            norm_score = STRUCTURED_SCORE
 
         scored.append(ScoredResult(
             content=r.parent_content or r.content,
@@ -111,9 +117,30 @@ def _apply_image_symptom_boost(
     return scored
 
 
+def _apply_crop_boost(
+    scored: list[ScoredResult],
+    crop: str,
+) -> list[ScoredResult]:
+    """Boost results whose metadata or source ID matches the detected crop.
+
+    Checks metadata["crop"] (chroma tags) and source string (e.g. "rice_blast_005").
+    """
+    crop_lower = crop.lower()
+    CROP_BOOST = 0.12
+
+    for result in scored:
+        meta_crop = ((result.metadata or {}).get("crop") or "").lower()
+        source_lower = (result.source or "").lower()
+        if meta_crop == crop_lower or source_lower.startswith(crop_lower + "_"):
+            result.relevance_score = min(1.0, result.relevance_score + CROP_BOOST)
+
+    return scored
+
+
 def _heuristic_rerank(
     search_results: list[SearchResult],
     image_description: str | None = None,
+    detected_crop: str | None = None,
 ) -> tuple[list[ScoredResult], bool]:
     """Fast heuristic rerank: normalize, dedup, sort, check sufficiency."""
     scored = _normalize_scores(search_results)
@@ -121,6 +148,10 @@ def _heuristic_rerank(
 
     # Filter by keep threshold
     scored = [s for s in scored if s.relevance_score >= KEEP_THRESHOLD]
+
+    # Boost results matching the detected crop before sorting
+    if detected_crop:
+        scored = _apply_crop_boost(scored, detected_crop)
 
     # Boost results matching image symptoms before sorting
     if image_description:
@@ -229,14 +260,16 @@ def _parse_rerank_response(
         log.log_step(Step.RERANK, "llm_parse_fallback", level="WARNING",
                      details={"response_preview": response_text[:200]})
         for r in search_results:
-            scored.append(ScoredResult(
-                content=r.parent_content or r.content,
-                source=r.source,
-                relevance_score=min(1.0, r.score),
-                parent_id=r.parent_id,
-                parent_content=r.parent_content,
-                metadata=r.metadata,
-            ))
+            score = min(1.0, r.score)
+            if score >= KEEP_THRESHOLD:
+                scored.append(ScoredResult(
+                    content=r.parent_content or r.content,
+                    source=r.source,
+                    relevance_score=score,
+                    parent_id=r.parent_id,
+                    parent_content=r.parent_content,
+                    metadata=r.metadata,
+                ))
 
     scored.sort(key=lambda s: s.relevance_score, reverse=True)
 
@@ -249,6 +282,8 @@ def _parse_rerank_response(
 def _llm_rerank(
     search_results: list[SearchResult],
     user_message: str,
+    detected_crop: str | None = None,
+    image_description: str | None = None,
 ) -> tuple[list[ScoredResult], bool]:
     """Slow LLM rerank — only used as fallback on retry."""
     truncated = _truncate_for_context(search_results)
@@ -272,8 +307,8 @@ def _llm_rerank(
     except Exception as e:
         log.log_step(Step.RERANK, "llm_error", level="ERROR",
                      details={"error": str(e)})
-        # Fall through to heuristic
-        return _heuristic_rerank(search_results)
+        # Fall through to heuristic with all boosts preserved
+        return _heuristic_rerank(search_results, image_description=image_description, detected_crop=detected_crop)
 
     return _parse_rerank_response(response_text, search_results)
 
@@ -306,8 +341,10 @@ def rerank_results(state: FieldAssistantState) -> dict:
 
     # Tier 1: heuristic (always runs first)
     image_description = state.get("image_description")
+    classify_result = state.get("classify_result")
+    detected_crop = classify_result.crop if classify_result and classify_result.crop else None
     with log.timed(Step.RERANK, "heuristic_rerank") as t:
-        ranked, is_sufficient = _heuristic_rerank(top_results, image_description)
+        ranked, is_sufficient = _heuristic_rerank(top_results, image_description, detected_crop)
         t.set(details={
             "input_count": len(top_results),
             "kept_count": len(ranked),
@@ -321,7 +358,7 @@ def rerank_results(state: FieldAssistantState) -> dict:
         log.log_step(Step.RERANK, "escalating_to_llm",
                      details={"attempt": attempts, "heuristic_kept": len(ranked)})
         with log.timed(Step.RERANK, "llm_call") as t:
-            ranked, is_sufficient = _llm_rerank(top_results, user_message)
+            ranked, is_sufficient = _llm_rerank(top_results, user_message, detected_crop, image_description)
             t.set(details={
                 "input_count": len(top_results),
                 "kept_count": len(ranked),

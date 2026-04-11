@@ -209,8 +209,7 @@ def _build_id_context(compiled_ids: dict[str, dict[int, str]],
 
 _COMPILATION_PROMPT = """\
 You are compiling {table_name} records for a Knowledge Pack targeting \
-the Casamance region of Senegal. This pack covers crops: cassava, rice, \
-maize, groundnut, and tomato.
+the {region}. This pack covers crops: {crops}.
 
 Compile structured records from the research findings below. Each record \
 must match the schema exactly. Use the Field descriptions in the schema \
@@ -222,7 +221,7 @@ RULES:
 - List any fields where you lack reliable data in data_gaps
 - Do NOT hallucinate data — use null/None for fields you cannot fill
 - Prefer specific, actionable information over generic descriptions
-- For Casamance/Senegal context: use local variety names, XOF currency, \
+- For {region} context: use local variety names, {currency}, \
   local materials, and region-specific practices where known
 {fk_instructions}
 
@@ -257,7 +256,7 @@ _TABLE_GUIDANCE: dict[str, dict[str, str]] = {
         "fk_instructions": (
             "\n- CRITICAL: disease_id MUST use ONLY the IDs listed below."
             "\n- Include both organic and conventional treatments."
-            "\n- Emphasize treatments using locally available materials in Casamance."
+            "\n- Emphasize treatments using locally available materials in {region}."
         ),
         "expected_range": "25-35",
     },
@@ -275,7 +274,7 @@ _TABLE_GUIDANCE: dict[str, dict[str, str]] = {
     "varieties": {
         "fk_instructions": (
             "\n- CRITICAL: crop_id MUST use ONLY the IDs listed below."
-            "\n- Prioritize varieties available in Casamance/Senegal."
+            "\n- Prioritize varieties available in {region}."
             "\n- Include local names where known."
         ),
         "expected_range": "15-20",
@@ -284,21 +283,21 @@ _TABLE_GUIDANCE: dict[str, dict[str, str]] = {
         "fk_instructions": (
             "\n- CRITICAL: crop_id MUST use ONLY the IDs listed below."
             "\n- Include organic alternatives where possible."
-            "\n- Cost estimates in XOF (West African CFA francs)."
+            "\n- Cost estimates in {currency}."
         ),
         "expected_range": "15-20",
     },
     "planting_calendar": {
         "fk_instructions": (
             "\n- CRITICAL: crop_id MUST use ONLY the IDs listed below."
-            "\n- Calendar for Casamance wet season (June-October) and dry season."
+            "\n- Calendar for {region} wet season and dry season."
         ),
         "expected_range": "20-25",
     },
     "storage_guidelines": {
         "fk_instructions": (
             "\n- CRITICAL: crop_id MUST use ONLY the IDs listed below."
-            "\n- Emphasize local materials available in Casamance."
+            "\n- Emphasize local materials available in {region}."
         ),
         "expected_range": "5-8",
     },
@@ -432,6 +431,9 @@ async def _compile_one_table(
     step: _StepConfig,
     findings: list[Finding],
     compiled_ids: dict[str, dict[int, str]],
+    region: str,
+    crops: list[str],
+    currency: str,
 ) -> tuple[list[BaseModel], int]:
     """Compile one table with retry escalation.
 
@@ -448,9 +450,18 @@ async def _compile_one_table(
     findings_ctx = _build_findings_context(relevant)
     id_ctx = _build_id_context(compiled_ids, step.fk_fields)
 
+    # Resolve region/currency placeholders in per-table guidance before
+    # embedding it into the outer prompt (avoids KeyError from nested braces)
+    fk_instructions = guidance["fk_instructions"].format(
+        region=region, currency=currency,
+    )
+
     base_prompt = _COMPILATION_PROMPT.format(
         table_name=table,
-        fk_instructions=guidance["fk_instructions"],
+        region=region,
+        crops=", ".join(crops),
+        currency=currency,
+        fk_instructions=fk_instructions,
         findings_context=findings_ctx,
         id_context=f"\n--- VALID FK REFERENCES ---\n{id_ctx}\n--- END FK REFERENCES ---" if id_ctx else "",
         expected_range=guidance["expected_range"],
@@ -591,6 +602,9 @@ async def compilation(state: AgentFarmState) -> dict[str, Any]:
     Writes to state: compilation, json_output_dir, status_messages, current_phase
     """
     findings = state.get("findings", [])
+    region = state.get("region", "the target region")
+    crops: list[str] = state.get("crops", [])
+    currency = state.get("currency", "local currency")
     messages: list[str] = list(state.get("status_messages", []))
     messages.append(f"Phase D: Compiling {len(findings)} findings into structured records...")
 
@@ -624,7 +638,7 @@ async def compilation(state: AgentFarmState) -> dict[str, Any]:
                 "method": "direct_conversion",
             })
         else:
-            records, calls_made = await _compile_one_table(step, findings, compiled_ids)
+            records, calls_made = await _compile_one_table(step, findings, compiled_ids, region, crops, currency)
             total_llm_calls += calls_made
 
         all_records[table] = records

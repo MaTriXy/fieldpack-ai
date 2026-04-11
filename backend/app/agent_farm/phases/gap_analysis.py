@@ -41,7 +41,7 @@ _PREFERRED_DOMAINS = [
     "irri.org",
     "worldveg.org",
     "africarice.org",
-    "isra.sn",
+    "isra.sn",  # Senegal-specific — parameterize when multi-region support is added
     "infonet-biovision.org",
     "plantvillage.psu.edu",
     "cabi.org",
@@ -65,7 +65,7 @@ _FALLBACK_SITES = [
 
 _GAP_ANALYSIS_PROMPT = """\
 You are an agricultural knowledge analyst preparing a Knowledge Pack for a \
-field worker deploying to the Casamance region of Senegal. The pack covers \
+field worker deploying to the {region}. The pack covers \
 these crops: {crops}.
 
 Below is a summary of all knowledge gathered so far, grouped by domain. \
@@ -80,13 +80,13 @@ on farming practices.
 Focus on:
 - Domains with zero or very few findings for a crop that needs them
 - Missing variety data (especially drought-resistant varieties with local seed sources)
-- Missing treatment costs in XOF (West African CFA francs)
+- Missing treatment costs in {currency}
 - Missing fertilization schedules or planting calendars for specific crops
 - Missing pest data for crops known to have pest problems
 - Region-specific practices that generic sources wouldn't cover
 
 Generate targeted search queries that will find the missing information. \
-Include the crop name, "Senegal" or "Casamance", and the specific data needed.
+Include the crop name, region name, and the specific data needed.
 """
 
 
@@ -346,6 +346,8 @@ async def gap_analysis(state: AgentFarmState) -> dict[str, Any]:
     """
     findings = list(state.get("findings", []))
     crops = state.get("crops", [])
+    region = state.get("region", "the target region")
+    currency = state.get("currency", "local currency")
     messages: list[str] = list(state.get("status_messages", []))
     messages.append("Phase C: Analyzing knowledge gaps...")
 
@@ -358,6 +360,8 @@ async def gap_analysis(state: AgentFarmState) -> dict[str, Any]:
     coverage_summary = _build_coverage_summary(findings, crops)
     prompt = _GAP_ANALYSIS_PROMPT.format(
         crops=", ".join(crops),
+        region=region,
+        currency=currency,
         coverage_summary=coverage_summary,
     )
 

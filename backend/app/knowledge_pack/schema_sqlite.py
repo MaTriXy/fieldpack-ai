@@ -319,6 +319,16 @@ CREATE VIRTUAL TABLE IF NOT EXISTS storage_guidelines_fts USING fts5(
     tokenize='unicode61',
     prefix='2,3'
 );
+
+-- Planting calendar full-text search
+CREATE VIRTUAL TABLE IF NOT EXISTS planting_calendar_fts USING fts5(
+    activity,
+    details,
+    content='planting_calendar',
+    content_rowid='id',
+    tokenize='unicode61',
+    prefix='2,3'
+);
 """
 
 # ============================================================
@@ -451,6 +461,24 @@ CREATE TRIGGER IF NOT EXISTS storage_guidelines_au AFTER UPDATE ON storage_guide
     INSERT INTO storage_guidelines_fts(rowid, method, pest_risks, quality_indicators, local_materials)
     VALUES (new.id, new.method, new.pest_risks, new.quality_indicators, new.local_materials);
 END;
+
+-- Planting calendar triggers
+CREATE TRIGGER IF NOT EXISTS planting_calendar_ai AFTER INSERT ON planting_calendar BEGIN
+    INSERT INTO planting_calendar_fts(rowid, activity, details)
+    VALUES (new.id, new.activity, new.details);
+END;
+
+CREATE TRIGGER IF NOT EXISTS planting_calendar_ad AFTER DELETE ON planting_calendar BEGIN
+    INSERT INTO planting_calendar_fts(planting_calendar_fts, rowid, activity, details)
+    VALUES ('delete', old.id, old.activity, old.details);
+END;
+
+CREATE TRIGGER IF NOT EXISTS planting_calendar_au AFTER UPDATE ON planting_calendar BEGIN
+    INSERT INTO planting_calendar_fts(planting_calendar_fts, rowid, activity, details)
+    VALUES ('delete', old.id, old.activity, old.details);
+    INSERT INTO planting_calendar_fts(rowid, activity, details)
+    VALUES (new.id, new.activity, new.details);
+END;
 """
 
 # ============================================================
@@ -523,6 +551,7 @@ FTS_TABLE_MAP = {
     "varieties": "varieties_fts",
     "fertilization_schedule": "fertilization_schedule_fts",
     "storage_guidelines": "storage_guidelines_fts",
+    "planting_calendar": "planting_calendar_fts",
 }
 
 TABLE_JOINS = {

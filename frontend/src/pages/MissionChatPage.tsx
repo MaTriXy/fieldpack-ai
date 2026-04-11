@@ -5,6 +5,7 @@ import MarkdownContent from '../components/MarkdownContent'
 import TopBar from '../components/layout/TopBar'
 import ChatSidebar from '../components/ChatSidebar'
 import { useSwipeToOpen } from '../hooks/useSwipeToOpen'
+import { useAndroidBack } from '../hooks/useAndroidBack'
 import { apiUrl, isNative } from '../lib/config'
 import { getLanguage } from '../lib/settings'
 import {
@@ -98,6 +99,9 @@ export default function MissionChatPage() {
 
   const openSidebar = useCallback(() => setSidebarOpen(true), [])
   useSwipeToOpen(openSidebar)
+  useAndroidBack([
+    () => { if (sidebarOpen) { setSidebarOpen(false); return true } return false },
+  ])
 
   // Auto-focus textarea on mount so keyboard users can type immediately
   useEffect(() => {
@@ -233,6 +237,8 @@ export default function MissionChatPage() {
       if (!latestCard) return
       setActionError(null)
       setIsDispatching(true)
+      const controller = new AbortController()
+      const timer = setTimeout(() => controller.abort(), 30000)
       try {
         const res = await fetch(apiUrl('/mission/start'), {
           method: 'POST',
@@ -242,18 +248,19 @@ export default function MissionChatPage() {
             region: latestCard.region,
             crops: latestCard.crops,
           }),
-          signal: AbortSignal.timeout(30000),
+          signal: controller.signal,
         })
         if (!res.ok) throw new Error(`Server returned ${res.status}`)
         const data = await res.json()
         navigate('/mission/progress', { state: { missionId: data.mission_id } })
       } catch (err) {
-        const isTimeout = err instanceof DOMException && err.name === 'TimeoutError'
+        const isTimeout = err instanceof DOMException && err.name === 'AbortError'
         const message = isTimeout
           ? 'Request timed out (30s). Is the server reachable?'
           : err instanceof Error ? err.message : 'Unknown error'
         setActionError(`Could not reach the server. ${message}`)
       } finally {
+        clearTimeout(timer)
         setIsDispatching(false)
       }
     } else if (label.includes('Edit')) {

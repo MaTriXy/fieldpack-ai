@@ -64,8 +64,13 @@ export default function QuickObservationModal({ isOpen, onClose, onSaved, reacha
             preview: `data:image/${photo.format || 'jpeg'};base64,${photo.base64String}`,
           })
         }
-      } catch {
-        // User cancelled
+      } catch (err) {
+        const msg = err instanceof Error ? err.message.toLowerCase() : ''
+        if (msg.includes('permission') || msg.includes('denied')) {
+          setError('Camera access denied. Enable it in Android Settings → Apps → FieldPack AI → Permissions.')
+          setTimeout(() => setError(''), 8000)
+        }
+        // else: user cancelled — stay silent
       }
     } else {
       fileInputRef.current?.click()
@@ -146,22 +151,24 @@ export default function QuickObservationModal({ isOpen, onClose, onSaved, reacha
 
       {/* Sheet */}
       <div
-        className="relative w-full max-w-lg bg-card rounded-t-2xl shadow-xl animate-slideUp"
+        className="relative w-full max-w-lg bg-card rounded-t-2xl shadow-xl animate-slideUp max-h-[85dvh] flex flex-col pb-[env(safe-area-inset-bottom)]"
         onClick={e => e.stopPropagation()}
       >
-        {/* Drag handle */}
-        <div className="flex justify-center pt-3 pb-1">
-          <div className="w-10 h-1 rounded-full bg-surface-dark" />
-        </div>
-
-        <div className="px-4 pb-4 space-y-4">
-          {/* Header */}
-          <div className="flex items-center justify-between">
+        {/* Drag handle + Header (non-scrollable) */}
+        <div className="flex-shrink-0">
+          <div className="flex justify-center pt-3 pb-1">
+            <div className="w-10 h-1 rounded-full bg-surface-dark" />
+          </div>
+          <div className="flex items-center justify-between px-4">
             <h2 className="font-heading font-bold text-lg text-text">New Observation</h2>
             <button onClick={handleClose} className="text-text-muted p-1 -mr-1 min-h-[44px] min-w-[44px] flex items-center justify-center">
               <X size={20} />
             </button>
           </div>
+        </div>
+
+        {/* Scrollable content */}
+        <div className="px-4 pb-4 space-y-4 overflow-y-auto flex-1 min-h-0">
 
           {/* Type pills */}
           <div className="flex gap-2">
@@ -226,7 +233,7 @@ export default function QuickObservationModal({ isOpen, onClose, onSaved, reacha
           )}
 
           {/* Actions */}
-          <div className="flex items-center gap-3 pt-1 pb-[env(safe-area-inset-bottom)]">
+          <div className="flex items-center gap-3 pt-1">
             {!pendingImage && (
               <button
                 onClick={handleCamera}

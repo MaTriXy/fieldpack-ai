@@ -38,7 +38,11 @@ function getQueue(): OfflineQueue {
 }
 
 function setQueue(queue: OfflineQueue): void {
-  localStorage.setItem(QUEUE_KEY, JSON.stringify(queue))
+  try {
+    localStorage.setItem(QUEUE_KEY, JSON.stringify(queue))
+  } catch {
+    throw new Error('Storage full — connect to the server and sync before adding more offline data.')
+  }
   // Notify same-tab listeners (native storage event only fires cross-tab)
   window.dispatchEvent(new Event('storage'))
 }

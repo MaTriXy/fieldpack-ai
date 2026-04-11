@@ -16,6 +16,7 @@ class AgentFarmState(TypedDict, total=False):
     # --- Input ---
     mission_description: str  # user's natural-language mission briefing
     region: str  # e.g., "Casamance, Senegal"
+    currency: str  # e.g., "XOF (West African CFA francs)"
     crops: list[str]  # e.g., ["cassava", "rice", "maize", "groundnut", "tomato"]
 
     # --- Phase A: Source Gathering ---

@@ -16,7 +16,8 @@ def expand_route_node(state: FieldAssistantState) -> dict:
     """Expand the current route for broader retry search.
 
     Adds all engines, all collections, and key tables.
-    Preserves existing metadata filters.
+    Drops metadata filters — the original filters already failed to
+    produce sufficient results, so keeping them repeats zero-result searches.
 
     Returns dict with: route.
     """
@@ -43,11 +44,16 @@ def expand_route_node(state: FieldAssistantState) -> dict:
 
     expanded = expand_route(current_route)
 
+    # Drop metadata filters on expansion — the original filters already
+    # failed to produce sufficient results, so keeping them just repeats
+    # the same zero-result searches (e.g. crop="cassava" misses general chunks).
+    expanded.metadata_filters = {}
+
     log.log_step(Step.EXPAND_ROUTE, "expanding", details={
         "engines": [e.value for e in expanded.engines],
         "collections": expanded.collections,
         "tables": expanded.tables,
-        "filters_preserved": bool(expanded.metadata_filters),
+        "filters_dropped": True,
     })
 
     return {"route": expanded}

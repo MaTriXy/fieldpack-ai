@@ -59,13 +59,17 @@ export function useServerConnection(): ServerConnectionState {
   const startPolling = useCallback(() => {
     stopPolling()
     pollTimerRef.current = setInterval(async () => {
+      const controller = new AbortController()
+      const timer = setTimeout(() => controller.abort(), 5000)
       try {
-        const res = await fetch(apiUrl('/health'), { signal: AbortSignal.timeout(5000) })
+        const res = await fetch(apiUrl('/health'), { signal: controller.signal })
+        clearTimeout(timer)
         if (!res.ok) throw new Error('not ok')
         const data = (await res.json()) as Record<string, unknown>
         setServerInfo(parseHealth(data))
         setStatus('connected')
       } catch {
+        clearTimeout(timer)
         setStatus('disconnected')
         // Stop polling but schedule an auto-retry scan
         if (pollTimerRef.current !== null) {
@@ -98,14 +102,17 @@ export function useServerConnection(): ServerConnectionState {
     let cancelled = false
 
     const run = async () => {
+      console.log('[conn] scan starting')
       setStatus('scanning')
       setServerInfo(null)
       stopPolling()
 
       const found = await autoScanForServer()
+      console.log('[conn] scan result:', found)
       if (cancelled) return
 
       if (!found) {
+        console.log('[conn] no server found, disconnected')
         setStatus('disconnected')
         // Auto-retry after delay
         retryTimerRef.current = setTimeout(() => {
@@ -114,8 +121,11 @@ export function useServerConnection(): ServerConnectionState {
         return
       }
 
+      const ctrl = new AbortController()
+      const tmr = setTimeout(() => ctrl.abort(), 5000)
       try {
-        const res = await fetch(`${found}/health`, { signal: AbortSignal.timeout(5000) })
+        const res = await fetch(`${found}/health`, { signal: ctrl.signal })
+        clearTimeout(tmr)
         if (!res.ok) throw new Error('not ok')
         const data = (await res.json()) as Record<string, unknown>
         if (cancelled) return
@@ -123,6 +133,7 @@ export function useServerConnection(): ServerConnectionState {
         setStatus('connected')
         startPolling()
       } catch {
+        clearTimeout(tmr)
         if (!cancelled) {
           setStatus('disconnected')
           retryTimerRef.current = setTimeout(() => {

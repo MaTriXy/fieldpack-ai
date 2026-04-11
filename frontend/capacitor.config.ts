@@ -10,6 +10,10 @@ const config: CapacitorConfig = {
     // FieldPack communicates over a private LAN hotspot (no TLS CA available).
     // Risk: accepted for closed-network field deployment.
     cleartext: true,
+    // Capacitor 6+ defaults to https://localhost which blocks http:// fetch as
+    // mixed content.  We need plain HTTP so the WebView can reach the backend
+    // over LAN without TLS.
+    androidScheme: 'http',
   },
   plugins: {
     CapacitorHttp: {
