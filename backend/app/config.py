@@ -16,6 +16,7 @@ class Settings(BaseSettings):
     ollama_num_ctx: int = 4096
     ollama_keep_alive: int = -1
     ollama_timeout: int = 120
+    ollama_num_gpu: int = -1  # -1 = auto, 0 = CPU-only (use 0 for Intel iGPU)
 
     # Field LLM provider: "ollama" for local, "google" for AI Studio API
     field_llm_provider: str = "ollama"

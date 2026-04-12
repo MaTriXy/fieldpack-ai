@@ -43,6 +43,12 @@ def _make_ollama(
     # E2B is a thinking model — always disable reasoning to avoid
     # wasting tokens on internal chain-of-thought
     kwargs["reasoning"] = reasoning if reasoning is not None else False
+    # GPU layer offloading: -1 = auto, 0 = CPU-only.
+    # Intel iGPUs cause garbage output with partial offload (75% CPU / 25% GPU
+    # splits layers across precision boundaries). Force CPU-only for local.
+    # Only apply to local Ollama — tunnel GPU manages its own offloading.
+    if not token and settings.ollama_num_gpu >= 0:
+        kwargs["num_gpu"] = settings.ollama_num_gpu
     client_kwargs = {"timeout": settings.ollama_timeout}
     if token:
         client_kwargs["headers"] = {"Authorization": f"Bearer {token}"}
@@ -99,6 +105,26 @@ def get_field_llm(
             "http://localhost:11434", temperature,
             num_predict=num_predict, format=format, reasoning=reasoning,
         )
+    if settings.field_llm_provider == "ollama":
+        # "ollama" = use tunnel if available, else local — skip Google fallback
+        if settings.ollama_tunnel_token and _ollama_reachable(
+            settings.ollama_base_url, settings.ollama_tunnel_token
+        ):
+            log.info("field_llm_provider=ollama, using tunnel Ollama at %s", settings.ollama_base_url)
+            return _make_ollama(
+                settings.ollama_base_url, temperature, settings.ollama_tunnel_token,
+                num_predict=num_predict, format=format, reasoning=reasoning,
+            )
+        if _ollama_reachable("http://localhost:11434"):
+            log.info("field_llm_provider=ollama, using local Ollama")
+            return _make_ollama(
+                "http://localhost:11434", temperature,
+                num_predict=num_predict, format=format, reasoning=reasoning,
+            )
+        raise RuntimeError(
+            "field_llm_provider=ollama but no Ollama reachable (tunnel or local). "
+            "Start Ollama or change FIELD_LLM_PROVIDER."
+        )
 
     # Auto-resolve: probe once, cache with TTL
     import time as _time
@@ -133,6 +159,14 @@ def get_resolved_provider() -> str:
         return "google"
     if settings.field_llm_provider == "ollama-local":
         return "local"
+    if settings.field_llm_provider == "ollama":
+        if settings.ollama_tunnel_token and _ollama_reachable(
+            settings.ollama_base_url, settings.ollama_tunnel_token
+        ):
+            return "tunnel"
+        if _ollama_reachable("http://localhost:11434"):
+            return "local"
+        return "none"
     import time as _time
     if _resolved_provider is None or (_time.monotonic() - _resolved_at) > _RESOLVE_TTL:
         _resolve_provider()

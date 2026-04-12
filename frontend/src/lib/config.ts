@@ -44,6 +44,17 @@ export function getWsUrl(): string {
   return `${protocol}//${window.location.host}/ws/chat/ws`
 }
 
+/** Full WebSocket URL for the mission pipeline endpoint. */
+export function getMissionWsUrl(): string {
+  const server = getServerUrl()
+  if (server) {
+    const wsBase = server.replace(/^http/, 'ws')
+    return `${wsBase}/mission/ws`
+  }
+  const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
+  return `${protocol}//${window.location.host}/ws/mission/ws`
+}
+
 /** Build a full API endpoint URL. */
 export function apiUrl(path: string): string {
   return `${getApiBase()}${path}`

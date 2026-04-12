@@ -1,12 +1,12 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Send, Menu, Leaf, FileText, AlertCircle } from 'lucide-react'
+import { Send, Menu, Leaf, FileText } from 'lucide-react'
 import MarkdownContent from '../components/MarkdownContent'
 import TopBar from '../components/layout/TopBar'
 import ChatSidebar from '../components/ChatSidebar'
 import { useSwipeToOpen } from '../hooks/useSwipeToOpen'
 import { useAndroidBack } from '../hooks/useAndroidBack'
-import { apiUrl, isNative } from '../lib/config'
+import { isNative } from '../lib/config'
 import { getLanguage } from '../lib/settings'
 import {
   listConversations,
@@ -82,8 +82,6 @@ export default function MissionChatPage() {
   const [input, setInput] = useState('')
   const [isTyping, setIsTyping] = useState(false)
   const [editing, setEditing] = useState(false)
-  const [actionError, setActionError] = useState<string | null>(null)
-  const [isDispatching, setIsDispatching] = useState(false)
 
   // Conversation state
   const [conversationId, setConversationId] = useState<string | null>(null)
@@ -235,36 +233,19 @@ export default function MissionChatPage() {
       haptic('Heavy')
       const latestCard = [...messages].reverse().find(m => m.missionCard)?.missionCard
       if (!latestCard) return
-      setActionError(null)
-      setIsDispatching(true)
-      const controller = new AbortController()
-      const timer = setTimeout(() => controller.abort(), 30000)
-      try {
-        const res = await fetch(apiUrl('/mission/start'), {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            description: `${latestCard.region} — ${latestCard.crops.join(', ')}`,
+      navigate('/mission/progress', {
+        state: {
+          missionCard: {
             region: latestCard.region,
             crops: latestCard.crops,
-          }),
-          signal: controller.signal,
-        })
-        if (!res.ok) throw new Error(`Server returned ${res.status}`)
-        const data = await res.json()
-        navigate('/mission/progress', { state: { missionId: data.mission_id } })
-      } catch (err) {
-        const isTimeout = err instanceof DOMException && err.name === 'AbortError'
-        const message = isTimeout
-          ? 'Request timed out (30s). Is the server reachable?'
-          : err instanceof Error ? err.message : 'Unknown error'
-        setActionError(`Could not reach the server. ${message}`)
-      } finally {
-        clearTimeout(timer)
-        setIsDispatching(false)
-      }
+            season: latestCard.season,
+            focusAreas: latestCard.focusAreas,
+            scaleEstimate: latestCard.scaleEstimate,
+            description: `${latestCard.region} — ${latestCard.crops.join(', ')}`,
+          },
+        },
+      })
     } else if (label.includes('Edit')) {
-      setActionError(null)
       setEditing(true)
       setInput('')
       setMessages((prev) => [
@@ -400,31 +381,21 @@ export default function MissionChatPage() {
               {msg.actions && (
                 <div className="mt-3 flex flex-col gap-2">
                   <div className="flex gap-2 flex-wrap">
-                    {msg.actions.map((a) => {
-                      const isDispatchBtn = a.label.includes('Dispatch')
-                      const busy = isDispatchBtn && isDispatching
-                      return (
-                        <button
-                          key={a.label}
-                          onClick={() => handleAction(a.label)}
-                          disabled={busy || msg.id !== lastActionMsgId}
-                          className={`text-xs font-semibold px-4 py-2 rounded-lg transition-colors disabled:opacity-50 ${busy ? 'disabled:cursor-wait' : 'disabled:cursor-not-allowed'} ${
-                            a.variant === 'primary'
-                              ? 'bg-primary text-white hover:bg-primary-light min-h-[44px]'
-                              : 'border border-text-muted text-text-muted hover:bg-surface-dark min-h-[44px]'
-                          }`}
-                        >
-                          {busy ? 'Dispatching...' : a.label}
-                        </button>
-                      )
-                    })}
+                    {msg.actions.map((a) => (
+                      <button
+                        key={a.label}
+                        onClick={() => handleAction(a.label)}
+                        disabled={msg.id !== lastActionMsgId}
+                        className={`text-xs font-semibold px-4 py-2 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+                          a.variant === 'primary'
+                            ? 'bg-primary text-white hover:bg-primary-light min-h-[44px]'
+                            : 'border border-text-muted text-text-muted hover:bg-surface-dark min-h-[44px]'
+                        }`}
+                      >
+                        {a.label}
+                      </button>
+                    ))}
                   </div>
-                  {actionError && msg.id === lastActionMsgId && (
-                    <div className="mt-2 flex items-start gap-2 bg-tertiary/10 border border-tertiary/20 rounded-lg px-3 py-2 animate-fadeIn">
-                      <AlertCircle size={14} className="text-tertiary shrink-0 mt-0.5" />
-                      <p className="text-xs text-tertiary">{actionError}</p>
-                    </div>
-                  )}
                 </div>
               )}
             </div>

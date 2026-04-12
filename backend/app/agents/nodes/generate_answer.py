@@ -210,6 +210,15 @@ async def generate_answer(state: FieldAssistantState) -> dict:
             async for chunk in llm.astream(messages):
                 chunks.append(chunk)
             answer = "".join(extract_text(c) for c in chunks).lstrip("?!.,;: \n")
+            if not answer.strip():
+                import logging
+                logging.getLogger(__name__).warning(
+                    "generate_answer: LLM returned empty after %d chunks", len(chunks),
+                )
+                answer = (
+                    "I wasn't able to generate a complete answer. "
+                    "Please try rephrasing your question."
+                )
         except Exception as e:
             import logging
             logging.getLogger(__name__).exception("generate_answer LLM call failed")

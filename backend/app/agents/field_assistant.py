@@ -26,7 +26,7 @@ from langgraph.graph import END, StateGraph
 
 from app.config import settings
 from app.agents.history import build_conversation_summary
-from app.agents.models import IntentType
+from app.agents.models import IntentType, extract_text
 from app.agents.nodes import (
     classify_and_extract,
     craft_search_query,
@@ -310,6 +310,74 @@ def _build_source_title(metadata: dict, source_id: str) -> str:
     return source_id.replace("_", " ").rsplit(" child", 1)[0].rsplit(" parent", 1)[0].title() or "Unknown Source"
 
 
+def _extract_insight(node_name: str, output: dict, state: dict) -> dict | None:
+    """Extract a user-facing pipeline insight from a node's output.
+
+    Returns a dict with 'node', 'text', and optional 'details', or None.
+    """
+    if node_name == "classify_and_extract":
+        cr = output.get("classify_result") or state.get("classify_result")
+        if cr and hasattr(cr, "intent"):
+            parts = []
+            if cr.crop:
+                parts.append(cr.crop)
+            if cr.disease_name:
+                parts.append(cr.disease_name)
+            intent_labels = {
+                "diagnose_disease": "Disease diagnosis",
+                "get_treatment": "Treatment advice",
+                "farming_advice": "Farming advice",
+                "identify_image": "Image identification",
+                "log_observation": "Field observation",
+                "general_question": "General question",
+                "follow_up": "Follow-up question",
+            }
+            intent_str = cr.intent.value if hasattr(cr.intent, "value") else str(cr.intent)
+            label = intent_labels.get(intent_str, intent_str.replace("_", " ").title())
+            text = label
+            if parts:
+                text += f" — {', '.join(parts)}"
+            return {"node": node_name, "text": text}
+
+    elif node_name == "craft_search_query":
+        cq = output.get("crafted_query") or state.get("crafted_query")
+        if cq:
+            query = cq.embedding_query if hasattr(cq, "embedding_query") else str(cq)
+            # Truncate for UI
+            preview = query[:80] + "..." if len(query) > 80 else query
+            return {"node": node_name, "text": f'Searching for: "{preview}"'}
+
+    elif node_name == "execute_searches":
+        results = output.get("search_results") or state.get("search_results") or []
+        count = len(results)
+        if count:
+            # Group by engine type
+            engines = {}
+            for r in results:
+                eng = r.result_type.value if hasattr(r, "result_type") and hasattr(r.result_type, "value") else "search"
+                engines[eng] = engines.get(eng, 0) + 1
+            parts = [f"{v} {k}" for k, v in engines.items()]
+            return {"node": node_name, "text": f"Found {count} results ({', '.join(parts)})"}
+        return {"node": node_name, "text": "No results found, will retry"}
+
+    elif node_name == "rerank_results":
+        results = output.get("ranked_results") or state.get("ranked_results") or []
+        sufficient = output.get("is_sufficient", state.get("is_sufficient", False))
+        kept = len(results)
+        if kept:
+            top_score = max((r.relevance_score for r in results if hasattr(r, "relevance_score")), default=0)
+            pct = round(top_score * 100)
+            text = f"Kept {kept} best results · top relevance {pct}%"
+            if not sufficient:
+                text += " · retrying for better matches"
+            return {"node": node_name, "text": text}
+
+    elif node_name == "expand_route_node":
+        return {"node": node_name, "text": "Broadening search to more knowledge areas"}
+
+    return None
+
+
 async def run_field_assistant_stream(
     message: str,
     image_path: str | None = None,
@@ -420,11 +488,19 @@ async def run_field_assistant_stream(
                         "mode": "rag" if final_state.get("needs_search", True) else "quick",
                     }
 
+                # Emit pipeline insights from node outputs
+                if isinstance(output, dict):
+                    insight = _extract_insight(name, output, final_state)
+                    if insight:
+                        yield {"type": "pipeline_insight", **insight}
+
             # Stream LLM tokens from generate_answer only
             if kind == "on_chat_model_stream" and in_generate:
                 chunk = event.get("data", {}).get("chunk")
                 if chunk and hasattr(chunk, "content") and chunk.content:
-                    yield {"type": "token", "content": chunk.content}
+                    token_text = extract_text(chunk)
+                    if token_text:
+                        yield {"type": "token", "content": token_text}
 
         # Build summary from final state
         if final_state and (final_state.get("final_answer") is not None or final_state.get("observation_stats") is not None):

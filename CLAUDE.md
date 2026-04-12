@@ -39,8 +39,10 @@ classify → route → needs_search
 
 - Conversational messages ("hi", follow-ups) skip RAG via regex gate in `needs_search.py`
 - `generate_answer` is async — streams tokens via `llm.astream()` for word-by-word frontend UX
-- `reasoning=False` globally on all Ollama calls (`offline_llm.py`) — E2B thinking wastes tokens
-- LLM provider set via `FIELD_LLM_PROVIDER` env: `ollama-local`, `ollama` (tunnel), or `google`
+- `reasoning=False` globally on all Ollama calls (`offline_llm.py`) — E2B thinking wastes tokens and produces empty content (see `docs/TROUBLESHOOTING_LLM.md`)
+- `OLLAMA_NUM_GPU=0` for local (Intel iGPU) — partial GPU offload (75%CPU/25%GPU) produces garbage; full CPU is coherent. Tunnel (Colab T4) auto-detects and uses full GPU. Only applied to local, not tunnel (see `offline_llm.py`)
+- Streaming tokens normalized via `extract_text()` in `field_assistant.py` — handles both string (Ollama) and list-of-dicts (Google) content formats
+- LLM provider set via `FIELD_LLM_PROVIDER` env: `ollama-local`, `ollama` (tunnel+local fallback), or `google`
 
 ## Stack
 
@@ -72,6 +74,9 @@ classify → route → needs_search
 - Backend must bind `0.0.0.0` for LAN access (set in `config.py`)
 - `ollama_num_ctx: 4096` must match Modelfile — oversized KV cache degrades attention on small models
 - `_resolve_provider` in `offline_llm.py` has a TTL cache — `.env` changes require server restart
+- **E2B + Intel iGPU = garbage output**: Ollama auto-offloads ~25% to iGPU, splits layers across precision boundaries, model produces incoherent text. Fix: `OLLAMA_NUM_GPU=0` forces CPU-only. This is the #1 recurring bug — if the model suddenly returns empty/nonsense, check `ollama ps` for the CPU/GPU split. See `docs/TROUBLESHOOTING_LLM.md`
+- `FIELD_LLM_PROVIDER=ollama` must match a handled case in `get_field_llm()` — values `google`, `ollama-local`, `ollama` are explicit; anything else falls to auto-resolve which may silently switch providers
+- **Empty `final_answer` = frontend shows fallback**: `generate_answer` guards against empty LLM output, but if it still happens, the `done` event carries `final_answer: ""` and the frontend shows "I processed your request but could not generate a response"
 
 ## Non-Negotiable
 

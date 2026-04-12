@@ -157,7 +157,7 @@ const FIELD_FACTS = [
   { icon: '🐐', text: 'Integrating small ruminants with crops turns crop residues into manure and income' },
 ]
 
-function ThinkingBubble({ step, mode }: { step: string | null; mode: 'quick' | 'rag' | null }) {
+function ThinkingBubble({ step, mode, insights }: { step: string | null; mode: 'quick' | 'rag' | null; insights: string[] }) {
   const [factIndex, setFactIndex] = useState(() => Math.floor(Math.random() * FIELD_FACTS.length))
   const [fadeKey, setFadeKey] = useState(0)
 
@@ -184,19 +184,40 @@ function ThinkingBubble({ step, mode }: { step: string | null; mode: 'quick' | '
     )
   }
 
-  // RAG pipeline — show fact + step
+  // RAG pipeline — show live insights one by one + step + fact
   return (
-    <div className="space-y-2.5">
-      <div key={fadeKey} className="flex items-start gap-2.5 animate-fadeIn">
-        <span className="text-lg leading-none mt-0.5">{fact.icon}</span>
-        <div>
-          <p className="text-xs text-text-muted italic leading-relaxed">{fact.text}</p>
-        </div>
-      </div>
+    <div className="space-y-2">
+      {/* Current step spinner — always on top */}
       {stepLabel && (
         <div className="flex items-center gap-2">
           <div className="w-3.5 h-3.5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
           <span className="text-[11px] text-primary font-medium">{stepLabel}...</span>
+        </div>
+      )}
+      {/* Pipeline activity feed — completed steps appear below */}
+      {insights.length > 0 && (
+        <div className="space-y-0.5 border-l-2 border-primary/20 pl-2.5 ml-[5px]">
+          {insights.map((text, i) => {
+            const isLatest = i === insights.length - 1
+            return (
+              <div
+                key={`${i}-${text}`}
+                className={`flex items-center gap-1.5 ${isLatest ? 'animate-fadeIn' : ''}`}
+              >
+                <span className={`text-[10px] leading-none ${isLatest ? 'text-primary' : 'text-text-muted/50'}`}>✓</span>
+                <span className={`text-[11px] leading-snug ${isLatest ? 'text-text-secondary' : 'text-text-muted/50'}`}>
+                  {text}
+                </span>
+              </div>
+            )
+          })}
+        </div>
+      )}
+      {/* Field fact — only before any insights arrive */}
+      {insights.length === 0 && (
+        <div key={fadeKey} className="flex items-start gap-2.5 animate-fadeIn">
+          <span className="text-lg leading-none mt-0.5">{fact.icon}</span>
+          <p className="text-xs text-text-muted italic leading-relaxed">{fact.text}</p>
         </div>
       )}
     </div>
@@ -269,6 +290,14 @@ export default function FieldChatPage() {
   const [expandedSource, setExpandedSource] = useState<string | null>(null)
   const [wsError, setWsError] = useState<string | null>(null)
   const [pipelineMode, setPipelineMode] = useState<'quick' | 'rag' | null>(null)
+  const [pipelineInsights, setPipelineInsights] = useState<string[]>([])
+  const insightQueueRef = useRef<string[]>([])
+  const insightTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const clearInsights = useCallback(() => {
+    insightQueueRef.current = []
+    if (insightTimerRef.current) { clearTimeout(insightTimerRef.current); insightTimerRef.current = null }
+    setPipelineInsights([])
+  }, [])
 
   // Offline mode
   const { reachable } = useBackendReachable()
@@ -392,6 +421,7 @@ export default function FieldChatPage() {
         setStreamingContent('')
         setCurrentStep(null)
         setPipelineMode(null)
+        clearInsights()
         isStreamingRef.current = false
         setIsStreaming(false)
         return
@@ -406,9 +436,33 @@ export default function FieldChatPage() {
           setCurrentStep(data.step as string)
           break
 
+        case 'pipeline_insight':
+          if (data.text) {
+            insightQueueRef.current.push(data.text as string)
+            // Start drip if not already running
+            if (!insightTimerRef.current) {
+              const drip = () => {
+                const next = insightQueueRef.current.shift()
+                if (next) {
+                  setPipelineInsights((prev) => [...prev.slice(-4), next])
+                  insightTimerRef.current = setTimeout(drip, 1500)
+                } else {
+                  insightTimerRef.current = null
+                }
+              }
+              drip()
+            }
+          }
+          break
+
         case 'token':
           setStreamingContent((prev) => {
-            const token = typeof data.content === 'string' ? data.content : String(data.content ?? '')
+            const raw = data.content
+            const token = typeof raw === 'string'
+              ? raw
+              : Array.isArray(raw)
+                ? (raw as Array<{ text?: string }>).map((p) => p?.text ?? '').join('')
+                : String(raw ?? '')
             if (!token) return prev ?? ''
             // Strip leading punctuation echoed by the LLM on first token
             if (!prev) return token.replace(/^[?!.,;:\s]+/, '')
@@ -468,6 +522,7 @@ export default function FieldChatPage() {
           setStreamingContent('')
           setCurrentStep(null)
           setPipelineMode(null)
+          clearInsights()
           isStreamingRef.current = false
           setIsStreaming(false)
           break
@@ -489,6 +544,7 @@ export default function FieldChatPage() {
           setStreamingContent('')
           setCurrentStep(null)
           setPipelineMode(null)
+          clearInsights()
           isStreamingRef.current = false
           setIsStreaming(false)
           break
@@ -785,6 +841,7 @@ export default function FieldChatPage() {
     setWsError(null)
     setStreamingContent('')
     setCurrentStep(null)
+    clearInsights()
 
     let imagePath: string | null = null
     if (pendingImage) {
@@ -856,6 +913,7 @@ export default function FieldChatPage() {
     clearChatMessageQueue()
     setQueuedMessages([])
     setSendingQueue(false)
+    clearInsights()
     isStreamingRef.current = true
     setIsStreaming(true)
   }
@@ -1329,7 +1387,7 @@ export default function FieldChatPage() {
                   <span className="inline-block w-0.5 h-4 bg-primary ml-0.5 animate-blink align-text-bottom" />
                 </div>
               ) : (
-                <ThinkingBubble step={currentStep} mode={pipelineMode} />
+                <ThinkingBubble step={currentStep} mode={pipelineMode} insights={pipelineInsights} />
               )}
             </div>
           </div>

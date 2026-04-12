@@ -1,6 +1,7 @@
+import json
 import logging
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, WebSocket, WebSocketDisconnect
 from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
@@ -166,7 +167,7 @@ async def _try_google_planner(prompt: str) -> _MissionChatLLMOutput | None:
 
 
 async def _try_ollama_planner(prompt: str) -> _MissionChatLLMOutput | None:
-    import json as _json
+    import json as _json  # shadow module-level json to avoid name collision
     try:
         from app.models.offline_llm import get_field_llm
         from langchain_core.messages import HumanMessage, SystemMessage
@@ -184,3 +185,52 @@ async def _try_ollama_planner(prompt: str) -> _MissionChatLLMOutput | None:
     except Exception as exc:
         logger.warning("Ollama planner fallback also failed: %s", exc)
         return None
+
+
+# ------------------------------------------------------------------
+# /mission/ws — streaming agent farm pipeline
+# ------------------------------------------------------------------
+
+
+@router.websocket("/ws")
+async def mission_ws(websocket: WebSocket):
+    from app.agent_farm.graph import run_agent_farm_stream
+
+    await websocket.accept()
+    try:
+        data = await websocket.receive_text()
+        try:
+            msg = json.loads(data)
+        except json.JSONDecodeError:
+            await websocket.send_json({"type": "error", "message": "Invalid JSON"})
+            await websocket.close(code=1003)
+            return
+
+        crops: list[str] = msg.get("crops", [])
+        region: str = msg.get("region", "")
+        description: str = msg.get("description", "")
+
+        if not region or not crops:
+            await websocket.send_json({"type": "error", "message": "region and at least one crop are required"})
+            await websocket.close(code=1003)
+            return
+
+        logger.info(
+            "mission_ws: starting pipeline region=%r crops=%r", region, crops
+        )
+
+        try:
+            async for event in run_agent_farm_stream(
+                crops=crops,
+                region=region,
+                mission_description=description,
+            ):
+                await websocket.send_json(event)
+        except WebSocketDisconnect:
+            raise
+        except Exception as exc:
+            logger.exception("mission_ws: pipeline error — %s", exc)
+            await websocket.send_json({"type": "error", "message": "Pipeline error. Check server logs."})
+
+    except WebSocketDisconnect:
+        pass
