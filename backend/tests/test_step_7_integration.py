@@ -70,6 +70,13 @@ def _mock_llm_response(content: str):
     return resp
 
 
+async def _async_chunk_generator(content: str):
+    """Yield a single chunk with .content for llm.astream() mocking."""
+    chunk = MagicMock()
+    chunk.content = content
+    yield chunk
+
+
 def _make_classify_json(
     intent: str,
     crop: str | None = None,
@@ -184,6 +191,11 @@ def mock_all_llms():
         mock = p.start()
         started.append(p)
         mock.return_value.invoke.return_value = default_responses[name]
+        # generate_answer uses llm.astream() — wire it to dynamically read
+        # from invoke.return_value so test overrides propagate
+        if name == "generate":
+            _llm_mock = mock.return_value
+            _llm_mock.astream = lambda msgs, _m=_llm_mock: _async_chunk_generator(_m.invoke.return_value.content)
         mocks[name] = mock
 
     yield mocks
@@ -427,9 +439,9 @@ class TestFollowUpPath:
         # Search was skipped — craft_query and rerank should NOT have been called
         mock_all_llms["craft_query"].return_value.invoke.assert_not_called()
         mock_all_llms["rerank"].return_value.invoke.assert_not_called()
-        # generate_answer ran but took the no-context early return (no LLM call)
+        # generate_answer ran via astream on the conversational (no-context) path
         assert result["final_answer"]
-        assert "don't have enough information" in result["final_answer"].lower()
+        assert len(result["final_answer"]) > 0
 
     def test_followup_with_topic_change_does_search(self, mock_all_llms):
         """Follow-up that introduces a new crop → should search."""

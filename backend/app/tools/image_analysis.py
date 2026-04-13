@@ -148,6 +148,16 @@ def _call_ollama_vision(prompt: str, image_b64: str, resolved: str = "") -> str:
     headers = {}
     if settings.ollama_tunnel_token and resolved != "local":
         headers["Authorization"] = f"Bearer {settings.ollama_tunnel_token}"
+    # Build options — apply CPU-only fix for Intel iGPU (prevents garbage output)
+    options = {
+        "temperature": 0.3,
+        "num_predict": 512,
+        "num_ctx": settings.ollama_num_ctx,
+    }
+    is_local = not (settings.ollama_tunnel_token and resolved != "local")
+    if is_local and settings.ollama_num_gpu >= 0:
+        options["num_gpu"] = settings.ollama_num_gpu
+
     response = httpx.post(
         f"{base_url}/api/generate",
         headers=headers,
@@ -157,16 +167,27 @@ def _call_ollama_vision(prompt: str, image_b64: str, resolved: str = "") -> str:
             "images": [image_b64],
             "stream": False,
             "think": False,
-            "options": {
-                "temperature": 0.3,
-                "num_predict": 512,
-                "num_ctx": settings.ollama_num_ctx,
-            },
+            "options": options,
         },
         timeout=120.0,
     )
     response.raise_for_status()
-    return response.json().get("response", "")
+    data = response.json()
+    text = data.get("response", "")
+
+    # Extract Ollama eval metrics for performance display (Ollama-specific fields)
+    eval_count = data.get("eval_count", 0)
+    eval_duration = data.get("eval_duration", 0)  # nanoseconds
+    if eval_count > 0 and eval_duration > 0:
+        tok_per_sec = round(eval_count / (eval_duration / 1e9), 1)
+        log.log_step(Step.IMAGE_ANALYSIS, "ollama_vision_metrics", details={
+            "eval_count": eval_count,
+            "eval_duration_ms": round(eval_duration / 1e6),
+            "tok_per_sec": tok_per_sec,
+            "model": settings.ollama_model,
+        })
+
+    return text
 
 
 def _call_google_vision(prompt: str, image_bytes: bytes) -> str:

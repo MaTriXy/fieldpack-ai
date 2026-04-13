@@ -11,7 +11,7 @@ class Settings(BaseSettings):
 
     # Ollama (Phase 2)
     ollama_base_url: str = "http://localhost:11434"
-    ollama_model: str = "gemma4:e2b-it-q4_K_M"
+    ollama_model: str = "fieldpack-assistant-lite"
     ollama_tunnel_token: str = ""  # Auth token for remote Ollama (Colab GPU tunnel)
     ollama_num_ctx: int = 4096
     ollama_keep_alive: int = -1

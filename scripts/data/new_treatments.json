@@ -1,0 +1,782 @@
+[
+  {
+    "id": "trichoderma_biocontr_032_treatment_parent",
+    "collection": "treatment_guides",
+    "metadata": {
+      "treatment_id": "32",
+      "chunk_type": "parent",
+      "crop": "tomato",
+      "difficulty": "easy",
+      "disease_name": "Early Blight of Tomato",
+      "is_organic": "true",
+      "topic_id": "trichoderma_biocontr_032_treatment",
+      "disease_id": "16"
+    },
+    "document": "To treat Early Blight of Tomato using a biological approach, apply Trichoderma-based soil drench and foliar spray around the base of each plant. This is an easy, fully organic method with medium effectiveness that suppresses the Alternaria solani fungus by outcompeting it in the soil and on leaf surfaces. Obtain Trichoderma harzianum granules or powder from ISRA Djibelor station in Ziguinchor or from agricultural NGOs operating in the Kolda and Sedhiou districts. Mix 5-10g of Trichoderma product per liter of water, stir well, and drench each plant at the root zone once per week during the first month after transplant. For foliar application, dilute to 3g per liter and spray the lower leaf surfaces where early blight first appears.\n\nYou will need Trichoderma granules or wettable powder, a watering can or knapsack sprayer, and clean non-chlorinated water (collect rainwater or let tap water sit overnight to off-gas chlorine, which kills the beneficial fungi). Begin treatment at transplanting and continue weekly for the first 4 weeks, then bi-weekly through the fruiting stage. Remove and bury all fallen leaves showing dark concentric-ringed spots before applying the treatment to reduce the fungal load. Apply in the early morning before temperatures exceed 30 degrees Celsius.\n\nThis treatment integrates well with mulching — applying dry grass or straw mulch around tomato plants reduces soil splash, which is the primary way Alternaria spores move from soil to lower leaves. Contact the local agricultural extension office in Ziguinchor (Direction Regionale du Developpement Rural, DRDR Ziguinchor) for availability of subsidized biological inputs through seasonal campaigns."
+  },
+  {
+    "id": "trichoderma_biocontr_032_treatment_child",
+    "collection": "treatment_guides",
+    "metadata": {
+      "treatment_id": "32",
+      "chunk_type": "child",
+      "crop": "tomato",
+      "difficulty": "easy",
+      "disease_name": "Early Blight of Tomato",
+      "is_organic": "true",
+      "topic_id": "trichoderma_biocontr_032_treatment",
+      "disease_id": "16"
+    },
+    "document": "How do I treat early blight on my tomato plants organically? What is a biological spray I can use for tomato leaf spots with dark rings? Is there a natural way to stop the brown spots with circles from spreading on my tomatoes? How do I use Trichoderma to treat tomato disease in Casamance?"
+  },
+  {
+    "id": "mancozeb_fungicide_s_033_treatment_parent",
+    "collection": "treatment_guides",
+    "metadata": {
+      "treatment_id": "33",
+      "chunk_type": "parent",
+      "crop": "tomato",
+      "difficulty": "medium",
+      "disease_name": "Early Blight of Tomato",
+      "is_organic": "false",
+      "topic_id": "mancozeb_fungicide_s_033_treatment",
+      "disease_id": "16"
+    },
+    "document": "To treat Early Blight of Tomato with a chemical fungicide, apply mancozeb (sold as Dithane M-45 or Penncozeb) as a protective spray on all leaf surfaces. This is a medium-difficulty treatment with high effectiveness against Alternaria solani, the fungus responsible for early blight. Mancozeb is a contact fungicide, meaning it must coat the leaf surface before spores germinate — begin spraying at the first appearance of small dark spots with concentric rings, or preventively when warm humid conditions persist for more than 3 consecutive days.\n\nMix mancozeb at 2g per liter of water in your knapsack sprayer. Shake well before use. Spray thoroughly on all leaf surfaces, including the undersides, starting from the lower leaves and working upward. A 15-liter knapsack sprayer treats approximately 200-250 tomato plants. Apply every 7-10 days during the wet season or whenever humidity is high. Mancozeb is available at agricultural input shops in Ziguinchor market (Marche Saint-Maur) and from input dealers in Kolda town. Purchase only sealed, labelled packets — loose powder sold by weight may be counterfeit.\n\nSafety is important: wear rubber gloves, a face mask, and long sleeves when mixing and applying. Do not spray when wind is strong to avoid drift onto skin or nearby water sources. Observe a strict 7-day pre-harvest interval — do not pick fruit within 7 days of the last spray. Wash sprayer thoroughly after use and store chemicals in original containers, out of reach of children and away from food."
+  },
+  {
+    "id": "mancozeb_fungicide_s_033_treatment_child",
+    "collection": "treatment_guides",
+    "metadata": {
+      "treatment_id": "33",
+      "chunk_type": "child",
+      "crop": "tomato",
+      "difficulty": "medium",
+      "disease_name": "Early Blight of Tomato",
+      "is_organic": "false",
+      "topic_id": "mancozeb_fungicide_s_033_treatment",
+      "disease_id": "16"
+    },
+    "document": "What fungicide should I spray on my tomato plants for early blight in Casamance? How do I mix mancozeb for tomato leaf spot treatment? My tomatoes have dark spots with rings — what chemical can I use? How often should I spray fungicide on tomatoes during the rainy season?"
+  },
+  {
+    "id": "copper_hydroxide_pro_034_treatment_parent",
+    "collection": "treatment_guides",
+    "metadata": {
+      "treatment_id": "34",
+      "chunk_type": "parent",
+      "crop": "tomato",
+      "difficulty": "medium",
+      "disease_name": "Late Blight of Tomato",
+      "is_organic": "false",
+      "topic_id": "copper_hydroxide_pro_034_treatment",
+      "disease_id": "17"
+    },
+    "document": "To treat Late Blight of Tomato, apply copper hydroxide fungicide spray as a protective barrier on all plant surfaces. This is a medium-difficulty treatment with high effectiveness against Phytophthora infestans, the water mold pathogen causing late blight. Late blight spreads explosively in cool, wet conditions — a healthy field can be destroyed within 5-7 days without intervention. Begin spraying at the very first sign of irregular water-soaked patches on leaves or stems, or apply preventively during periods of persistent rain and cool nights.\n\nMix copper hydroxide (Kocide 2000 or similar) at 2.5-3g per liter of water. Spray every 5-7 days during high-risk periods — more frequent than for early blight because late blight spreads much faster. Cover all leaf surfaces and stems thoroughly. Copper hydroxide powder is available at the main agricultural supply shops in Ziguinchor (near the central market) and in Kolda. Some NGOs and the DRDR Ziguinchor extension service stock copper fungicides for farmer distribution during peak disease seasons.\n\nRemove and carefully bag any severely infected plants or branches — do not add to compost as P. infestans spores survive. Burn or bury removed material at least 50cm deep. Avoid overhead irrigation that wets leaves — use drip or furrow irrigation where possible. Wear gloves and wash hands after handling infected plants. Observe a 7-day pre-harvest interval after the last copper spray."
+  },
+  {
+    "id": "copper_hydroxide_pro_034_treatment_child",
+    "collection": "treatment_guides",
+    "metadata": {
+      "treatment_id": "34",
+      "chunk_type": "child",
+      "crop": "tomato",
+      "difficulty": "medium",
+      "disease_name": "Late Blight of Tomato",
+      "is_organic": "false",
+      "topic_id": "copper_hydroxide_pro_034_treatment",
+      "disease_id": "17"
+    },
+    "document": "How do I stop late blight from destroying my tomatoes? What can I spray on my tomatoes when they have large dark patches with white mold underneath? My tomato plants are rotting from late blight — how often do I spray copper fungicide? Is there treatment for Phytophthora on tomatoes in Casamance?"
+  },
+  {
+    "id": "field_sanitation_and_035_treatment_parent",
+    "collection": "treatment_guides",
+    "metadata": {
+      "treatment_id": "35",
+      "chunk_type": "parent",
+      "crop": "tomato",
+      "difficulty": "easy",
+      "disease_name": "Late Blight of Tomato",
+      "is_organic": "true",
+      "topic_id": "field_sanitation_and_035_treatment",
+      "disease_id": "17"
+    },
+    "document": "To manage Late Blight of Tomato through cultural and organic methods, combine planting of blight-tolerant varieties with strict field sanitation. This is an easy organic approach with medium effectiveness that reduces disease pressure significantly without chemical inputs. Plant late-blight-tolerant tomato varieties such as Heinz 1350, Roma VF, or locally adapted varieties recommended by ISRA Ziguinchor. These varieties do not provide complete immunity but slow disease progression substantially compared to susceptible local landraces.\n\nField sanitation is critical for late blight management. At the end of each tomato season, remove all plant material — stems, leaves, green fruits — from the field and burn it. Do not leave crop debris on the soil surface where spores survive into the next season. Avoid planting tomatoes, peppers, or potatoes in the same field for at least 2 years, as these share the same pathogen. Stake tomato plants to keep foliage off the ground and improve air circulation — good airflow slows spore dispersal. Apply mulch around plants to prevent soil splash.\n\nSpace plants at 60cm between plants and 80cm between rows — wider than typical practice — to reduce humidity within the canopy. Plant on raised beds or ridges to improve drainage, as waterlogged soil and wet foliage create ideal conditions for Phytophthora. Contact the ISRA Djibelor research station in Ziguinchor for availability of tolerant tomato varieties suited to Casamance conditions."
+  },
+  {
+    "id": "field_sanitation_and_035_treatment_child",
+    "collection": "treatment_guides",
+    "metadata": {
+      "treatment_id": "35",
+      "chunk_type": "child",
+      "crop": "tomato",
+      "difficulty": "easy",
+      "disease_name": "Late Blight of Tomato",
+      "is_organic": "true",
+      "topic_id": "field_sanitation_and_035_treatment",
+      "disease_id": "17"
+    },
+    "document": "Is there a tomato variety resistant to late blight I can plant in Casamance? How do I prevent late blight from coming back next season without chemicals? What organic steps can I take to manage late blight on my tomato crop? Should I burn my tomato plants after late blight to protect next year's crop?"
+  },
+  {
+    "id": "resistant_variety_pl_036_treatment_parent",
+    "collection": "treatment_guides",
+    "metadata": {
+      "treatment_id": "36",
+      "chunk_type": "parent",
+      "crop": "tomato",
+      "difficulty": "easy",
+      "disease_name": "Fusarium Wilt of Tomato",
+      "is_organic": "true",
+      "topic_id": "resistant_variety_pl_036_treatment",
+      "disease_id": "18"
+    },
+    "document": "To control Fusarium Wilt of Tomato, the most effective and practical approach is to plant Fusarium-resistant tomato varieties combined with a long crop rotation away from solanaceous crops. This is an easy, fully organic strategy with high effectiveness because Fusarium oxysporum f.sp. lycopersici persists in soil for many years and cannot be eradicated once established — prevention through resistance and rotation is the only reliable long-term management.\n\nChoose tomato varieties carrying the 'I' (immunity) gene for Fusarium wilt — look for the designation 'F' or 'FF' on seed packets, indicating resistance to race 1 and race 2 respectively. Varieties such as Roma VF, UC 82, and Heinz 1350 carry Fusarium resistance and are available from seed dealers in Ziguinchor and Kolda markets, as well as through NGO seed distribution programs. Consult the ISRA Djibelor station for current varietal recommendations suited to the Casamance climate and market preferences.\n\nRotate tomatoes with crops outside the Solanaceae family — rice, maize, groundnut, or cassava — for a minimum of 3 years before returning tomatoes to the same plot. Fusarium persists in infected soil for 10+ years as chlamydospores, so rotation must be long-term. Improve soil drainage on beds — waterlogged, acidic soils favor the pathogen. Adding compost raises soil organic matter and promotes beneficial soil microbes that suppress Fusarium. If you grow tomatoes in the same family compound year after year, apply Trichoderma harzianum to the planting hole at transplant to provide biological suppression in the root zone."
+  },
+  {
+    "id": "resistant_variety_pl_036_treatment_child",
+    "collection": "treatment_guides",
+    "metadata": {
+      "treatment_id": "36",
+      "chunk_type": "child",
+      "crop": "tomato",
+      "difficulty": "easy",
+      "disease_name": "Fusarium Wilt of Tomato",
+      "is_organic": "true",
+      "topic_id": "resistant_variety_pl_036_treatment",
+      "disease_id": "18"
+    },
+    "document": "My tomato plants are wilting from one side and dying — how do I treat Fusarium wilt? What tomato variety is resistant to Fusarium wilt in Casamance? How do I stop tomato wilt disease from coming back in my garden every year? Is there an organic way to manage Fusarium wilt in tomato plants?"
+  },
+  {
+    "id": "soil_solarization_be_037_treatment_parent",
+    "collection": "treatment_guides",
+    "metadata": {
+      "treatment_id": "37",
+      "chunk_type": "parent",
+      "crop": "tomato",
+      "difficulty": "medium",
+      "disease_name": "Fusarium Wilt of Tomato",
+      "is_organic": "true",
+      "topic_id": "soil_solarization_be_037_treatment",
+      "disease_id": "18"
+    },
+    "document": "To reduce Fusarium Wilt of Tomato through soil treatment, perform soil solarization on beds 4-6 weeks before transplanting. This is a medium-difficulty organic method with medium effectiveness that uses solar heat to kill or reduce Fusarium oxysporum in the top 15-20cm of soil — the zone where tomato roots are most vulnerable to infection. Solarization is most effective when done during the hottest, sunniest months of the Casamance dry season (March to May).\n\nPrepare the bed by digging and leveling, removing all crop debris and weeds. Water the soil thoroughly until it is moist at 30cm depth — the moisture conducts heat deeper into the profile. Immediately cover the bed with clear polythene plastic sheeting (100-200 micron thickness), pulling it as tight as possible and burying the edges with soil to seal in heat. Leave in place for 4-6 weeks. Soil temperatures under clear plastic on sunny days in Casamance can reach 50-60 degrees Celsius — lethal to most soilborne pathogens. Clear plastic sheeting is available at hardware stores and agricultural shops in Ziguinchor.\n\nAfter removing the plastic, transplant tomatoes immediately — do not dig deeply or rework the bed, as this brings up untreated soil from below. Apply Trichoderma harzianum granules to each planting hole before transplanting to maintain biological suppression. Combine solarization with resistant varieties for best results. This technique also effectively reduces Bacterial Wilt (Ralstonia) and nematode populations that attack tomato roots."
+  },
+  {
+    "id": "soil_solarization_be_037_treatment_child",
+    "collection": "treatment_guides",
+    "metadata": {
+      "treatment_id": "37",
+      "chunk_type": "child",
+      "crop": "tomato",
+      "difficulty": "medium",
+      "disease_name": "Fusarium Wilt of Tomato",
+      "is_organic": "true",
+      "topic_id": "soil_solarization_be_037_treatment",
+      "disease_id": "18"
+    },
+    "document": "How do I use solarization to treat Fusarium wilt in my tomato soil? Can I heat the soil with plastic before planting tomatoes to kill Fusarium? What can I do to the soil before transplanting tomatoes to prevent wilt disease? How long do I leave plastic on the soil to kill Fusarium in Casamance?"
+  },
+  {
+    "id": "harvest_timing_and_r_038_treatment_parent",
+    "collection": "treatment_guides",
+    "metadata": {
+      "treatment_id": "38",
+      "chunk_type": "parent",
+      "crop": "groundnut",
+      "difficulty": "easy",
+      "disease_name": "Aflatoxin Contamination of Groundnut",
+      "is_organic": "true",
+      "topic_id": "harvest_timing_and_r_038_treatment",
+      "disease_id": "19"
+    },
+    "document": "To prevent and reduce Aflatoxin Contamination of Groundnut, the most important intervention is harvesting at the right time and drying pods rapidly after harvest. This is an easy, fully organic practice with high effectiveness because aflatoxin (produced by Aspergillus flavus and A. parasiticus) is generated during storage and post-harvest handling — proper timing and rapid drying dramatically reduce contamination risk and are achievable by all farmers.\n\nHarvest groundnuts when pods are physiologically mature: inner pod walls show brown coloration when pods are opened, and most leaves have yellowed. Harvesting too late — when plants overstay in soil after maturity — allows Aspergillus to colonize mature pods in warm, moist soil, especially at the end of the rainy season when soil temperatures rise. After pulling plants, dry them inverted (pods facing up and out) in the field for 3-5 days, then move immediately to a raised structure with good airflow. Pods must reach 8-10% moisture content before storage — test by biting a kernel: if it snaps cleanly, moisture is adequate.\n\nStore shelled groundnuts in clean, dry jute sacks elevated on wooden pallets — never directly on soil or cement floors. Storage space should be well-ventilated, dry, and free from moisture ingress. Inspect sacks monthly for warm spots or mold smell, which indicate dangerously high moisture. The agricultural extension service (ANCAR) in Kolda and Ziguinchor provides training on aflatoxin-safe storage during post-harvest campaigns. Groundnuts intended for sale should be tested for aflatoxin at the Kolda DRDR office before export."
+  },
+  {
+    "id": "harvest_timing_and_r_038_treatment_child",
+    "collection": "treatment_guides",
+    "metadata": {
+      "treatment_id": "38",
+      "chunk_type": "child",
+      "crop": "groundnut",
+      "difficulty": "easy",
+      "disease_name": "Aflatoxin Contamination of Groundnut",
+      "is_organic": "true",
+      "topic_id": "harvest_timing_and_r_038_treatment",
+      "disease_id": "19"
+    },
+    "document": "How do I prevent aflatoxin in my groundnuts after harvest? When is the right time to harvest groundnuts to avoid aflatoxin contamination? How should I dry and store groundnuts to keep them safe from mold and toxins? My groundnuts smell musty after storage — is this aflatoxin and what do I do?"
+  },
+  {
+    "id": "aflasafe_biocontrol__039_treatment_parent",
+    "collection": "treatment_guides",
+    "metadata": {
+      "treatment_id": "39",
+      "chunk_type": "parent",
+      "crop": "groundnut",
+      "difficulty": "medium",
+      "disease_name": "Aflatoxin Contamination of Groundnut",
+      "is_organic": "true",
+      "topic_id": "aflasafe_biocontrol__039_treatment",
+      "disease_id": "19"
+    },
+    "document": "To biologically control Aflatoxin Contamination of Groundnut at the field level, apply Aflasafe SN01, a biocontrol product registered for use in Senegal. This is a medium-difficulty organic method with high effectiveness developed by IITA and USDA in partnership with the Institut Senegalais de Recherches Agricoles (ISRA). Aflasafe works by introducing non-aflatoxin-producing strains of Aspergillus flavus that outcompete the toxin-producing strains in the soil and on developing pods, preventing contamination at its source.\n\nAflasafe SN01 is sold as sorghum grain coated with beneficial Aspergillus spores. Broadcast at 10kg per hectare in the field at pod initiation stage (approximately 60-70 days after planting, when pegs have entered soil and pods are forming). Apply in the late afternoon and water the field lightly if dry — moisture activates the product. One application per season is sufficient. The product is available through ISRA, AfricaRice, and selected NGO partners operating in Casamance and the Kolda region. Contact the DRDR Ziguinchor or the ANCAR local office for current stockist information and seasonal distribution schedules.\n\nAflasafe does not replace good post-harvest practice — combine with timely harvest and rapid drying for best results. Do not apply within 3 weeks of harvest. The product has an excellent safety profile and is approved for use in organic production systems. Store unused product in a cool dry place away from sunlight, and use within the season as spore viability declines after the expiry date printed on the packaging."
+  },
+  {
+    "id": "aflasafe_biocontrol__039_treatment_child",
+    "collection": "treatment_guides",
+    "metadata": {
+      "treatment_id": "39",
+      "chunk_type": "child",
+      "crop": "groundnut",
+      "difficulty": "medium",
+      "disease_name": "Aflatoxin Contamination of Groundnut",
+      "is_organic": "true",
+      "topic_id": "aflasafe_biocontrol__039_treatment",
+      "disease_id": "19"
+    },
+    "document": "What is Aflasafe and how do I use it to prevent aflatoxin in my groundnuts? Is there a biological spray or product I can apply in the field to stop aflatoxin? How do I reduce aflatoxin in groundnuts while they are still growing? Where can I get Aflasafe for my groundnut field in Ziguinchor or Kolda?"
+  },
+  {
+    "id": "fungicide_spray_sche_040_treatment_parent",
+    "collection": "treatment_guides",
+    "metadata": {
+      "treatment_id": "40",
+      "chunk_type": "parent",
+      "crop": "groundnut",
+      "difficulty": "medium",
+      "disease_name": "Groundnut Rust",
+      "is_organic": "false",
+      "topic_id": "fungicide_spray_sche_040_treatment",
+      "disease_id": "20"
+    },
+    "document": "To treat Groundnut Rust caused by Puccinia arachidis, apply mancozeb fungicide on a scheduled programme throughout the second half of the growing season. This is a medium-difficulty chemical treatment with high effectiveness. Groundnut rust spreads rapidly through airborne urediniospores and can cause 30-50% yield loss if left untreated. A preventive spray schedule is far more effective than waiting for severe symptoms — rust pustules on the underside of leaves are orange-brown and powdery, and by the time they are numerous the crop has already lost significant leaf area.\n\nApply mancozeb (Dithane M-45 or equivalent) at 2g per liter of water, beginning at 45 days after planting and repeating at 60 days and 75 days — the standard 3-spray groundnut schedule used across Casamance. If rust symptoms appear heavily before 45 days, begin spraying immediately and adjust the schedule accordingly. A 15-liter knapsack sprayer treats approximately 0.1 hectare per tank. Spray the undersides of leaves thoroughly, as rust sporulates on the abaxial (lower) leaf surface. Mancozeb is available at agricultural input dealers in Ziguinchor and Kolda.\n\nThe spray schedule for groundnut rust also controls Early Leaf Spot and Late Leaf Spot simultaneously, making it highly cost-effective. Record application dates and mix the chemical for the exact area you plan to spray to avoid leftover solution. Mix only what you need for the same day. Wear gloves, mask, and protective clothing during application. Observe a 14-day pre-harvest interval before lifting groundnuts."
+  },
+  {
+    "id": "fungicide_spray_sche_040_treatment_child",
+    "collection": "treatment_guides",
+    "metadata": {
+      "treatment_id": "40",
+      "chunk_type": "child",
+      "crop": "groundnut",
+      "difficulty": "medium",
+      "disease_name": "Groundnut Rust",
+      "is_organic": "false",
+      "topic_id": "fungicide_spray_sche_040_treatment",
+      "disease_id": "20"
+    },
+    "document": "My groundnuts have orange powdery spots on the underside of leaves — what should I spray? How do I treat groundnut rust with fungicide in Casamance? What is the spray schedule for treating rust on groundnuts? When do I start spraying mancozeb on groundnuts to prevent rust?"
+  },
+  {
+    "id": "resistant_variety_se_041_treatment_parent",
+    "collection": "treatment_guides",
+    "metadata": {
+      "treatment_id": "41",
+      "chunk_type": "parent",
+      "crop": "groundnut",
+      "difficulty": "easy",
+      "disease_name": "Groundnut Rust",
+      "is_organic": "true",
+      "topic_id": "resistant_variety_se_041_treatment",
+      "disease_id": "20"
+    },
+    "document": "To reduce the impact of Groundnut Rust through cultural means, plant rust-tolerant groundnut varieties and manage crop residues to reduce initial inoculum. This is an easy, fully organic approach with medium effectiveness that reduces reliance on chemical fungicides and works well as part of an integrated management strategy.\n\nICRISAT-developed varieties such as ICGV 86031, Fleur 11 (widely grown in Casamance), and RMP 12 show moderate tolerance to Groundnut Rust compared to older local landraces. Fleur 11 is particularly well-adapted to Casamance conditions and is available through the national ISRA seed system and at local seed fairs organized by agricultural development projects in the Kolda and Ziguinchor regions. Ask specifically for improved varieties at the Direction Regionale du Developpement Rural (DRDR) office in Ziguinchor.\n\nAfter harvest, collect and deeply bury or burn groundnut haulms (plant tops). Rust survives on infected crop debris and provides the initial spore source for the following season. Avoid leaving dried groundnut plants in or near the field. Practice rotation with cereals (millet, maize, rice) for 1-2 seasons — this reduces but does not eliminate rust risk, as spores can blow in from neighboring fields. Plant at the recommended density of 40x15cm — denser stands create high humidity within the canopy that favors rust spread."
+  },
+  {
+    "id": "resistant_variety_se_041_treatment_child",
+    "collection": "treatment_guides",
+    "metadata": {
+      "treatment_id": "41",
+      "chunk_type": "child",
+      "crop": "groundnut",
+      "difficulty": "easy",
+      "disease_name": "Groundnut Rust",
+      "is_organic": "true",
+      "topic_id": "resistant_variety_se_041_treatment",
+      "disease_id": "20"
+    },
+    "document": "Is there a groundnut variety that is resistant to rust in Casamance? What organic steps can I take to reduce groundnut rust without spraying chemicals? How does crop rotation help with groundnut rust? Should I burn groundnut residues after harvest to prevent rust next year?"
+  },
+  {
+    "id": "infected_crop_remova_042_treatment_parent",
+    "collection": "treatment_guides",
+    "metadata": {
+      "treatment_id": "42",
+      "chunk_type": "parent",
+      "crop": "maize",
+      "difficulty": "medium",
+      "disease_name": "Maize Lethal Necrosis",
+      "is_organic": "true",
+      "topic_id": "infected_crop_remova_042_treatment",
+      "disease_id": "21"
+    },
+    "document": "To manage Maize Lethal Necrosis (MLN), a devastating viral disease caused by co-infection with Maize Chlorotic Mottle Virus (MCMV) and a potyvirus (usually SCMV), the primary response is rapid removal and destruction of infected plants to stop spread within the field. This is a medium-difficulty organic strategy with medium effectiveness — there is no cure for MLN-infected plants, so the goal is containment to protect neighboring healthy plants.\n\nMonitor your maize field weekly from 3 weeks after emergence. Symptoms of MLN include chlorotic mottling on young leaves (similar to mosaic), dead heart at the growing point, premature death of young plants, and brown necrotic spots on leaf margins. When you identify infected plants — especially clusters of 2 or more — mark them with a stake. Return within 48 hours with machetes and bags. Cut plants at soil level, place all material including roots in sealed bags or wrap tightly in sacks. Remove from the field immediately and burn at least 100m from any maize field.\n\nDo not attempt to compost removed material — MLN viruses survive in plant debris. After removal, monitor the surrounding 5-10 meter radius for new symptoms over the following 2 weeks. Thrips and aphids are the primary vectors — apply neem seed extract spray to the surrounding plants to reduce vector populations. Contact ISRA Djibelor station or the national plant protection service (DGPV) in Ziguinchor if you observe widespread MLN outbreaks, as this is a notifiable disease requiring coordinated regional response."
+  },
+  {
+    "id": "infected_crop_remova_042_treatment_child",
+    "collection": "treatment_guides",
+    "metadata": {
+      "treatment_id": "42",
+      "chunk_type": "child",
+      "crop": "maize",
+      "difficulty": "medium",
+      "disease_name": "Maize Lethal Necrosis",
+      "is_organic": "true",
+      "topic_id": "infected_crop_remova_042_treatment",
+      "disease_id": "21"
+    },
+    "document": "My maize plants have yellow mottled leaves and are dying — could it be lethal necrosis? What do I do if I find Maize Lethal Necrosis in my field? How do I stop MLN from spreading to the rest of my maize plants? Should I remove and burn maize plants infected with lethal necrosis?"
+  },
+  {
+    "id": "mlntolerant_variety__043_treatment_parent",
+    "collection": "treatment_guides",
+    "metadata": {
+      "treatment_id": "43",
+      "chunk_type": "parent",
+      "crop": "maize",
+      "difficulty": "medium",
+      "disease_name": "Maize Lethal Necrosis",
+      "is_organic": "true",
+      "topic_id": "mlntolerant_variety__043_treatment",
+      "disease_id": "21"
+    },
+    "document": "To protect maize from Maize Lethal Necrosis through prevention, plant MLN-tolerant varieties and implement vector insect control to reduce disease spread. This is a medium-difficulty organic strategy with high effectiveness. CIMMYT, ISRA, and the West Africa Seed Alliance have developed maize varieties with combined tolerance to MCMV and SCMV — the two viruses that together cause MLN. These varieties do not prevent infection entirely but maintain yields significantly better than susceptible materials under MLN pressure.\n\nRequest MLN-tolerant maize varieties from the ISRA Djibelor station, DRDR Ziguinchor, or seed fairs organized by agricultural development projects in the region. Varieties with MLN tolerance bred by CIMMYT's Kenya programme are increasingly available through West Africa distribution networks. Ask for varieties labeled with MLN or virus tolerance in the ISRA catalogue. Seed cleaning and treatment: use only certified seed, and avoid saving seed from fields that showed MLN symptoms.\n\nThrips (Frankliniella williamsi) are the primary vector of MCMV, while aphids transmit SCMV. Control both with neem seed kernel extract spray (50g crushed neem kernels per liter of water, soaked overnight, strained) applied every 7-10 days from emergence to tasseling. Focus spray on the leaf whorls where thrips shelter. Remove volunteer maize plants and grassy weeds from field borders — these serve as virus reservoirs. Plant early at the beginning of the rains to help crops establish before peak thrips populations build up in August."
+  },
+  {
+    "id": "mlntolerant_variety__043_treatment_child",
+    "collection": "treatment_guides",
+    "metadata": {
+      "treatment_id": "43",
+      "chunk_type": "child",
+      "crop": "maize",
+      "difficulty": "medium",
+      "disease_name": "Maize Lethal Necrosis",
+      "is_organic": "true",
+      "topic_id": "mlntolerant_variety__043_treatment",
+      "disease_id": "21"
+    },
+    "document": "Is there a maize variety resistant to lethal necrosis I can plant in Casamance? How do I control thrips and aphids on maize to prevent lethal necrosis virus? What can I do to protect my maize crop from MLN disease? Where can I get MLN-tolerant maize seed in Ziguinchor or Kolda?"
+  },
+  {
+    "id": "sand_or_ash_applicat_044_treatment_parent",
+    "collection": "treatment_guides",
+    "metadata": {
+      "treatment_id": "44",
+      "chunk_type": "parent",
+      "crop": "maize",
+      "difficulty": "easy",
+      "disease_name": "Fall Armyworm Damage on Maize",
+      "is_organic": "true",
+      "topic_id": "sand_or_ash_applicat_044_treatment",
+      "disease_id": "22"
+    },
+    "document": "To control Fall Armyworm (Spodoptera frugiperda) on maize using a simple organic method, apply fine dry sand or wood ash directly into the leaf whorl of each plant. This is an easy, fully organic approach with medium effectiveness that kills or irritates young caterpillars by damaging their soft bodies and preventing feeding on the developing leaves. It is most effective against early instar (1st-3rd stage) larvae before they grow large and burrow deep into the plant stem.\n\nInspect maize fields from emergence through tasseling, checking 10 plants per row section. Look for ragged holes in leaves, pin-hole feeding damage, and frass (dark granular droppings) inside the leaf whorl — these indicate active fall armyworm feeding. When larvae are found, take a handful of fine dry sand or wood ash and place directly into the leaf whorl of each infested plant in the morning while dew is still present to help it adhere to caterpillars. Wood ash is freely available from cooking fires throughout Casamance and is the most accessible treatment for smallholder farmers.\n\nMix the ash with a small amount of fine soil at a 1:1 ratio if ash alone is not available in sufficient quantity. Apply every 3-5 days while larvae are active. This method works best during the first 4 weeks after maize emergence when plants are small and whorls are accessible. For older plants with deeper whorls, push the ash deeper using a stick. Combine this method with hand removal of large caterpillars — pick out and crush any armyworm larvae you can see. Contact the local ANCAR extension agent or DRDR office if infestations exceed 20% of plants in your field."
+  },
+  {
+    "id": "sand_or_ash_applicat_044_treatment_child",
+    "collection": "treatment_guides",
+    "metadata": {
+      "treatment_id": "44",
+      "chunk_type": "child",
+      "crop": "maize",
+      "difficulty": "easy",
+      "disease_name": "Fall Armyworm Damage on Maize",
+      "is_organic": "true",
+      "topic_id": "sand_or_ash_applicat_044_treatment",
+      "disease_id": "22"
+    },
+    "document": "How do I treat fall armyworm in my maize using organic methods? Can I use wood ash to control the worms eating my maize leaves? My maize leaves have ragged holes with droppings inside — is this fall armyworm and what do I do? How do I apply ash or sand to kill caterpillars in the maize whorl?"
+  },
+  {
+    "id": "chlorpyrifos_or_emam_045_treatment_parent",
+    "collection": "treatment_guides",
+    "metadata": {
+      "treatment_id": "45",
+      "chunk_type": "parent",
+      "crop": "maize",
+      "difficulty": "medium",
+      "disease_name": "Fall Armyworm Damage on Maize",
+      "is_organic": "false",
+      "topic_id": "chlorpyrifos_or_emam_045_treatment",
+      "disease_id": "22"
+    },
+    "document": "To control Fall Armyworm (Spodoptera frugiperda) on maize with a chemical insecticide, apply emamectin benzoate (Proclaim 19 EC) or chlorpyrifos (Dursban or local equivalents) as a targeted spray into the leaf whorl. This is a medium-difficulty chemical treatment with high effectiveness, especially against mid-to-late instar larvae that have become too large for organic methods to kill reliably. Both insecticides are registered for fall armyworm control and are available at agricultural input shops in Ziguinchor (Marche Saint-Maur area) and Kolda.\n\nFor emamectin benzoate: mix 7.5ml of Proclaim 19 EC per 15 liters of water (5ml per 10L). Apply directly into the whorl of each plant rather than broadcast spraying — this concentrates the product where caterpillars feed and reduces off-target impacts. Apply in the early morning when caterpillars are active in the whorl. One application usually controls an active infestation within 3-5 days. Repeat if needed at 7-day intervals. For chlorpyrifos: follow label rate (typically 1-2ml per liter). Add a few drops of liquid soap as surfactant to improve coverage on waxy maize leaves.\n\nAlways wear rubber gloves, a long-sleeved shirt, and a face shield or glasses when handling insecticides. Chlorpyrifos is highly toxic to fish and bees — do not spray near streams, ponds, or flowering plants. Do not allow children or pregnant women near treated fields for at least 48 hours. Observe the 14-day pre-harvest interval printed on the label. Store insecticides locked away from food, water, and children. Return empty containers to the retailer or crush and bury — never reuse for food or water storage."
+  },
+  {
+    "id": "chlorpyrifos_or_emam_045_treatment_child",
+    "collection": "treatment_guides",
+    "metadata": {
+      "treatment_id": "45",
+      "chunk_type": "child",
+      "crop": "maize",
+      "difficulty": "medium",
+      "disease_name": "Fall Armyworm Damage on Maize",
+      "is_organic": "false",
+      "topic_id": "chlorpyrifos_or_emam_045_treatment",
+      "disease_id": "22"
+    },
+    "document": "What insecticide is most effective against fall armyworm on maize? How do I mix emamectin benzoate to spray on maize for caterpillar control? The worms in my maize whorl are too big for organic methods — what chemical can I use? How often should I spray for fall armyworm and how long before harvest must I stop?"
+  },
+  {
+    "id": "potassium_and_silico_046_treatment_parent",
+    "collection": "treatment_guides",
+    "metadata": {
+      "treatment_id": "46",
+      "chunk_type": "parent",
+      "crop": "rice",
+      "difficulty": "easy",
+      "disease_name": "Rice Brown Spot",
+      "is_organic": "true",
+      "topic_id": "potassium_and_silico_046_treatment",
+      "disease_id": "23"
+    },
+    "document": "To manage Rice Brown Spot caused by Bipolaris oryzae, improve soil nutrition with emphasis on potassium and silicon, which are consistently deficient in Casamance paddy soils and directly predispose rice to brown spot infection. This is an easy, organic approach with medium effectiveness that addresses the root nutritional cause of the disease rather than simply treating symptoms. Rice plants deficient in potassium and silicon have weakened cell walls that allow the pathogen to penetrate and colonize leaf tissue more readily.\n\nApply wood ash at 500g per 10 square meters of paddy as a potassium and silicon source — wood ash is freely available from cooking fires throughout Casamance villages. Broadcast ash on the water surface of flooded paddies or incorporate into soil before flooding. Supplement with compost applied before transplanting at 2-3 tonnes per hectare to provide a balanced range of micronutrients. If potassium chloride (KCl) or muriate of potash is available at input shops in Ziguinchor or Kolda, apply at 50kg per hectare at transplanting as a split dose.\n\nAvoid excessive nitrogen fertilization — high nitrogen worsens brown spot severity by creating lush, soft tissue susceptible to infection. Maintain field drainage to prevent waterlogging at tillering stage. Remove infected rice straw after harvest and compost or burn — the fungus overwinters on stubble and seed. Use certified seed treated with thiram or mancozeb for planting — brown spot is also seed-borne. ISRA Djibelor station can provide guidance on certified seed sources for Casamance paddy varieties."
+  },
+  {
+    "id": "potassium_and_silico_046_treatment_child",
+    "collection": "treatment_guides",
+    "metadata": {
+      "treatment_id": "46",
+      "chunk_type": "child",
+      "crop": "rice",
+      "difficulty": "easy",
+      "disease_name": "Rice Brown Spot",
+      "is_organic": "true",
+      "topic_id": "potassium_and_silico_046_treatment",
+      "disease_id": "23"
+    },
+    "document": "My rice leaves have oval brown spots with yellow halos — how do I treat this? What fertilizer helps prevent brown spot disease in rice? How does wood ash help with rice brown spot disease? Is brown spot in rice related to poor soil nutrition and how do I fix it?"
+  },
+  {
+    "id": "seed_treatment_and_c_047_treatment_parent",
+    "collection": "treatment_guides",
+    "metadata": {
+      "treatment_id": "47",
+      "chunk_type": "parent",
+      "crop": "rice",
+      "difficulty": "medium",
+      "disease_name": "Rice Brown Spot",
+      "is_organic": "false",
+      "topic_id": "seed_treatment_and_c_047_treatment",
+      "disease_id": "23"
+    },
+    "document": "To treat Rice Brown Spot chemically, combine seed treatment before planting with copper fungicide sprays during the growing season. This is a medium-difficulty approach with high effectiveness that addresses both the seed-borne and foliar phases of Bipolaris oryzae infection. Seed treatment prevents the fungus from infecting seedlings at germination, while foliar sprays protect leaves during the most susceptible growth stages.\n\nSeed treatment: soak rice seed in a solution of thiram (3g per liter) or mancozeb (2.5g per liter) for 12-24 hours before sowing in the nursery. Drain and sow while still damp. This simple step significantly reduces seedling infection and early crop establishment losses from brown spot. Alternatively, soak seed in hot water at 52-54 degrees Celsius for 10-12 minutes (use a thermometer — temperature is critical: too hot kills germination) as a non-chemical seed sanitation method.\n\nFoliar treatment: when oval brown spots with yellow margins appear on 10% or more of leaves, apply copper oxychloride at 2.5g per liter or mancozeb at 2g per liter. Spray at early tillering and again at late tillering if symptoms persist. Both products are available at agricultural input shops in Ziguinchor. Spray in the morning and ensure good coverage of all leaf surfaces. Wear gloves, mask, and protective clothing. Observe the pre-harvest interval on the label (typically 7-14 days for copper products). Copper fungicide also helps control Rice Blast and Sheath Blight — making the same spray programme cost-effective for multiple rice diseases."
+  },
+  {
+    "id": "seed_treatment_and_c_047_treatment_child",
+    "collection": "treatment_guides",
+    "metadata": {
+      "treatment_id": "47",
+      "chunk_type": "child",
+      "crop": "rice",
+      "difficulty": "medium",
+      "disease_name": "Rice Brown Spot",
+      "is_organic": "false",
+      "topic_id": "seed_treatment_and_c_047_treatment",
+      "disease_id": "23"
+    },
+    "document": "How do I treat rice seed before planting to prevent brown spot disease? What fungicide spray controls brown spot on rice in Casamance? How do I use copper fungicide for rice brown spot treatment? Can I soak rice seed in hot water to kill brown spot fungus before planting?"
+  },
+  {
+    "id": "wide_spacing_and_red_048_treatment_parent",
+    "collection": "treatment_guides",
+    "metadata": {
+      "treatment_id": "48",
+      "chunk_type": "parent",
+      "crop": "rice",
+      "difficulty": "easy",
+      "disease_name": "Rice Sheath Blight",
+      "is_organic": "true",
+      "topic_id": "wide_spacing_and_red_048_treatment",
+      "disease_id": "24"
+    },
+    "document": "To manage Rice Sheath Blight caused by Rhizoctonia solani, adjust planting density and nitrogen fertilization to create conditions unfavorable for the fungus. This is an easy, fully organic approach with medium effectiveness. Sheath blight thrives in dense, nitrogen-rich rice canopies — the disease spreads by mycelium contact between stems, so wider spacing physically interrupts this spread while reducing the humid microclimate within the canopy.\n\nSpace transplanted rice at 25x25cm rather than the common 20x20cm practice — this 25% increase in spacing allows better airflow and reduces canopy humidity. For direct-sown rice, reduce seeding rate by 20-25%. Reduce nitrogen fertilizer applications by 20-30% in fields with a history of sheath blight — high nitrogen creates lush, dense growth that the pathogen colonizes rapidly. Instead of reducing nitrogen entirely, split applications into 3 doses (at transplanting, tillering, and booting) rather than applying all at once to avoid peak tissue nitrogen that favors infection.\n\nAfter harvest, drain the field and allow straw to dry, then incorporate stubble by plowing — sheath blight survives on sclerotia (hard resting bodies) that float in water and infect new crops. Drain irrigation water from infected fields separately to avoid spreading sclerotia to neighboring paddies. Applying wood ash or potassium fertilizer improves plant resistance to sheath blight similarly to its effect on brown spot. Contact the ISRA agricultural research station at Djibelor for field demonstrations of integrated rice disease management."
+  },
+  {
+    "id": "wide_spacing_and_red_048_treatment_child",
+    "collection": "treatment_guides",
+    "metadata": {
+      "treatment_id": "48",
+      "chunk_type": "child",
+      "crop": "rice",
+      "difficulty": "easy",
+      "disease_name": "Rice Sheath Blight",
+      "is_organic": "true",
+      "topic_id": "wide_spacing_and_red_048_treatment",
+      "disease_id": "24"
+    },
+    "document": "My rice plants have oval white patches on the leaf sheaths — is this sheath blight and how do I treat it? How does planting spacing affect sheath blight in rice? What organic methods help control rice sheath blight in Casamance? Does reducing nitrogen fertilizer help prevent sheath blight on rice?"
+  },
+  {
+    "id": "propiconazole_or_teb_049_treatment_parent",
+    "collection": "treatment_guides",
+    "metadata": {
+      "treatment_id": "49",
+      "chunk_type": "parent",
+      "crop": "rice",
+      "difficulty": "medium",
+      "disease_name": "Rice Sheath Blight",
+      "is_organic": "false",
+      "topic_id": "propiconazole_or_teb_049_treatment",
+      "disease_id": "24"
+    },
+    "document": "To treat Rice Sheath Blight chemically, apply a systemic triazole fungicide such as propiconazole (Tilt 250 EC) or tebuconazole at the first appearance of sheath lesions. This is a medium-difficulty chemical treatment with high effectiveness. Unlike contact fungicides, systemic triazoles are absorbed into the plant and move within tissue, making them effective even when lesions are established. Early application — when oval grayish-white patches first appear on lower sheaths below the waterline — gives the best results.\n\nMix propiconazole (Tilt 250 EC) at 0.5ml per liter of water (500ml per hectare in 500 liters total spray volume). Apply as a directed spray at the base of plants where initial infection occurs, not just the upper canopy. A single well-timed application at early tillering typically provides 4-6 weeks of control. If disease pressure is severe — more than 25% of tillers infected — apply a second spray 21 days after the first. Propiconazole and tebuconazole are available at agricultural input suppliers in Ziguinchor; ask specifically for the 250 EC formulation as concentrate strength varies between products.\n\nWear rubber gloves, long sleeves, eye protection, and a face mask during mixing and application. Triazole fungicides have low mammalian toxicity but should not be ingested. Observe a 14-day pre-harvest interval. Do not apply to floodwater directly — apply to standing plants above the waterline. Rinse sprayer thoroughly with clean water after use. This spray also provides partial control of Rice Blast — valuable for combined disease management."
+  },
+  {
+    "id": "propiconazole_or_teb_049_treatment_child",
+    "collection": "treatment_guides",
+    "metadata": {
+      "treatment_id": "49",
+      "chunk_type": "child",
+      "crop": "rice",
+      "difficulty": "medium",
+      "disease_name": "Rice Sheath Blight",
+      "is_organic": "false",
+      "topic_id": "propiconazole_or_teb_049_treatment",
+      "disease_id": "24"
+    },
+    "document": "What is the best fungicide for rice sheath blight in West Africa? How do I use propiconazole (Tilt) to treat sheath blight on my rice? When should I spray for sheath blight and how much fungicide do I mix? Can one fungicide spray treat both rice sheath blight and rice blast at the same time?"
+  },
+  {
+    "id": "seed_treatment_with__050_treatment_parent",
+    "collection": "treatment_guides",
+    "metadata": {
+      "treatment_id": "50",
+      "chunk_type": "parent",
+      "crop": "millet",
+      "difficulty": "medium",
+      "disease_name": "Downy Mildew of Millet",
+      "is_organic": "false",
+      "topic_id": "seed_treatment_with__050_treatment",
+      "disease_id": "25"
+    },
+    "document": "To prevent Downy Mildew of Millet caused by Sclerospora graminicola, treat millet seed with metalaxyl-based seed dressing before planting. This is a medium-difficulty chemical treatment with high effectiveness. Downy mildew is primarily a soil- and seed-borne disease — the pathogen's oospores persist in soil for years and infect germinating seedlings. Seed treatment with metalaxyl (a systemic fungicide that penetrates seedling tissue) provides protection during the most vulnerable early growth stage when systemic infection sets the whole plant's disease fate.\n\nUse Apron Plus 50 WS (metalaxyl + thiram) or Apron Star 42 WS at the rate specified on the label — typically 2-3g of product per kilogram of millet seed. Wet the seed slightly with a few drops of water, add the powder, and mix in a closed container or bag by rolling until all seeds are coated. Plant treated seed within 24 hours. Do not eat treated seed — the coating makes grain unsuitable for human or animal consumption. Apron Plus is available at agricultural input shops in Ziguinchor and Kolda. Some NGO programs provide subsidized seed dressing through farmer input distribution campaigns at the start of the planting season.\n\nEven with seed treatment, monitor seedlings at 2-3 weeks after emergence for systemic infection symptoms: pale yellowing of entire young leaves, downy white spore growth on underside of affected leaves, and stunted shoots called 'green ear' or 'crazy top.' Remove and destroy any systemically infected seedlings (those that show full plant yellowing) immediately before they sporulate and spread oospores to the soil. In fields with heavy history of downy mildew, rotate with non-grass crops (cowpea, groundnut) for 2-3 years."
+  },
+  {
+    "id": "seed_treatment_with__050_treatment_child",
+    "collection": "treatment_guides",
+    "metadata": {
+      "treatment_id": "50",
+      "chunk_type": "child",
+      "crop": "millet",
+      "difficulty": "medium",
+      "disease_name": "Downy Mildew of Millet",
+      "is_organic": "false",
+      "topic_id": "seed_treatment_with__050_treatment",
+      "disease_id": "25"
+    },
+    "document": "How do I treat millet seed before planting to prevent downy mildew disease? What seed dressing can I use for green ear disease or downy mildew on millet? My millet seedlings have yellow leaves with white powder underneath — what is this and what do I do? Where can I get metalaxyl seed treatment for millet in Casamance?"
+  },
+  {
+    "id": "resistant_variety_se_051_treatment_parent",
+    "collection": "treatment_guides",
+    "metadata": {
+      "treatment_id": "51",
+      "chunk_type": "parent",
+      "crop": "millet",
+      "difficulty": "easy",
+      "disease_name": "Downy Mildew of Millet",
+      "is_organic": "true",
+      "topic_id": "resistant_variety_se_051_treatment",
+      "disease_id": "25"
+    },
+    "document": "To manage Downy Mildew of Millet through cultural means, plant downy mildew-resistant or tolerant millet varieties and practice systematic rouging of infected plants. This is an easy, fully organic approach with medium effectiveness that reduces disease pressure over seasons without chemical inputs.\n\nPearl millet varieties with downy mildew resistance have been developed by ICRISAT and are available in West Africa through national agricultural research systems. Ask the DRDR Ziguinchor, ISRA Djibelor station, or the local ANCAR extension service for current recommendations on millet varieties with downy mildew tolerance suited to Casamance conditions. Varieties such as ICMV 221 and local improved cultivars from ISRA's breeding programme show better field performance under downy mildew pressure than traditional landraces. Use saved seed only from healthy, vigorous plants that showed no downy mildew symptoms during the season.\n\nRouging — removing infected plants — is critical to reducing the oospore load in soil. Walk the field at 2-week intervals starting at 2 weeks after emergence. Pull out entire plants showing yellowing with white downy growth on leaf undersides, or 'crazy top' symptoms where the panicle is replaced by distorted leafy growth. Place removed plants in a bag and burn — do not leave in the field. Avoid planting millet in the same field for at least 2 years after a severe downy mildew outbreak. Rotate with cowpea, groundnut, or cassava to allow oospore populations in soil to decline naturally."
+  },
+  {
+    "id": "resistant_variety_se_051_treatment_child",
+    "collection": "treatment_guides",
+    "metadata": {
+      "treatment_id": "51",
+      "chunk_type": "child",
+      "crop": "millet",
+      "difficulty": "easy",
+      "disease_name": "Downy Mildew of Millet",
+      "is_organic": "true",
+      "topic_id": "resistant_variety_se_051_treatment",
+      "disease_id": "25"
+    },
+    "document": "Is there a millet variety resistant to downy mildew green ear disease in Casamance? How do I remove infected millet plants to stop downy mildew from spreading? What organic steps reduce downy mildew in my millet field season after season? How long should I rotate before planting millet again in a field with downy mildew?"
+  },
+  {
+    "id": "infected_head_remova_052_treatment_parent",
+    "collection": "treatment_guides",
+    "metadata": {
+      "treatment_id": "52",
+      "chunk_type": "parent",
+      "crop": "millet",
+      "difficulty": "easy",
+      "disease_name": "Millet Head Smut",
+      "is_organic": "true",
+      "topic_id": "infected_head_remova_052_treatment",
+      "disease_id": "26"
+    },
+    "document": "To manage Millet Head Smut caused by Moesziomyces penicillariae (syn. Tolyposporium penicillariae), remove and destroy infected panicles before the smut sori rupture and release spores into the field. This is an easy, fully organic approach with medium effectiveness. Head smut replaces the grain-bearing florets with dark, powdery masses of teliospores — once the sorus breaks open, billions of spores contaminate the soil for future seasons. Removing infected heads while still intact (before bursting) dramatically reduces the spore bank in your soil over time.\n\nBegin inspecting millet panicles from 6 weeks after emergence, when heads start to emerge from the flag leaf sheath. Smutted heads are recognizable by their abnormal dark color, swelling, and partial or complete replacement of grain with a grayish-black powdery mass. Walk systematically through the field before harvest and cut off each infected panicle, placing it immediately into a sealed bag or sack. Do not shake or carry infected panicles loosely across the field. Burn all collected smutted heads well away from the field — at least 100 meters distant.\n\nAfter removing infected heads, harvest and store seed only from visibly healthy panicles with full, normal grain. Clean the field after harvest by collecting and burning millet stubble, which carries spores on stems. Year-on-year rouging of infected heads progressively lowers disease incidence if practiced consistently. Rotate with non-grass crops such as cowpea or groundnut for 1-2 seasons in heavily infected fields. Contact DRDR Ziguinchor for guidance on resistant millet varieties if head smut exceeds 20% of your plants."
+  },
+  {
+    "id": "infected_head_remova_052_treatment_child",
+    "collection": "treatment_guides",
+    "metadata": {
+      "treatment_id": "52",
+      "chunk_type": "child",
+      "crop": "millet",
+      "difficulty": "easy",
+      "disease_name": "Millet Head Smut",
+      "is_organic": "true",
+      "topic_id": "infected_head_remova_052_treatment",
+      "disease_id": "26"
+    },
+    "document": "My millet heads look dark and powdery instead of having grain — is this smut disease? How do I stop millet head smut from spreading to other plants and next year's crop? Should I cut off smutted millet panicles and burn them? What is the organic way to manage millet smut disease in my field?"
+  },
+  {
+    "id": "thiram_or_carboxinth_053_treatment_parent",
+    "collection": "treatment_guides",
+    "metadata": {
+      "treatment_id": "53",
+      "chunk_type": "parent",
+      "crop": "millet",
+      "difficulty": "medium",
+      "disease_name": "Millet Head Smut",
+      "is_organic": "false",
+      "topic_id": "thiram_or_carboxinth_053_treatment",
+      "disease_id": "26"
+    },
+    "document": "To prevent Millet Head Smut through chemical seed treatment, dress millet seed with carboxin + thiram (Vitavax 200 FF or Vitavax 300 WP) or thiram alone before planting. This is a medium-difficulty chemical method with high effectiveness. Head smut infects the seedling from soil-borne teliospores that germinate alongside millet seed — the pathogen enters through the coleoptile before the plant has any foliar defenses. A systemic seed treatment with carboxin protects this critical window of vulnerability.\n\nMix Vitavax 200 FF (carboxin 19.5% + thiram 19.5%) at 3ml per kilogram of millet seed. Dampen the seed lightly with water (about 5ml per kg), then add the liquid formulation and mix thoroughly in a sealed bag or container by shaking until all seeds are uniformly coated with the pinkish-red color of the fungicide. Plant within 12-24 hours of treatment. Vitavax 200 FF and Vitavax 300 WP are available at agricultural input shops in Ziguinchor and Kolda; prices vary seasonally so purchase at least 2 weeks before planting. The DRDR and ANCAR extension service may stock subsidized seed treatment chemicals for smallholder distribution.\n\nTreated seed is not suitable for human consumption — always label treated seed sacks clearly. Keep treated seed away from children, animals, and food stores. Wash hands thoroughly after handling treated seed. Carboxin is a specific inhibitor of the succinate dehydrogenase enzyme in fungal mitochondria, with low mammalian toxicity at label rates, but it should not be ingested. This treatment also controls Downy Mildew and early seedling damping-off, making it cost-effective for millet production."
+  },
+  {
+    "id": "thiram_or_carboxinth_053_treatment_child",
+    "collection": "treatment_guides",
+    "metadata": {
+      "treatment_id": "53",
+      "chunk_type": "child",
+      "crop": "millet",
+      "difficulty": "medium",
+      "disease_name": "Millet Head Smut",
+      "is_organic": "false",
+      "topic_id": "thiram_or_carboxinth_053_treatment",
+      "disease_id": "26"
+    },
+    "document": "What seed treatment prevents millet head smut before planting? How do I use Vitavax to treat millet seed against smut disease? Is there a chemical I can mix with millet seed to prevent the dark powdery disease? Where can I buy carboxin thiram seed dressing for millet in Casamance?"
+  },
+  {
+    "id": "honeydew_removal_and_054_treatment_parent",
+    "collection": "treatment_guides",
+    "metadata": {
+      "treatment_id": "54",
+      "chunk_type": "parent",
+      "crop": "millet",
+      "difficulty": "easy",
+      "disease_name": "Millet Ergot",
+      "is_organic": "true",
+      "topic_id": "honeydew_removal_and_054_treatment",
+      "disease_id": "27"
+    },
+    "document": "To manage Millet Ergot caused by Claviceps fusiformis, prevent secondary spread during flowering by removing honeydew-exuding florets and practicing field hygiene. This is an easy, fully organic approach with medium effectiveness. Ergot initially infects individual ovaries during flowering — infected florets exude a sticky, sweet honeydew that carries conidia (asexual spores) and attracts insects that carry spores to other open flowers. Managing the honeydew phase limits spread within and between fields.\n\nMonitor millet panicles daily during the flowering and post-flowering period (approximately 6-9 weeks after emergence). Honeydew appears as sticky droplets on or around florets — it is sweet and insects are attracted to it. With gloved hands, carefully cut off and bag panicles showing obvious honeydew. Wash hands with soap immediately after handling infected material. Sclerotia (dark, hard ergot bodies replacing grain) that form later should also be removed before harvest to prevent mixing into grain stores. Ergot sclerotia contain toxic alkaloids that cause ergotism in humans and livestock — thoroughly winnow harvested grain to separate and discard sclerotia.\n\nAvoid planting millet in areas surrounded by wild grasses that serve as ergot reservoirs. Rotate with cowpea or groundnut to break the infection cycle. After harvest, remove and burn millet stubble from severely affected fields. Sclerotia that fall to the soil can germinate the following season — deep plowing buries sclerotia and reduces their viability. Dry storage of millet grain below 12% moisture prevents further sclerotia contamination after harvest. If ergot sclerotia exceed 0.05% of grain weight, the crop is not safe for human consumption and should not be fed to poultry or livestock either without further processing."
+  },
+  {
+    "id": "honeydew_removal_and_054_treatment_child",
+    "collection": "treatment_guides",
+    "metadata": {
+      "treatment_id": "54",
+      "chunk_type": "child",
+      "crop": "millet",
+      "difficulty": "easy",
+      "disease_name": "Millet Ergot",
+      "is_organic": "true",
+      "topic_id": "honeydew_removal_and_054_treatment",
+      "disease_id": "27"
+    },
+    "document": "My millet panicles have sticky liquid dripping from them — is this ergot disease? How do I remove ergot from millet before it spreads to more plants? Are the dark hard pieces in my millet grain dangerous to eat and how do I remove them? What organic steps prevent millet ergot from coming back next season?"
+  },
+  {
+    "id": "plantinga_timing_and_055_treatment_parent",
+    "collection": "treatment_guides",
+    "metadata": {
+      "treatment_id": "55",
+      "chunk_type": "parent",
+      "crop": "millet",
+      "difficulty": "medium",
+      "disease_name": "Millet Ergot",
+      "is_organic": "true",
+      "topic_id": "plantinga_timing_and_055_treatment",
+      "disease_id": "27"
+    },
+    "document": "To reduce Millet Ergot impact through preventive cultural management, adjust planting timing to avoid peak flowering during the highest disease pressure period, and use ergot-tolerant millet varieties where available. This is a medium-difficulty organic strategy with medium effectiveness that requires season-level planning rather than in-season response.\n\nErgot infection occurs during flowering — the pathogen requires open flowers to infect ovaries. Cool, cloudy, and humid conditions during millet flowering dramatically increase infection rates by prolonging the open-flower period and promoting spore germination. In Casamance, late plantings (after mid-July) cause flowering to coincide with the peak-rain August-September period when ergot pressure is highest. Plant millet in the first two weeks of the rainy season (mid-June to early July) so that flowering occurs around late July to early August before peak-humidity conditions intensify.\n\nPearl millet varieties with rapid, synchronous flowering reduce the window of ergot vulnerability — ask ISRA Djibelor or DRDR Ziguinchor for varieties with good field ergot scores in Senegal conditions. Varieties with better flowering synchrony (all tillers flower within a narrow window) reduce the time available for repeated ergot cycles within a crop. Also ensure adequate phosphorus fertility — phosphorus-deficient millet has prolonged, irregular flowering that dramatically increases ergot infection rates. Apply compost at 2 tonnes per hectare or single superphosphate at 50kg per hectare at planting. Test grain at harvest by flotation in 20% brine solution — ergot sclerotia float while healthy grain sinks — to assess contamination before storage."
+  },
+  {
+    "id": "plantinga_timing_and_055_treatment_child",
+    "collection": "treatment_guides",
+    "metadata": {
+      "treatment_id": "55",
+      "chunk_type": "child",
+      "crop": "millet",
+      "difficulty": "medium",
+      "disease_name": "Millet Ergot",
+      "is_organic": "true",
+      "topic_id": "plantinga_timing_and_055_treatment",
+      "disease_id": "27"
+    },
+    "document": "When should I plant millet to avoid ergot disease during flowering? How does the planting date affect ergot contamination in millet? Is there a millet variety with less ergot problem in Casamance? How can I check if my millet grain is contaminated with ergot before storing?"
+  },
+  {
+    "id": "drainage_improvement_056_treatment_parent",
+    "collection": "treatment_guides",
+    "metadata": {
+      "treatment_id": "56",
+      "chunk_type": "parent",
+      "crop": "cassava",
+      "difficulty": "easy",
+      "disease_name": "Cassava Root Rot",
+      "is_organic": "true",
+      "topic_id": "drainage_improvement_056_treatment",
+      "disease_id": "28"
+    },
+    "document": "To prevent and manage Cassava Root Rot caused by Phytophthora and Fusarium species, improve soil drainage and plant cassava on raised mounds or ridges. This is an easy, fully organic approach with medium effectiveness. Root rot is overwhelmingly associated with waterlogged soil — the pathogen thrives in anaerobic conditions and cassava tubers that sit in saturated soil for more than 3-5 days begin to rot from the outside in. Preventing waterlogging is the single most effective management strategy available to smallholder farmers.\n\nPrepare planting mounds 30-40cm high and 60-80cm across before planting cassava stem cuttings. Plant cuttings on the peak or upper slope of each mound, never in the furrow between mounds. On flat land, construct drainage channels every 3-4 rows to carry water away from the root zone after heavy rains. In valley-bottom fields that are prone to flooding, delay cassava planting until late July when the risk of waterlogging is lower, and choose shorter-cycle varieties (8-10 months) to harvest before the next rainy season begins. ISRA and extension staff at DRDR Ziguinchor can advise on land assessment for cassava suitability.\n\nAt harvest, if you find rotted tubers (brown, soft, foul-smelling flesh), do not replant cuttings from those plants — root rot pathogens can be carried on stems. Process and consume healthy portions of partially-affected roots immediately — rotted cassava cannot be stored. After harvest, allow the field to dry before the next planting and rotate with upland crops such as groundnut or maize for one season to break the pathogen cycle."
+  },
+  {
+    "id": "drainage_improvement_056_treatment_child",
+    "collection": "treatment_guides",
+    "metadata": {
+      "treatment_id": "56",
+      "chunk_type": "child",
+      "crop": "cassava",
+      "difficulty": "easy",
+      "disease_name": "Cassava Root Rot",
+      "is_organic": "true",
+      "topic_id": "drainage_improvement_056_treatment",
+      "disease_id": "28"
+    },
+    "document": "My cassava roots are rotting in the ground before I can harvest them — what is causing this? How do I prevent cassava root rot in my Casamance field? Should I plant cassava on raised mounds to avoid root rot? What happens to cassava planted in waterlogged or flooded soil?"
+  },
+  {
+    "id": "mancozeb_cutting_dip_057_treatment_parent",
+    "collection": "treatment_guides",
+    "metadata": {
+      "treatment_id": "57",
+      "chunk_type": "parent",
+      "crop": "cassava",
+      "difficulty": "medium",
+      "disease_name": "Cassava Root Rot",
+      "is_organic": "false",
+      "topic_id": "mancozeb_cutting_dip_057_treatment",
+      "disease_id": "28"
+    },
+    "document": "To protect cassava from Root Rot at the planting stage, treat stem cuttings with a mancozeb fungicide dip and apply Trichoderma harzianum drench to the planting hole. This is a medium-difficulty combined chemical-biological treatment with medium effectiveness that targets the establishment phase when cassava is most vulnerable — before roots have developed sufficient depth and mass to outgrow infection.\n\nCutting dip: prepare a solution of mancozeb at 5g per liter in a bucket of clean water. Submerge the cut ends of cassava stem cuttings (bottom 10cm) for 10-15 minutes before planting. This protects cut surfaces from fungal entry during the first weeks of establishment. Mancozeb (Dithane M-45 or Penncozeb) is available at agricultural supply shops in Ziguinchor market and from input dealers in Kolda. Prepare only the volume of dipping solution needed for the day's planting — do not store the mixed solution.\n\nPlanting hole drench: mix Trichoderma harzianum granules at 10g per liter of non-chlorinated water (use collected rainwater if possible). Pour 250ml of this suspension into each planting hole before inserting the cutting. Trichoderma colonizes the soil immediately around the new root system and competitively excludes Phytophthora and Fusarium from establishing. Trichoderma products are available through ISRA Djibelor station, agricultural NGOs in Ziguinchor, and occasionally through the DRDR extension input distribution programme.\n\nWear gloves when mixing and applying mancozeb. Avoid inhaling the powder during mixing — use a mask. Do not eat, drink, or smoke while handling the fungicide. Wash hands thoroughly after treatment work is complete. These treatments are preventive — they cannot cure established root rot in growing plants, so apply only at planting time."
+  },
+  {
+    "id": "mancozeb_cutting_dip_057_treatment_child",
+    "collection": "treatment_guides",
+    "metadata": {
+      "treatment_id": "57",
+      "chunk_type": "child",
+      "crop": "cassava",
+      "difficulty": "medium",
+      "disease_name": "Cassava Root Rot",
+      "is_organic": "false",
+      "topic_id": "mancozeb_cutting_dip_057_treatment",
+      "disease_id": "28"
+    },
+    "document": "How do I treat cassava cuttings with fungicide before planting to prevent root rot? What can I apply to the planting hole to protect cassava roots from rotting? Can I use Trichoderma to prevent cassava root rot in Casamance? How do I mix mancozeb for dipping cassava stems before planting?"
+  }
+]

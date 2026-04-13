@@ -1,8 +1,22 @@
 import { useState, useEffect } from 'react'
 import { Link, Navigate } from 'react-router-dom'
-import { Rocket, Leaf, Database, Moon, Sun, ChevronRight, WifiOff, Layers, Package, BarChart2, Wifi, Terminal, Settings, Laptop } from 'lucide-react'
+import { Rocket, Leaf, Database, Moon, Sun, ChevronRight, WifiOff, Layers, Package, BarChart2, Wifi, Terminal, Settings, Laptop, Cpu } from 'lucide-react'
 import { apiUrl } from '../lib/config'
 import { useBackendReachable } from '../hooks/useBackendReachable'
+
+interface OllamaHealth {
+  ollama: string
+  ollama_version?: string
+  model?: {
+    name?: string
+    exists?: boolean
+    loaded?: boolean
+    parameters?: string
+    quantization?: string
+    family?: string
+    memory_mb?: number
+  }
+}
 
 export default function HomePage() {
   const { reachable: backendUp } = useBackendReachable()
@@ -12,6 +26,7 @@ export default function HomePage() {
   const [isDark, setIsDark] = useState(() =>
     document.documentElement.classList.contains('dark')
   )
+  const [ollamaStatus, setOllamaStatus] = useState<OllamaHealth | null>(null)
 
   function toggleTheme() {
     const next = !isDark
@@ -48,14 +63,33 @@ export default function HomePage() {
     return () => controller.abort()
   }, [])
 
+  useEffect(() => {
+    const controller = new AbortController()
+    fetch(apiUrl('/health'), { signal: controller.signal })
+      .then(r => r.ok ? r.json() : null)
+      .then((data: OllamaHealth | null) => {
+        if (data) setOllamaStatus(data)
+      })
+      .catch(() => {})
+    return () => controller.abort()
+  }, [])
+
   if (!localStorage.getItem('fieldpack_onboarded')) {
     return <Navigate to="/onboarding" replace />
   }
 
+  const ollamaIndicator = (() => {
+    if (!ollamaStatus) return { dot: 'bg-gray-400', label: 'Offline' }
+    const m = ollamaStatus.model
+    if (m?.loaded) return { dot: 'bg-green-500', label: 'Ready' }
+    if (m?.exists) return { dot: 'bg-amber-400', label: 'Available' }
+    return { dot: 'bg-red-500', label: 'Not Found' }
+  })()
+
   return (
     <div className="bg-surface animate-fadeIn min-h-screen">
 
-      {/* ── Hero ── */}
+      {/* -- Hero -- */}
       <div className="relative">
         <div className="px-6 pt-10 pb-16 text-center relative overflow-hidden">
 
@@ -145,7 +179,7 @@ export default function HomePage() {
           </div>
         </div>
 
-        {/* SVG wave — double-wave organic transition into the card area */}
+        {/* SVG wave -- double-wave organic transition into the card area */}
         <div className="absolute bottom-0 left-0 right-0 overflow-hidden leading-none" style={{ height: '56px' }}>
           <svg
             viewBox="0 0 390 56"
@@ -154,12 +188,12 @@ export default function HomePage() {
             className="block w-full h-full"
             aria-hidden="true"
           >
-            {/* back wave — slightly transparent for depth */}
+            {/* back wave -- slightly transparent for depth */}
             <path
               d="M0,34 C55,18 110,46 170,30 C230,14 290,44 390,28 L390,56 L0,56 Z"
               className="fill-surface opacity-40"
             />
-            {/* front wave — solid fill */}
+            {/* front wave -- solid fill */}
             <path
               d="M0,42 C60,26 120,54 190,38 C250,24 320,50 390,36 L390,56 L0,56 Z"
               className="fill-surface"
@@ -168,10 +202,10 @@ export default function HomePage() {
         </div>
       </div>
 
-      {/* ── CTA Cards ── */}
+      {/* -- CTA Cards -- */}
       <div className="px-4 -mt-2 pb-2 space-y-3 max-w-lg mx-auto">
 
-        {/* Phase 1: Create Pack — pipeline step 1 */}
+        {/* Phase 1: Create Pack -- pipeline step 1 */}
         <Link
           to="/mission"
           className="block bg-card rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.08)] border border-surface-dark active:scale-[0.98] transition-transform overflow-hidden"
@@ -215,7 +249,7 @@ export default function HomePage() {
           <div className="h-px flex-1 bg-surface-dark" />
         </div>
 
-        {/* Phase 2: Field Session — PRIMARY card, pipeline step 2 */}
+        {/* Phase 2: Field Session -- PRIMARY card, pipeline step 2 */}
         <Link
           to="/field"
           className="block rounded-2xl overflow-hidden shadow-[0_8px_32px_rgba(27,67,50,0.3)] active:scale-[0.98] transition-transform"
@@ -264,7 +298,7 @@ export default function HomePage() {
         </Link>
       </div>
 
-      {/* ── Status bar ── */}
+      {/* -- Status bar -- */}
       <div className="px-4 mt-3 pb-6 max-w-lg mx-auto space-y-2">
         <Link to="/packs" className="bg-card border border-surface-dark rounded-xl px-4 py-3 shadow-sm active:scale-[0.98] transition-transform block">
           {/* connectivity mode */}
@@ -282,7 +316,7 @@ export default function HomePage() {
           <p className="text-[11px] text-text-muted leading-snug mb-2.5">
             {backendUp
               ? 'Take a photo in Field Chat to get instant diagnosis and treatment plans.'
-              : 'No laptop found. You can log observations — they\u2019ll sync when you reconnect.'}
+              : 'No laptop found. You can log observations \u2014 they\u2019ll sync when you reconnect.'}
           </p>
           {/* active pack row */}
           <div className="flex items-center justify-between pt-2 border-t border-surface-dark">
@@ -302,6 +336,39 @@ export default function HomePage() {
             </span>
           </div>
         </Link>
+
+        {/* Ollama model status card */}
+        <div className="bg-card border border-surface-dark rounded-xl px-4 py-3 shadow-sm">
+          <div className="flex items-start justify-between gap-2">
+            <div className="flex items-start gap-2 min-w-0">
+              <Cpu size={14} className="text-text-muted flex-shrink-0 mt-0.5" />
+              <div className="min-w-0">
+                <p className="text-xs font-semibold text-text leading-tight">
+                  {ollamaStatus?.model?.family
+                    ? `${ollamaStatus.model.family.charAt(0).toUpperCase()}${ollamaStatus.model.family.slice(1)}`
+                    : 'Gemma 4'}{' '}
+                  {ollamaStatus?.model?.parameters ?? 'E2B'}
+                  {ollamaStatus?.model?.quantization
+                    ? <span className="text-text-muted font-normal"> &middot; {ollamaStatus.model.quantization}</span>
+                    : null}
+                </p>
+                <p className="text-[11px] text-text-muted truncate mt-0.5">
+                  {ollamaStatus?.model?.name ?? 'fieldpack-assistant-lite'}
+                </p>
+                <p className="text-[10px] text-text-muted/60 mt-0.5">
+                  {ollamaStatus?.model?.memory_mb != null
+                    ? `${ollamaStatus.model.memory_mb.toLocaleString()} MB`
+                    : '--'}{' '}
+                  &middot; Ollama {ollamaStatus?.ollama_version ?? '--'}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-1.5 flex-shrink-0">
+              <span className={`w-2 h-2 rounded-full ${ollamaIndicator.dot}`} />
+              <span className="text-[11px] font-semibold text-text-muted">{ollamaIndicator.label}</span>
+            </div>
+          </div>
+        </div>
 
         {/* demo context line */}
         <p className="text-center text-[11px] text-text-muted/70 tracking-wide">

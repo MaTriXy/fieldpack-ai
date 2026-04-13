@@ -48,9 +48,9 @@ export default function ThinkingBubble({
     // Show step label with spinner if a step is active, otherwise bouncing dots
     if (stepLabel) {
       return (
-        <div className="flex items-center gap-2">
-          <div className="w-3.5 h-3.5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-          <span className="text-[11px] text-primary font-medium">{stepLabel}...</span>
+        <div className="flex items-center gap-2.5">
+          <div className="w-4.5 h-4.5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+          <span className="text-sm text-primary font-semibold">{stepLabel}...</span>
         </div>
       )
     }
@@ -68,23 +68,23 @@ export default function ThinkingBubble({
     <div className="space-y-2">
       {/* Current step spinner — always on top */}
       {stepLabel && (
-        <div className="flex items-center gap-2">
-          <div className="w-3.5 h-3.5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-          <span className="text-[11px] text-primary font-medium">{stepLabel}...</span>
+        <div className="flex items-center gap-2.5">
+          <div className="w-4.5 h-4.5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+          <span className="text-sm text-primary font-semibold">{stepLabel}...</span>
         </div>
       )}
       {/* Pipeline activity feed — completed steps appear below */}
       {insights.length > 0 && (
-        <div className="space-y-0.5 border-l-2 border-primary/20 pl-2.5 ml-[5px]">
+        <div className="space-y-1 border-l-2 border-primary/25 pl-3 ml-[7px] mt-1">
           {insights.map((text, i) => {
             const isLatest = i === insights.length - 1
             return (
               <div
                 key={`${i}-${text}`}
-                className={`flex items-center gap-1.5 ${isLatest ? 'animate-fadeIn' : ''}`}
+                className={`flex items-center gap-2 ${isLatest ? 'animate-fadeIn' : ''}`}
               >
-                <span className={`text-[10px] leading-none ${isLatest ? 'text-primary' : 'text-text-muted/50'}`}>✓</span>
-                <span className={`text-[11px] leading-snug ${isLatest ? 'text-text-secondary' : 'text-text-muted/50'}`}>
+                <span className={`text-xs leading-none ${isLatest ? 'text-primary' : 'text-text-muted/50'}`}>✓</span>
+                <span className={`text-[13px] leading-snug ${isLatest ? 'text-text-secondary' : 'text-text-muted/50'}`}>
                   {text}
                 </span>
               </div>

@@ -76,7 +76,24 @@ function parseDiagnosisFromAnswer(answer: string, imageDescription: string): Dia
   const pathogenMatch = imageDescription.match(/Symptoms:\s*(.+?)(?:\.|$)/)
   const pathogen = pathogenMatch?.[1]?.trim() || 'Visual symptoms identified'
 
-  return { disease, confidence: 0, severity, pathogen }
+  // Confidence heuristic based on answer content (range: ~30-95)
+  const computeConfidence = (text: string): number => {
+    let score = 25 // base — low enough that weak answers show modest confidence
+    if (/severe|critical|serious|extensive/i.test(text)) score += 25
+    else if (/moderate|significant|noticeable/i.test(text)) score += 15
+    else if (/mild|minor|slight|early/i.test(text)) score += 8
+    // Specific disease name = higher confidence
+    if (/mosaic|blight|rot|wilt|rust|mildew|anthracnose|streak|canker/i.test(text)) score += 20
+    // Treatment present = model is confident enough to prescribe
+    if (/treatment|recommend|apply|spray|remove/i.test(text)) score += 10
+    // Multiple symptoms = more evidence
+    const symCount = (text.match(/yellow|brown|curl|spot|lesion|necro|chlor|wilt|deform|hole/gi) || []).length
+    if (symCount >= 4) score += 12
+    else if (symCount >= 2) score += 6
+    return Math.min(score, 95) // cap — never 100% certain
+  }
+
+  return { disease, confidence: computeConfidence(answer), severity, pathogen }
 }
 
 const PHOTO_ANALYSIS_PHASES = [
@@ -1154,16 +1171,48 @@ export default function FieldChatPage() {
 
               {msg.diagnosis && (
                 <div className="mt-3 bg-surface rounded-lg p-3 space-y-1.5">
-                  <p className="font-heading font-bold text-sm">{msg.diagnosis.disease}</p>
-                  <div className="flex gap-1.5 flex-wrap">
-                    <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full font-semibold">
-                      {msg.diagnosis.confidence ? `${msg.diagnosis.confidence}% Confidence` : 'Visual Match'}
-                    </span>
-                    <span
-                      className={`text-xs px-2 py-0.5 rounded-full font-semibold ${severityColor(msg.diagnosis.severity)}`}
-                    >
-                      {msg.diagnosis.severity} Severity
-                    </span>
+                  <div className="flex items-start gap-3">
+                    {/* Confidence arc */}
+                    {msg.diagnosis.confidence > 0 && (() => {
+                      const gradId = `confGrad-${msg.id}`
+                      return (
+                      <div className="relative w-12 h-12 flex-shrink-0">
+                        <svg className="w-12 h-12 -rotate-90" viewBox="0 0 48 48">
+                          <circle cx="24" cy="24" r="20" fill="none" stroke="currentColor"
+                            className="text-surface-dark" strokeWidth="3" />
+                          <circle cx="24" cy="24" r="20" fill="none"
+                            stroke={`url(#${gradId})`} strokeWidth="3"
+                            strokeLinecap="round"
+                            strokeDasharray="125.6"
+                            style={{
+                              ['--arc-length' as string]: '125.6',
+                              ['--arc-target' as string]: `${125.6 - (msg.diagnosis.confidence / 100) * 125.6}`,
+                            }}
+                            className="animate-confidenceArc"
+                          />
+                          <defs>
+                            <linearGradient id={gradId} x1="0%" y1="0%" x2="100%" y2="0%">
+                              <stop offset="0%" stopColor="#40916C" />
+                              <stop offset="100%" stopColor="#F5A623" />
+                            </linearGradient>
+                          </defs>
+                        </svg>
+                        <span className="absolute inset-0 flex items-center justify-center text-[10px] font-bold text-text">
+                          {msg.diagnosis.confidence}%
+                        </span>
+                      </div>
+                      )
+                    })()}
+                    <div className="flex-1 min-w-0">
+                      <p className="font-heading font-bold text-sm">{msg.diagnosis.disease}</p>
+                      <div className="flex gap-1.5 flex-wrap mt-1">
+                        <span
+                          className={`text-xs px-2 py-0.5 rounded-full font-semibold ${severityColor(msg.diagnosis.severity)}`}
+                        >
+                          {msg.diagnosis.severity} Severity
+                        </span>
+                      </div>
+                    </div>
                   </div>
                   <p className="text-xs text-text-muted">{msg.diagnosis.pathogen}</p>
                   <button

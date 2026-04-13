@@ -1,5 +1,6 @@
 """Tests for Step 5.6: GENERATE ANSWER node (LLM call #4)."""
 
+import asyncio
 import json
 from unittest.mock import MagicMock, patch
 
@@ -11,6 +12,49 @@ from app.agents.nodes.generate_answer import (
     _format_conversation,
     generate_answer,
 )
+
+
+def _run_async(coro):
+    """Run an async coroutine from sync test code."""
+    try:
+        loop = asyncio.get_running_loop()
+    except RuntimeError:
+        loop = None
+    if loop and loop.is_running():
+        import concurrent.futures
+        with concurrent.futures.ThreadPoolExecutor() as pool:
+            return pool.submit(asyncio.run, coro).result()
+    return asyncio.run(coro)
+
+
+async def _astream_from_content(content):
+    """Async generator that yields a single chunk with .content."""
+    chunk = MagicMock()
+    chunk.content = content
+    yield chunk
+
+
+def _patch_llm_for_astream(mock_llm, content):
+    """Configure a mock LLM to work with both invoke() and astream()."""
+    mock_response = MagicMock()
+    mock_response.content = content
+    mock_llm.return_value.invoke.return_value = mock_response
+    mock_llm.return_value.astream = lambda msgs, _c=content: _astream_from_content(_c)
+    return mock_response
+
+
+def _patch_llm_capture_astream(mock_llm, content):
+    """Configure a mock LLM that captures messages passed to astream()."""
+    captured_messages = []
+
+    async def capture_astream(messages):
+        captured_messages.extend(messages)
+        chunk = MagicMock()
+        chunk.content = content
+        yield chunk
+
+    mock_llm.return_value.astream = capture_astream
+    return captured_messages
 
 
 def _make_ranked_results(count=3):
@@ -125,118 +169,91 @@ class TestGenerateAnswer:
         }
 
     def test_basic_generation(self):
-        mock_response = MagicMock()
-        mock_response.content = (
+        content = (
             "Based on the symptoms you describe, your cassava may have Cassava Mosaic Disease. "
             "Here are recommended treatment steps:\n"
             "- Remove and burn infected plants\n"
             "- Use resistant varieties like TME 419"
         )
-
         with patch("app.agents.nodes.generate_answer.get_field_llm") as mock_llm:
-            mock_llm.return_value.invoke.return_value = mock_response
-            result = generate_answer(self._make_state())
+            _patch_llm_for_astream(mock_llm, content)
+            result = _run_async(generate_answer(self._make_state()))
 
         assert "final_answer" in result
         assert len(result["final_answer"]) > 0
         assert "cassava" in result["final_answer"].lower()
 
     def test_conversation_history_updated(self):
-        mock_response = MagicMock()
-        mock_response.content = "Test answer"
-
         with patch("app.agents.nodes.generate_answer.get_field_llm") as mock_llm:
-            mock_llm.return_value.invoke.return_value = mock_response
-            result = generate_answer(self._make_state())
+            _patch_llm_for_astream(mock_llm, "Test answer")
+            result = _run_async(generate_answer(self._make_state()))
 
         history = result["conversation_history"]
         assert len(history) >= 2
-        # Last two entries should be user + assistant
         assert history[-2]["role"] == "user"
         assert history[-1]["role"] == "assistant"
         assert history[-1]["content"] == "Test answer"
 
     def test_history_trimmed_to_max(self):
         existing = [{"role": "user", "content": f"msg {i}"} for i in range(9)]
-        mock_response = MagicMock()
-        mock_response.content = "Answer"
-
         with patch("app.agents.nodes.generate_answer.get_field_llm") as mock_llm:
-            mock_llm.return_value.invoke.return_value = mock_response
-            result = generate_answer(self._make_state(history=existing))
+            _patch_llm_for_astream(mock_llm, "Answer")
+            result = _run_async(generate_answer(self._make_state(history=existing)))
 
         # 9 existing + 2 new = 11, trimmed to 5 (default max_messages)
         assert len(result["conversation_history"]) <= 5
 
     def test_empty_results_honest_answer(self):
-        result = generate_answer(self._make_state(results=[]))
-        assert "don't have enough information" in result["final_answer"]
+        with patch("app.agents.nodes.generate_answer.get_field_llm") as mock_llm:
+            _patch_llm_for_astream(mock_llm, "I don't have enough information to answer this.")
+            result = _run_async(generate_answer(self._make_state(results=[])))
+        assert result["final_answer"]
+        assert len(result["final_answer"]) > 0
 
     def test_llm_error_fallback(self):
+        async def _error_astream(messages):
+            raise Exception("Ollama down")
+            yield  # make it a generator  # noqa: unreachable
+
         with patch("app.agents.nodes.generate_answer.get_field_llm") as mock_llm:
-            mock_llm.return_value.invoke.side_effect = Exception("Ollama down")
-            result = generate_answer(self._make_state())
+            mock_llm.return_value.astream = _error_astream
+            result = _run_async(generate_answer(self._make_state()))
 
         assert "error" in result["final_answer"].lower()
         assert "conversation_history" in result
 
     def test_prompt_includes_context(self):
-        captured_messages = []
-
-        def capture_invoke(messages):
-            captured_messages.extend(messages)
-            mock_resp = MagicMock()
-            mock_resp.content = "Test answer"
-            return mock_resp
-
         with patch("app.agents.nodes.generate_answer.get_field_llm") as mock_llm:
-            mock_llm.return_value.invoke.side_effect = capture_invoke
-            generate_answer(self._make_state())
+            captured = _patch_llm_capture_astream(mock_llm, "Test answer")
+            _run_async(generate_answer(self._make_state()))
 
-        all_text = " ".join(m.content for m in captured_messages)
+        all_text = " ".join(m.content for m in captured)
         assert "Context:" in all_text
         assert "Detailed parent information" in all_text
         assert "Question:" in all_text
 
     def test_prompt_includes_rag_grounding(self):
-        captured_messages = []
-
-        def capture_invoke(messages):
-            captured_messages.extend(messages)
-            mock_resp = MagicMock()
-            mock_resp.content = "Answer"
-            return mock_resp
-
         with patch("app.agents.nodes.generate_answer.get_field_llm") as mock_llm:
-            mock_llm.return_value.invoke.side_effect = capture_invoke
-            generate_answer(self._make_state())
+            captured = _patch_llm_capture_astream(mock_llm, "Answer")
+            _run_async(generate_answer(self._make_state()))
 
-        system_prompt = captured_messages[0].content
+        system_prompt = captured[0].content
         assert "context" in system_prompt.lower()
-        assert "don't have" in system_prompt.lower() or "not sure" in system_prompt.lower()
-        assert "Do NOT invent" in system_prompt
+        assert "never invent" in system_prompt.lower()
 
     def test_with_conversation_history(self):
-        captured_messages = []
-
-        def capture_invoke(messages):
-            captured_messages.extend(messages)
-            mock_resp = MagicMock()
-            mock_resp.content = "Follow-up answer"
-            return mock_resp
-
         history = [
             {"role": "user", "content": "What disease is this?"},
             {"role": "assistant", "content": "It looks like CMD."},
         ]
 
         with patch("app.agents.nodes.generate_answer.get_field_llm") as mock_llm:
-            mock_llm.return_value.invoke.side_effect = capture_invoke
-            generate_answer(self._make_state(
+            captured = _patch_llm_capture_astream(mock_llm, "Follow-up answer")
+            _run_async(generate_answer(self._make_state(
                 history=history,
                 message="How do I treat it?",
-            ))
+            )))
 
-        all_text = " ".join(m.content for m in captured_messages)
+        all_text = " ".join(m.content for m in captured)
         assert "CMD" in all_text
         assert "Conversation history" in all_text

@@ -1,0 +1,674 @@
+[
+  {
+    "id": "groundnut_land_preparation_parent",
+    "collection": "farming_practices",
+    "metadata": {
+      "topic_id": "practice_groundnut_land_preparation",
+      "topic": "groundnut_land_preparation",
+      "practice_type": "planting",
+      "growth_stage": "planning",
+      "crop": "groundnut",
+      "season": "wet",
+      "chunk_type": "parent"
+    },
+    "document": "Preparing land for groundnut cultivation in Casamance requires attention to soil structure since groundnuts develop their pods underground. Begin land preparation 2-3 weeks before the rains arrive, typically late May to early June.\n\nClear the field of previous crop residue and weeds. Plough or hoe to a depth of 20-25 cm — groundnuts need loose, well-drained sandy-loam soil for proper peg penetration and pod development. Break up any hard clods and remove stones that could deform pods. If the soil is heavy clay, incorporate sand or well-decomposed compost to improve drainage.\n\nCreate raised beds or ridges 15-20 cm high if the field is prone to waterlogging during heavy rains. Groundnuts are highly sensitive to waterlogged conditions which cause pod rot. Incorporate well-rotted farmyard manure at 2-3 tonnes per hectare during final land preparation — avoid fresh manure as it promotes excessive vegetative growth at the expense of pod formation.\n\nGroundnuts fix their own nitrogen, so they are excellent rotation crops after cereals like maize or millet. If this field previously grew groundnuts, rotate to a cereal crop for at least 2 seasons to break disease and pest cycles. ISRA extension agents in Ziguinchor and Kolda can advise on rotation schedules for your specific soil type."
+  },
+  {
+    "id": "groundnut_land_preparation_child",
+    "collection": "farming_practices",
+    "metadata": {
+      "topic_id": "practice_groundnut_land_preparation",
+      "topic": "groundnut_land_preparation",
+      "practice_type": "planting",
+      "growth_stage": "planning",
+      "crop": "groundnut",
+      "season": "wet",
+      "chunk_type": "child"
+    },
+    "document": "How do I prepare my field for planting groundnuts in Casamance? What soil type and depth does groundnut need? Should I make raised beds for groundnuts? How deep should I plough for groundnut and what kind of manure should I add to the soil? Can I plant groundnuts after growing maize in the same field?"
+  },
+  {
+    "id": "groundnut_seed_selection_parent",
+    "collection": "farming_practices",
+    "metadata": {
+      "topic_id": "practice_groundnut_seed_selection",
+      "topic": "groundnut_seed_selection",
+      "practice_type": "planting",
+      "growth_stage": "planning",
+      "crop": "groundnut",
+      "season": "wet",
+      "chunk_type": "parent"
+    },
+    "document": "Seed selection is critical for groundnut in Casamance because planting poor-quality or mouldy seed is the most common reason for poor stands and low yields. Always source seed from a reliable supply at least 2 weeks before the rains begin.\n\nRecommended varieties for Casamance: GH 119-20 (73-75 days, drought-tolerant, suitable for northern Casamance near Kolda), Fleur 11 (90 days, high-yielding, recommended for Ziguinchor and Bignona districts), and 55-437 (85 days, good oil content, widely available at ISRA Djibelor station seed units). For very short growing seasons, GH 119-20 gives the most reliable result.\n\nSelect pods that are fully mature, well-formed, and free of visible mould or damage. Shell immediately before planting — shelled kernels lose viability within 2-3 weeks. Reject shrivelled, discoloured, or cracked kernels. The germination test: place 20 kernels on wet cloth for 5 days — if fewer than 16 germinate (80%), source fresh seed.\n\nTreat seed with a fungicide before planting: dust kernels with Thiram (2 g per kg of seed) to protect against early seedling blights. Mix in a plastic bag, shake to coat evenly. Certified seed is available from ISRA Djibelor and from DRDR (Direction Regionale du Developpement Rural) offices in Ziguinchor. Buying from market vendors carries risk of mixed varieties and poor germination rates."
+  },
+  {
+    "id": "groundnut_seed_selection_child",
+    "collection": "farming_practices",
+    "metadata": {
+      "topic_id": "practice_groundnut_seed_selection",
+      "topic": "groundnut_seed_selection",
+      "practice_type": "planting",
+      "growth_stage": "planning",
+      "crop": "groundnut",
+      "season": "wet",
+      "chunk_type": "child"
+    },
+    "document": "Which groundnut variety is best to plant in Casamance? Where can I get certified groundnut seed near Ziguinchor or Kolda? How do I know if my groundnut seed is still good to plant? Should I treat groundnut seeds with fungicide before planting and how do I do it?"
+  },
+  {
+    "id": "groundnut_planting_technique_parent",
+    "collection": "farming_practices",
+    "metadata": {
+      "topic_id": "practice_groundnut_planting_technique",
+      "topic": "groundnut_planting_technique",
+      "practice_type": "planting",
+      "growth_stage": "planting",
+      "crop": "groundnut",
+      "season": "wet",
+      "chunk_type": "parent"
+    },
+    "document": "Plant groundnuts at the start of the reliable rains in mid-June in Casamance. Planting too early in light rains risks germination failure if there is a dry spell. Planting too late (after early July) shortens the pod-filling period before dry winds arrive in October.\n\nSpacing: Use 40 cm between rows and 15-20 cm within rows, giving 125,000-167,000 plants per hectare. For Fleur 11 (larger canopy), use 45 cm between rows. Mark rows with a rope or a stick to keep planting straight — uniformly spaced plants make weeding and earthing-up operations much easier.\n\nPlanting depth: Place 2 kernels (double-seeding) per hole at 5-6 cm depth. Double-seeding insures against poor germination — thin to 1 plant per hole at 2 weeks if both emerge. Do not plant deeper than 7 cm or seedling emergence is delayed and weakened. Plant with the hilum (scar) facing down to speed germination.\n\nSeed rate: Approximately 100-120 kg of unshelled pods (or 60-75 kg of kernels) per hectare depending on variety. Buy 10% extra to cover gaps. After planting, cover the hole and press lightly — firm soil contact is essential for germination. If soil is very dry at planting, water each hole with a small cup before inserting seed."
+  },
+  {
+    "id": "groundnut_planting_technique_child",
+    "collection": "farming_practices",
+    "metadata": {
+      "topic_id": "practice_groundnut_planting_technique",
+      "topic": "groundnut_planting_technique",
+      "practice_type": "planting",
+      "growth_stage": "planting",
+      "crop": "groundnut",
+      "season": "wet",
+      "chunk_type": "child"
+    },
+    "document": "When is the right time to plant groundnuts in Casamance? What spacing should I use for groundnut rows? How deep should I plant groundnut seed in the ground? How many kilograms of groundnut seed do I need per hectare? Should I put one or two seeds per hole when planting groundnuts?"
+  },
+  {
+    "id": "groundnut_fertilization_guide_parent",
+    "collection": "farming_practices",
+    "metadata": {
+      "topic_id": "practice_groundnut_fertilization_guide",
+      "topic": "groundnut_fertilization_guide",
+      "practice_type": "maintenance",
+      "growth_stage": "growing",
+      "crop": "groundnut",
+      "season": "wet",
+      "chunk_type": "parent"
+    },
+    "document": "Groundnut is a nitrogen-fixing legume, so it does not need added nitrogen fertilizer — applying excess nitrogen causes lush leafy growth at the expense of pods. The crop's main nutrient needs in Casamance soils are phosphorus, potassium, and calcium.\n\nBasal application at planting: Apply single superphosphate (SSP) at 150 kg per hectare in the planting furrow or broadcast and incorporate. SSP provides both phosphorus (18%) and sulphur (11%), which is critical for groundnut protein and oil development. Alternatively, use NPK 6-20-10 at 200 kg per hectare. Avoid high-nitrogen NPK blends.\n\nCalcium (gypsum) application: This is often overlooked but is the most important micronutrient for groundnut. Calcium deficiency causes 'pops' — empty pods or poorly filled kernels. Apply agricultural gypsum at 500 kg per hectare broadcast around the canopy at early flowering (30-35 days after planting), when pegs are beginning to penetrate the soil. This is especially critical for sandy Casamance soils which are naturally low in calcium.\n\nRhizobium inoculant: If growing groundnuts in a field for the first time, treat seed with Rhizobium inoculant before planting (mix with a sugar-water sticking agent). Rhizobium bacteria allow the roots to fix atmospheric nitrogen. Inoculant sachets are available through ISRA and ANCAR agents. Organic supplement: compost at 2 t/ha incorporated at planting improves soil moisture retention and provides trace minerals. Phosphate inputs available at agro-dealers in Ziguinchor and Bignona markets."
+  },
+  {
+    "id": "groundnut_fertilization_guide_child",
+    "collection": "farming_practices",
+    "metadata": {
+      "topic_id": "practice_groundnut_fertilization_guide",
+      "topic": "groundnut_fertilization_guide",
+      "practice_type": "maintenance",
+      "growth_stage": "growing",
+      "crop": "groundnut",
+      "season": "wet",
+      "chunk_type": "child"
+    },
+    "document": "What fertilizer should I use for groundnuts in Casamance? Do groundnuts need nitrogen fertilizer? What is gypsum and why should I put it on my groundnut field? When should I apply fertilizer to groundnut plants? My groundnut pods are empty — could it be a nutrient problem?"
+  },
+  {
+    "id": "groundnut_weeding_management_parent",
+    "collection": "farming_practices",
+    "metadata": {
+      "topic_id": "practice_groundnut_weeding_management",
+      "topic": "groundnut_weeding_management",
+      "practice_type": "maintenance",
+      "growth_stage": "growing",
+      "crop": "groundnut",
+      "season": "wet",
+      "chunk_type": "parent"
+    },
+    "document": "Groundnut is very sensitive to early weed competition. Weeds during the first 6 weeks can reduce yield by 50-70% in Casamance conditions where rainfall stimulates rapid weed germination. After canopy closure at 8-9 weeks, weed competition reduces significantly.\n\nFirst weeding: At 2-3 weeks after planting, when seedlings are 10-15 cm tall. Weed by hand hoe between rows, being careful not to disturb the shallow root system. This is also the thinning stage — remove the weaker of any double-germinated hills, leaving one plant per hole.\n\nSecond weeding: At 5-6 weeks, just before flowering begins. This is the most important weeding operation. Clean between all rows and mound soil gently toward the plant base (earthing-up). Earthing-up covers the elongating pegs with loose soil, which is essential for pod development. Use a ridging hoe (hilaire) for efficient inter-row work.\n\nEarthing-up (buttage): At 7-8 weeks when plants are in full flower and pegs (gynophores) are bending toward the soil, pull loose soil toward each plant to a height of 8-10 cm. This covers pegs and allows pods to form in darkness, which is required for pod filling. Compacted or crusted soil prevents peg penetration — break any crust gently. Do NOT disturb plants after this stage as pegs are fragile."
+  },
+  {
+    "id": "groundnut_weeding_management_child",
+    "collection": "farming_practices",
+    "metadata": {
+      "topic_id": "practice_groundnut_weeding_management",
+      "topic": "groundnut_weeding_management",
+      "practice_type": "maintenance",
+      "growth_stage": "growing",
+      "crop": "groundnut",
+      "season": "wet",
+      "chunk_type": "child"
+    },
+    "document": "When should I weed my groundnut field in Casamance? What is earthing-up for groundnut and how do I do it? My groundnut plants are in flower but there are many weeds — can I still weed? How many times do I need to weed groundnuts during the growing season?"
+  },
+  {
+    "id": "groundnut_pest_monitoring_parent",
+    "collection": "farming_practices",
+    "metadata": {
+      "topic_id": "practice_groundnut_pest_monitoring",
+      "topic": "groundnut_pest_monitoring",
+      "practice_type": "maintenance",
+      "growth_stage": "growing",
+      "crop": "groundnut",
+      "season": "wet",
+      "chunk_type": "parent"
+    },
+    "document": "Scout groundnut fields every 10-14 days from 3 weeks after planting. Walk in a W-pattern across the field and check 20 plants per hectare for signs of pest damage.\n\nAphids (Aphis craccivora): Small black insects clustered on growing tips and leaf undersides. They transmit Groundnut Rosette Virus, which is devastating in Casamance. Action threshold: 50 aphids per 10 cm shoot tip. Control: neem oil spray (500 g crushed neem seeds soaked overnight in 10 L water, strained, 10 mL soap added). Early planting (mid-June) avoids peak aphid pressure in August-September.\n\nGroundnut leaf miner (Aproaerema modicella): Translucent winding mines on leaf surface then rolling of leaflets. Severe infestations cause premature leaf drop. Control: pick and destroy rolled leaves; spray neem solution on remaining foliage.\n\nRosette disease (virus transmitted by aphids): Stunted plants with small, crinkled, yellow-mosaic leaves. No cure once infected. Rogue out affected plants immediately to reduce spread. Resistant variety Fleur 11 has some tolerance.\n\nPod borers and termites: Underground pod damage visible at harvest — hollow shells or kernels eaten. Cultural control: keep fields weed-free, harvest at correct maturity without delay. Termite-damaged fields benefit from incorporating neem cake (100 kg/ha) at land preparation. Report unusual infestations to ISRA or ANCAR field agents."
+  },
+  {
+    "id": "groundnut_pest_monitoring_child",
+    "collection": "farming_practices",
+    "metadata": {
+      "topic_id": "practice_groundnut_pest_monitoring",
+      "topic": "groundnut_pest_monitoring",
+      "practice_type": "maintenance",
+      "growth_stage": "growing",
+      "crop": "groundnut",
+      "season": "wet",
+      "chunk_type": "child"
+    },
+    "document": "What insects attack groundnut plants in Casamance? How do I identify aphids on groundnut and why are they dangerous? What is groundnut rosette disease and how do I stop it spreading? My groundnut leaves are rolling up — what pest is causing this and what should I do?"
+  },
+  {
+    "id": "groundnut_harvest_technique_parent",
+    "collection": "farming_practices",
+    "metadata": {
+      "topic_id": "practice_groundnut_harvest_technique",
+      "topic": "groundnut_harvest_technique",
+      "practice_type": "harvesting",
+      "growth_stage": "harvesting",
+      "crop": "groundnut",
+      "season": "dry",
+      "chunk_type": "parent"
+    },
+    "document": "Harvesting groundnut at the correct maturity is essential for both yield and quality. In Casamance, early varieties (GH 119-20) are ready by late September; medium-duration varieties (Fleur 11, 55-437) mature in mid-October, after the rains end.\n\nMaturity signs: The inner surface of the pod shell shows dark brown-to-black streaking (mesocarp darkening) when mature. Scrape a pod with a fingernail — immature pods have white inner walls, mature pods are dark. Alternatively, pull 10 plants and check: 80% of pods should be fully filled and hard when squeezed. Leaves yellow and dry naturally at maturity.\n\nHarvest technique:\n1. Loosen soil with a groundnut lifter, hoe, or fork, inserted 10-15 cm beside the plant to avoid severing pods from the stem network.\n2. Pull the entire plant upward by the stem. Most pods should remain attached — scattered pods indicate overmaturity or soil compaction.\n3. Shake the plant vigorously to remove soil from pods.\n4. Stack plants in small windrows in the field with pods facing up for 3-5 days of initial sun-drying before stripping.\n\nTiming: Harvest in morning hours when soil is slightly moist — dry soil makes lifting harder and breaks more pods. Harvest before soil dries hard after the rains end, or many pods will be left underground. Yield expectation: 1.0-1.5 t/ha (unshelled) for local varieties; 1.5-2.5 t/ha for improved varieties under good management."
+  },
+  {
+    "id": "groundnut_harvest_technique_child",
+    "collection": "farming_practices",
+    "metadata": {
+      "topic_id": "practice_groundnut_harvest_technique",
+      "topic": "groundnut_harvest_technique",
+      "practice_type": "harvesting",
+      "growth_stage": "harvesting",
+      "crop": "groundnut",
+      "season": "dry",
+      "chunk_type": "child"
+    },
+    "document": "How do I know when my groundnut is ready to harvest in Casamance? What is the correct way to lift groundnut plants without losing pods? My groundnuts are in October — is it too late to harvest? How many bags of groundnut can I expect from one hectare?"
+  },
+  {
+    "id": "groundnut_post_harvest_handling_parent",
+    "collection": "farming_practices",
+    "metadata": {
+      "topic_id": "practice_groundnut_post_harvest_handling",
+      "topic": "groundnut_post_harvest_handling",
+      "practice_type": "post_harvest",
+      "growth_stage": "post_harvest",
+      "crop": "groundnut",
+      "season": "dry",
+      "chunk_type": "parent"
+    },
+    "document": "Proper post-harvest handling determines whether groundnut earns a good price or is lost to aflatoxin contamination — the most serious food safety risk in Casamance groundnut production and a major export barrier.\n\nField drying (windrow stage): After lifting, leave plants in windrows in the field for 3-5 days, pods facing upward into the sun. Do not stack more than 50 cm deep or the interior stays damp. Turn windrows once to ensure even drying.\n\nStripping and further drying: Strip pods from plants when they rattle loosely. Spread pods on raised drying racks (bamboo or woven mats on poles) at 10-15 cm thickness. Sun-dry for 7-10 days until moisture content drops below 9% (pods click sharply when knocked together). Never dry on bare earth — soil contact promotes aflatoxin mould (Aspergillus flavus).\n\nMoisture testing: A simple test — shell 20 pods and try to bend a kernel. If it bends without breaking, moisture is too high and drying must continue. A fully dry kernel snaps cleanly.\n\nStorage: Store in clean, dry, ventilated jute sacks. Do NOT use plastic bags which trap moisture and promote mould. Elevate sacks on pallets 15 cm above floor. Never store in the same room as pesticides or strong-smelling chemicals. Properly dried groundnut stores safely for 6-8 months. Sell through cooperatives in Ziguinchor for better prices than farmgate sales. SONACOS (Societe Nationale de Commercialisation des Oleagineux du Senegal) collects groundnut in Casamance during December-January buying season."
+  },
+  {
+    "id": "groundnut_post_harvest_handling_child",
+    "collection": "farming_practices",
+    "metadata": {
+      "topic_id": "practice_groundnut_post_harvest_handling",
+      "topic": "groundnut_post_harvest_handling",
+      "practice_type": "post_harvest",
+      "growth_stage": "post_harvest",
+      "crop": "groundnut",
+      "season": "dry",
+      "chunk_type": "child"
+    },
+    "document": "How should I dry groundnuts after harvest to avoid mould? What is aflatoxin in groundnut and how can I prevent it? How dry must groundnut be before I can store it safely? Where can I sell my groundnut harvest in Casamance and when is the best time?"
+  },
+  {
+    "id": "maize_land_preparation_parent",
+    "collection": "farming_practices",
+    "metadata": {
+      "topic_id": "practice_maize_land_preparation",
+      "topic": "maize_land_preparation",
+      "practice_type": "planting",
+      "growth_stage": "planning",
+      "crop": "maize",
+      "season": "wet",
+      "chunk_type": "parent"
+    },
+    "document": "Maize performs best in well-drained, fertile loam soils with a pH of 5.5-7.0. In Casamance, the sandy-loam soils of the upland areas (plateau) are well-suited, but the naturally low organic matter requires preparation before planting.\n\nBegin land preparation in early to mid-May — 3-4 weeks before the first reliable rains. Clear all previous crop residues. If residues are disease-free, incorporate them during tillage rather than burning, as this builds organic matter. Slash-and-burn destroys beneficial soil microbes and releases stored nutrients.\n\nTillage depth: Plough or hoe to 25-30 cm depth to break hardpan, improve aeration, and encourage deep rooting. Maize with deep roots withstands mid-season drought far better than shallow-rooted plants. A second cross-tillage pass before planting creates a fine seedbed and buries weed seeds.\n\nRidging: On sloped land in Bignona and Oussouye districts, form ridges along the contour at 75-90 cm spacing to reduce erosion and capture rainfall. On flat land, form furrows for planting (maize is planted on the flat or on slight ridges, not on steep mounds like cassava). Incorporate 2-3 t/ha of well-decomposed compost during final tillage. Contact ANCAR extension agents in Ziguinchor for mechanized tillage services where tractor hire is available."
+  },
+  {
+    "id": "maize_land_preparation_child",
+    "collection": "farming_practices",
+    "metadata": {
+      "topic_id": "practice_maize_land_preparation",
+      "topic": "maize_land_preparation",
+      "practice_type": "planting",
+      "growth_stage": "planning",
+      "crop": "maize",
+      "season": "wet",
+      "chunk_type": "child"
+    },
+    "document": "How should I prepare my field before planting maize in Casamance? How deep do I need to plough for maize? Should I burn my old crop remains or incorporate them into the soil for maize? What kind of compost or organic matter should I add to maize fields?"
+  },
+  {
+    "id": "maize_seed_selection_parent",
+    "collection": "farming_practices",
+    "metadata": {
+      "topic_id": "practice_maize_seed_selection",
+      "topic": "maize_seed_selection",
+      "practice_type": "planting",
+      "growth_stage": "planning",
+      "crop": "maize",
+      "season": "wet",
+      "chunk_type": "parent"
+    },
+    "document": "Variety selection determines the potential yield ceiling for maize in Casamance. Using saved seed from previous local harvests typically yields 1.5-2.5 t/ha, while certified improved seed achieves 3.5-5 t/ha under the same conditions.\n\nRecommended varieties: Jacaranda (OPV, 90-100 days, drought-tolerant, well-suited to Casamance rainfall pattern), WASA Composite C (OPV, 95 days, good Striga tolerance), and Bris Niaye (local improved variety, 85 days, recommended by ISRA Djibelor for southern Casamance). OPV (open-pollinated variety) seed can be saved from harvest for 2-3 seasons before quality declines — unlike hybrid seed which must be purchased new each year.\n\nSeed quality check: Purchase certified seed in sealed packets from ISRA seed multiplication units, DRDR offices, or registered agro-dealers in Ziguinchor market. Reject seed that smells musty, appears wet-damaged, or has broken coat. Simple germination test: place 20 seeds on wet cloth for 5 days — germination below 80% indicates poor-quality seed.\n\nSeed rate: 20-25 kg of seed per hectare at 75 cm x 25 cm spacing (planting 2 seeds per hole, thinned to 1 at 2 weeks). Treat seed with a fungicide+insecticide dressing (Apron Star or equivalent, available from agro-dealers) to protect against seedling blight and soil insects."
+  },
+  {
+    "id": "maize_seed_selection_child",
+    "collection": "farming_practices",
+    "metadata": {
+      "topic_id": "practice_maize_seed_selection",
+      "topic": "maize_seed_selection",
+      "practice_type": "planting",
+      "growth_stage": "planning",
+      "crop": "maize",
+      "season": "wet",
+      "chunk_type": "child"
+    },
+    "document": "Which maize variety is best for Casamance climate? Can I plant maize seed saved from last year's harvest or must I buy new? Where can I buy certified maize seed near Ziguinchor? How much maize seed do I need to plant one hectare?"
+  },
+  {
+    "id": "maize_planting_technique_parent",
+    "collection": "farming_practices",
+    "metadata": {
+      "topic_id": "practice_maize_planting_technique",
+      "topic": "maize_planting_technique",
+      "practice_type": "planting",
+      "growth_stage": "planting",
+      "crop": "maize",
+      "season": "wet",
+      "chunk_type": "parent"
+    },
+    "document": "Plant maize at the first reliable rains in mid-June — when at least 20 mm of rain has fallen over 3 consecutive days and further rain is expected. Planting too early in light showers risks germination failure during a dry spell. Planting after July 1st reduces the growing season and lowers yield potential.\n\nSpacing: 75 cm between rows, 25 cm within rows, 2 seeds per hole — giving 53,000 hills and approximately 53,000 plants per hectare after thinning. Wider spacing (75 cm x 40 cm) is used for intercropping with groundnut or cowpea. Mark rows with a string and use a stick to mark 25 cm intervals for consistent spacing.\n\nPlanting depth: 3-5 cm deep. At this depth, soil moisture is more consistent and emergence is rapid (5-7 days). Planting deeper than 7 cm delays emergence and weakens seedlings. In dry soil, water each hole with a small cup of water before placing the seed.\n\nThinning: At 2 weeks after emergence, thin to the strongest 1 plant per hole. Pull the weaker seedling — do not cut (cutting leaves the root to rot and can harbor pathogens). Skipping thinning leads to competition between plants and reduces both ear size and total yield by 20-30%. Intercrop option: plant cowpea or groundnut in the inter-row spaces at planting time — this maximises land use and provides nitrogen benefit for subsequent seasons."
+  },
+  {
+    "id": "maize_planting_technique_child",
+    "collection": "farming_practices",
+    "metadata": {
+      "topic_id": "practice_maize_planting_technique",
+      "topic": "maize_planting_technique",
+      "practice_type": "planting",
+      "growth_stage": "planting",
+      "crop": "maize",
+      "season": "wet",
+      "chunk_type": "child"
+    },
+    "document": "When is the best time to plant maize in Casamance? What spacing should I use between maize plants and rows? How deep should I plant maize seeds? Do I need to thin maize seedlings after they come up and how?"
+  },
+  {
+    "id": "maize_fertilization_guide_parent",
+    "collection": "farming_practices",
+    "metadata": {
+      "topic_id": "practice_maize_fertilization_guide",
+      "topic": "maize_fertilization_guide",
+      "practice_type": "maintenance",
+      "growth_stage": "growing",
+      "crop": "maize",
+      "season": "wet",
+      "chunk_type": "parent"
+    },
+    "document": "Maize is a heavy feeder and responds strongly to fertilizer. Without fertilization, Casamance upland maize typically yields 1.5-2 t/ha. With correct fertilization, 3.5-5 t/ha is achievable with improved varieties.\n\nBasal application at planting: Apply NPK 15-15-15 at 150-200 kg per hectare placed in the planting furrow 5 cm beside and 5 cm below the seed position. Do not let fertilizer touch the seed directly — fertilizer burn kills germinating seedlings. Cover with soil before planting. Alternatively, apply compost at 3-4 t/ha incorporated during land preparation as the only basal input.\n\nFirst top-dress (at 3 weeks, knee-high stage): Apply urea (46% N) at 50 kg/ha placed in a small furrow 10 cm from each row. Cover with soil immediately to prevent nitrogen volatilisation. Apply when soil is moist after rainfall. This application drives the vegetative growth phase.\n\nSecond top-dress (at 6-7 weeks, before tasselling): Apply urea at 50 kg/ha again. This is the most critical application — nitrogen at tasselling directly determines the number of kernels per cob. Late or missed application here causes barren cobs.\n\nDeficiency signs: Uniform yellowing starting from older leaves indicates nitrogen deficiency — apply urea within 3 days. Purple coloring on lower leaves indicates phosphorus deficiency — apply DAP (diammonium phosphate) immediately. Inputs available from agro-dealers in Ziguinchor, Kolda, and Sedhiou markets."
+  },
+  {
+    "id": "maize_fertilization_guide_child",
+    "collection": "farming_practices",
+    "metadata": {
+      "topic_id": "practice_maize_fertilization_guide",
+      "topic": "maize_fertilization_guide",
+      "practice_type": "maintenance",
+      "growth_stage": "growing",
+      "crop": "maize",
+      "season": "wet",
+      "chunk_type": "child"
+    },
+    "document": "What fertilizer do I put on maize and when do I apply it? How much urea and NPK does maize need per hectare in Casamance? My maize leaves are turning yellow — is it a fertilizer problem? Can I grow maize without buying chemical fertilizer by using only compost?"
+  },
+  {
+    "id": "maize_weeding_management_parent",
+    "collection": "farming_practices",
+    "metadata": {
+      "topic_id": "practice_maize_weeding_management",
+      "topic": "maize_weeding_management",
+      "practice_type": "maintenance",
+      "growth_stage": "growing",
+      "crop": "maize",
+      "season": "wet",
+      "chunk_type": "parent"
+    },
+    "document": "Weeds are a critical threat to maize in Casamance, especially during the first 6 weeks. Uncontrolled weed competition during this period can reduce yield by 40-60%. The most common weeds are Striga hermonthica (witchweed — the most damaging), Imperata cylindrica (cogon grass), and various broadleaf weeds.\n\nFirst weeding: At 2-3 weeks after emergence, before the first top-dressing. Hand hoe between rows and around plants. Combine with thinning to leave one plant per hole. This weeding is the highest-priority field operation.\n\nSecond weeding: At 5-6 weeks, combined with the second top-dressing of urea. Hoe between rows and hill soil around plant bases (earthing-up) to 15-20 cm height. Earthing-up supports the stalk, encourages brace root development, and improves water catchment around each plant.\n\nStriga (witchweed) management: Striga attaches to maize roots underground before emerging. Once visible, it has already caused damage. Integrated control: rotate with non-host crops (groundnut or cowpea, which are poor Striga hosts); apply nitrogen fertilizer (Striga is worse in low-fertility soils); hand-pull Striga plants before they flower and seed (purple flowers signal imminent seeding — each plant produces 50,000 seeds that persist in soil for 20+ years). ISRA-recommended Striga-tolerant varieties include WASA Composite C. Report Striga infestations to ANCAR extension for coordinated field-level management."
+  },
+  {
+    "id": "maize_weeding_management_child",
+    "collection": "farming_practices",
+    "metadata": {
+      "topic_id": "practice_maize_weeding_management",
+      "topic": "maize_weeding_management",
+      "practice_type": "maintenance",
+      "growth_stage": "growing",
+      "crop": "maize",
+      "season": "wet",
+      "chunk_type": "child"
+    },
+    "document": "When do I need to weed my maize field in Casamance? What is Striga witchweed on maize and how do I control it? How do I earth up maize plants and why is it important? Can I use mulch to reduce weeding in my maize field?"
+  },
+  {
+    "id": "maize_pest_monitoring_parent",
+    "collection": "farming_practices",
+    "metadata": {
+      "topic_id": "practice_maize_pest_monitoring",
+      "topic": "maize_pest_monitoring",
+      "practice_type": "maintenance",
+      "growth_stage": "growing",
+      "crop": "maize",
+      "season": "wet",
+      "chunk_type": "parent"
+    },
+    "document": "Scout maize fields every 7-10 days from emergence through to cob formation. Walk the field in a W-pattern, checking 20 plants per hectare. Check leaves, growing points, and cobs at each stage.\n\nFall Armyworm (Spodoptera frugiperda): The highest-priority pest threat to Casamance maize since its arrival in West Africa in 2016. Larvae feed in the whorl (growing point) and produce characteristic ragged window-feeding damage and frass (sawdust-like droppings) in the whorl. Action threshold: 10-20% plants with fresh whorl damage. Control: Apply neem oil solution (500 g seeds/10 L water) directly into the whorl using a small bottle — the larva is inside and spray must reach it. Or apply Emamectin benzoate 1.9 EC (0.4 L/ha) — most effective registered product, available at Ziguinchor agro-dealers. Scout at dawn or dusk when larvae are most active.\n\nStem borers (Busseola fusca, Sesamia spp.): Dead-heart symptom in young plants; bore holes with frass on stems in older plants. Cultural control: destroy crop residues after harvest; plant early to avoid peak moth flight. Apply neem solution into whorl at 3-4 weeks.\n\nBirds (quelea, grain-eating sparrows): Major threat at grain-filling and harvest stage. Farmers in Casamance use noise-making and scarecrows. Harvesting as soon as grain is physiologically mature (black layer at base of kernel, husk drying) is the most reliable bird-damage reduction strategy."
+  },
+  {
+    "id": "maize_pest_monitoring_child",
+    "collection": "farming_practices",
+    "metadata": {
+      "topic_id": "practice_maize_pest_monitoring",
+      "topic": "maize_pest_monitoring",
+      "practice_type": "maintenance",
+      "growth_stage": "growing",
+      "crop": "maize",
+      "season": "wet",
+      "chunk_type": "child"
+    },
+    "document": "What is fall armyworm and how do I identify it on my maize plants? I see sawdust-like frass in my maize leaves — what insect is causing this? What can I spray on maize to control stem borers and armyworms? How often should I check my maize field for pest damage?"
+  },
+  {
+    "id": "maize_harvest_technique_parent",
+    "collection": "farming_practices",
+    "metadata": {
+      "topic_id": "practice_maize_harvest_technique",
+      "topic": "maize_harvest_technique",
+      "practice_type": "harvesting",
+      "growth_stage": "harvesting",
+      "crop": "maize",
+      "season": "dry",
+      "chunk_type": "parent"
+    },
+    "document": "In Casamance, 90-100 day maize varieties planted in mid-June are ready to harvest in mid-to-late September. Early harvest is better than late harvest — delayed harvest increases bird damage, mycotoxin risk, and field losses.\n\nPhysiological maturity signs: Husks have dried and turned pale brown; the silk has dried and darkened; a black (abscission) layer has formed at the base of each kernel where it attaches to the cob — this is the definitive maturity indicator. At this point moisture content is 30-35%, which is too wet for storage but correct for field harvest.\n\nHarvest technique:\n1. Snap or twist cobs downward from the stalk. Do not cut with a machete near the stalk — this damages the cob and is slower than snapping.\n2. Remove husks from cobs in the field (field husking reduces transport weight by 30% and speeds drying).\n3. Place cobs in baskets or sacks for transport — avoid throwing cobs which causes kernel bruising that leads to mould.\n\nHarvesting the stover: After cob removal, cut stalks at 20 cm height. Stalks and leaves are valuable animal fodder — chop and store under cover or use immediately for livestock. Do not burn — incorporated stover adds organic matter and improves next season's soil structure.\n\nYield expectation: 1.5-2.5 t/ha for local/saved seed; 3.0-5.0 t/ha for certified improved varieties under good management. Grain prices are best at Ziguinchor market in December-January when supply decreases."
+  },
+  {
+    "id": "maize_harvest_technique_child",
+    "collection": "farming_practices",
+    "metadata": {
+      "topic_id": "practice_maize_harvest_technique",
+      "topic": "maize_harvest_technique",
+      "practice_type": "harvesting",
+      "growth_stage": "harvesting",
+      "crop": "maize",
+      "season": "dry",
+      "chunk_type": "child"
+    },
+    "document": "How do I know when my maize is ready to harvest? What is the black layer on maize kernels and what does it mean? Should I remove the husks in the field or at home? How many bags of maize can I expect from one hectare in Casamance?"
+  },
+  {
+    "id": "maize_post_harvest_handling_parent",
+    "collection": "farming_practices",
+    "metadata": {
+      "topic_id": "practice_maize_post_harvest_handling",
+      "topic": "maize_post_harvest_handling",
+      "practice_type": "post_harvest",
+      "growth_stage": "post_harvest",
+      "crop": "maize",
+      "season": "dry",
+      "chunk_type": "parent"
+    },
+    "document": "Maize post-harvest losses in Casamance are estimated at 20-30% due to improper drying, weevil infestation, and aflatoxin. Correct handling reduces losses to under 5% and maintains grain quality for sale or consumption.\n\nDrying: After field husking, spread cobs on raised drying racks (never on bare ground) in full sun. Dry for 10-14 days until grain moisture drops to 13-14%. Test: bite a grain — if it crushes cleanly with a cracking sound (not mushy), moisture is low enough. Alternatively, shell a handful and try to indent a kernel with a fingernail — properly dry grain resists indentation.\n\nShelling: Shell cobs using a hand-powered or pedal maize sheller (available at Ziguinchor cooperative center for 5,000-10,000 FCFA hire). Manual shelling on a cob-to-cob rubbing method is slower but adequate for small quantities. After shelling, re-spread grain for 2-3 days of final drying.\n\nStorage and weevil control: Store in airtight metal silos, PICS triple-layer bags, or treated jute sacks. PICS bags (hermetic storage) are the most effective and affordable option — they starve weevils of oxygen. Available from USAID and NGO partner stockists in Casamance. Alternatively, treat with traditional repellents: mix dried neem leaves or ash with grain (1 kg ash per 10 kg grain) in sealed containers. Check stored grain monthly — remove and dry any caking or wet-smelling grain immediately. Well-stored maize keeps 6-9 months."
+  },
+  {
+    "id": "maize_post_harvest_handling_child",
+    "collection": "farming_practices",
+    "metadata": {
+      "topic_id": "practice_maize_post_harvest_handling",
+      "topic": "maize_post_harvest_handling",
+      "practice_type": "post_harvest",
+      "growth_stage": "post_harvest",
+      "crop": "maize",
+      "season": "dry",
+      "chunk_type": "child"
+    },
+    "document": "How do I dry maize grain properly after harvest so it does not go mouldy? How can I store maize to prevent weevil damage in Casamance? What are PICS bags for maize and where can I find them? How dry must maize grain be before I can bag it for storage?"
+  },
+  {
+    "id": "millet_land_preparation_parent",
+    "collection": "farming_practices",
+    "metadata": {
+      "topic_id": "practice_millet_land_preparation",
+      "topic": "millet_land_preparation",
+      "practice_type": "planting",
+      "growth_stage": "planning",
+      "crop": "millet",
+      "season": "wet",
+      "chunk_type": "parent"
+    },
+    "document": "Pearl millet (Pennisetum glaucum) is the most drought-tolerant staple grown in Casamance and is particularly important in the drier northern zones near Kolda and Velingara where annual rainfall is 800-1,000 mm. Millet thrives on the sandy, low-fertility soils of the plateau that other crops find limiting.\n\nLand preparation for millet should be minimal — over-tillage breaks up the sandy soil structure and increases erosion. Light hoeing to 10-15 cm depth is sufficient. The objective is weed burial and a loose surface for sowing, not deep inversion tillage. Complete preparation by early June.\n\nMillet tolerates poor soils but responds to modest organic matter addition. Where available, spread 1-2 t/ha of composted manure on the surface and incorporate lightly with a hoe or animal-drawn cultivator. In traditional systems, millet fields benefit from the previous season's cattle browse (transhumant livestock leave dung and trample residues). Where fields have been fallowed, burn the standing fallow early in May and hoe immediately to capture nutrients from the ash.\n\nAvoid waterlogged sites — millet cannot tolerate standing water even briefly. Choose well-drained upland fields. On sloped land, form small earth bunds along contours (zaai pits or tied ridges) every 10-15 m to slow runoff and increase moisture infiltration in the sandy soil."
+  },
+  {
+    "id": "millet_land_preparation_child",
+    "collection": "farming_practices",
+    "metadata": {
+      "topic_id": "practice_millet_land_preparation",
+      "topic": "millet_land_preparation",
+      "practice_type": "planting",
+      "growth_stage": "planning",
+      "crop": "millet",
+      "season": "wet",
+      "chunk_type": "child"
+    },
+    "document": "How do I prepare my field for planting millet in Casamance? Does millet need deep ploughing or can I just hoe the surface? What kind of soil is best for growing millet? Can I plant millet on poor sandy soils near Kolda?"
+  },
+  {
+    "id": "millet_seed_selection_parent",
+    "collection": "farming_practices",
+    "metadata": {
+      "topic_id": "practice_millet_seed_selection",
+      "topic": "millet_seed_selection",
+      "practice_type": "planting",
+      "growth_stage": "planning",
+      "crop": "millet",
+      "season": "wet",
+      "chunk_type": "parent"
+    },
+    "document": "Millet farmers in Casamance traditionally save and replant seed from their best heads each season. This is a valid strategy for OPV (open-pollinated) varieties but requires discipline in selecting seed only from high-yielding, disease-free plants.\n\nRecommended varieties from ISRA: Souna III (75-80 days, the most widely grown in Senegal, very drought-tolerant, suitable for Kolda and Sedhiou), ICMV IS 89305 (85 days, improved downy mildew resistance, recommended for areas with high disease pressure), and Thialack II (65-70 days, ultra-early, suited to very short rainy seasons in northern Casamance). Certified seed for these varieties is available from ISRA Kaolack and distributed through DRDR offices.\n\nSeed selection from own harvest: Choose the largest, most uniform heads from the best-performing plants. Dry selected heads separately. Shell and select the plumpest, heaviest grains — these contain more stored energy for germination. Store selected seed in a sealed clay pot with a tight lid (traditional storage) or in a sealed glass jar to exclude weevils and moisture.\n\nSeed treatment: Millet is susceptible to downy mildew (Sclerospora graminicola), which can infect seed. Treat seed with Metalaxyl (Apron 35 WS, 3 g per kg of seed) before planting if downy mildew was present in the previous season. Seed rate: 4-5 kg of seed per hectare (millet seed is tiny — 1 kg contains approximately 200,000-250,000 seeds)."
+  },
+  {
+    "id": "millet_seed_selection_child",
+    "collection": "farming_practices",
+    "metadata": {
+      "topic_id": "practice_millet_seed_selection",
+      "topic": "millet_seed_selection",
+      "practice_type": "planting",
+      "growth_stage": "planning",
+      "crop": "millet",
+      "season": "wet",
+      "chunk_type": "child"
+    },
+    "document": "Which millet variety grows best in Casamance Senegal? Can I use millet seed saved from last year's harvest? How do I choose the best millet heads to save as seed? How much millet seed do I need to plant one hectare?"
+  },
+  {
+    "id": "millet_planting_technique_parent",
+    "collection": "farming_practices",
+    "metadata": {
+      "topic_id": "practice_millet_planting_technique",
+      "topic": "millet_planting_technique",
+      "practice_type": "planting",
+      "growth_stage": "planting",
+      "crop": "millet",
+      "season": "wet",
+      "chunk_type": "parent"
+    },
+    "document": "Plant millet at the very first reliable rains in mid-June — millet's early vigour depends on taking full advantage of the wet season from the start. Unlike maize or groundnut, millet can be planted even in a light shower because it germinates quickly on minimal moisture.\n\nTraditional planting method (poquet): Using a pointed digging stick or a hoe handle, make holes 5-8 cm deep at 75-90 cm between rows and 90 cm within rows. Place 5-8 seeds per hole. This gives an initial density of 12,000-16,000 hills per hectare. Cover lightly with soil and press down. The wide spacing is traditional and adapted to rainfed conditions — millet grows very tall (2-3 m) and wide spacing reduces competition and lodging.\n\nThinning (decompressage): At 2-3 weeks, thin to 3-4 plants per hill by pulling the weakest seedlings. Thinning is essential — too many plants per hill produce multiple thin tillers that never fully head out. The target is 3-4 vigorous plants per hill that will each produce 1-3 large heads. Final plant density: 35,000-50,000 plants per hectare.\n\nRow planting with animal-drawn seeder: Progressive farmers with access to a seeder through ANCAR or agricultural cooperatives can use row planting at 75 cm between rows and 75 cm between hills — this simplifies weeding with an animal-drawn cultivator and improves fertilizer application efficiency."
+  },
+  {
+    "id": "millet_planting_technique_child",
+    "collection": "farming_practices",
+    "metadata": {
+      "topic_id": "practice_millet_planting_technique",
+      "topic": "millet_planting_technique",
+      "practice_type": "planting",
+      "growth_stage": "planting",
+      "crop": "millet",
+      "season": "wet",
+      "chunk_type": "child"
+    },
+    "document": "When is the right time to plant millet in Casamance? How many millet seeds do I put in each hole and how far apart? Do I need to thin my millet seedlings and how many plants should I leave? What is the poquet method for planting millet?"
+  },
+  {
+    "id": "millet_fertilization_guide_parent",
+    "collection": "farming_practices",
+    "metadata": {
+      "topic_id": "practice_millet_fertilization_guide",
+      "topic": "millet_fertilization_guide",
+      "practice_type": "maintenance",
+      "growth_stage": "growing",
+      "crop": "millet",
+      "season": "wet",
+      "chunk_type": "parent"
+    },
+    "document": "Millet is traditionally grown with little or no mineral fertilizer in Casamance, relying instead on residual soil fertility and organic inputs. While it tolerates low fertility, targeted fertilization increases yields significantly and maintains soil productive capacity over time.\n\nBasal application (at planting): Apply DAP (diammonium phosphate, 18-46-0) at 50-75 kg per hectare placed in each planting hole before the seed. DAP provides both phosphorus for early root development and a small nitrogen boost for establishment. Avoid high nitrogen rates at planting — millet develops weak, lodging-prone stalks with excessive nitrogen early in the season.\n\nTop-dressing (at 4-5 weeks, just before heading begins): Apply urea at 50 kg per hectare in a small furrow 10 cm from each hill. Apply immediately after rainfall when soil is moist. This nitrogen application is the most critical — it directly determines head size and grain number. Apply no later than 6 weeks after planting or it is too late to benefit grain filling.\n\nOrganic approach: Millet responds extremely well to animal manure. Concentrate 2-3 large baskets of cattle dung per hill at planting (a traditional technique called 'compostage en fosse' practiced in Kolda region). Combine with wood ash (500 g per hill) for potassium and pH adjustment. This organic approach is sustainable long-term and avoids fertilizer costs. ISRA recommends combining modest mineral phosphate with organic inputs as the most cost-effective strategy for Casamance millet farmers."
+  },
+  {
+    "id": "millet_fertilization_guide_child",
+    "collection": "farming_practices",
+    "metadata": {
+      "topic_id": "practice_millet_fertilization_guide",
+      "topic": "millet_fertilization_guide",
+      "practice_type": "maintenance",
+      "growth_stage": "growing",
+      "crop": "millet",
+      "season": "wet",
+      "chunk_type": "child"
+    },
+    "document": "Does millet need fertilizer in Casamance or can it grow on poor soil alone? What kind of fertilizer should I apply to millet and when? How much manure should I add to my millet field? My millet plants look pale and small — is it because of low soil fertility?"
+  },
+  {
+    "id": "millet_weeding_management_parent",
+    "collection": "farming_practices",
+    "metadata": {
+      "topic_id": "practice_millet_weeding_management",
+      "topic": "millet_weeding_management",
+      "practice_type": "maintenance",
+      "growth_stage": "growing",
+      "crop": "millet",
+      "season": "wet",
+      "chunk_type": "parent"
+    },
+    "document": "Weed control is critical in millet during the first 6 weeks. After the crop reaches 60-80 cm height and begins shading the soil, natural weed suppression is effective and further weeding is rarely necessary.\n\nFirst weeding: At 2-3 weeks after emergence, combined with thinning. Hand hoe or use an animal-drawn cultivator between rows. This operation removes the first flush of weeds and is the most labour-intensive. In Casamance, community labour groups (mbottay or nawettan) are commonly organised for weeding operations — this is the appropriate time to arrange such labour exchange.\n\nSecond weeding: At 5-6 weeks, combined with top-dress fertilizer application. After this weeding, earth up around each hill to 15-20 cm to support the tall stalks and improve stability against wind. Millet stalk lodging (falling over) is a major harvest problem — earthing-up and appropriate variety selection (shorter-statured improved varieties) reduce this risk.\n\nStriga management in millet: Striga hermonthica also attacks millet, particularly in the Kolda and Sedhiou zones where soils are very poor. The same integrated control applies as for maize: rotate with legumes (groundnut, cowpea, niebe); apply mineral phosphate (Striga is worse in phosphorus-deficient soils); hand-pull Striga plants before flowering to prevent seed set. Striga-tolerant millet varieties are available from ISRA on request."
+  },
+  {
+    "id": "millet_weeding_management_child",
+    "collection": "farming_practices",
+    "metadata": {
+      "topic_id": "practice_millet_weeding_management",
+      "topic": "millet_weeding_management",
+      "practice_type": "maintenance",
+      "growth_stage": "growing",
+      "crop": "millet",
+      "season": "wet",
+      "chunk_type": "child"
+    },
+    "document": "When and how many times do I need to weed millet in Casamance? Should I earth up the soil around my millet plants and why? My millet field has Striga witchweed — what can I do? How do I organise community labour for millet weeding?"
+  },
+  {
+    "id": "millet_pest_monitoring_parent",
+    "collection": "farming_practices",
+    "metadata": {
+      "topic_id": "practice_millet_pest_monitoring",
+      "topic": "millet_pest_monitoring",
+      "practice_type": "maintenance",
+      "growth_stage": "growing",
+      "crop": "millet",
+      "season": "wet",
+      "chunk_type": "parent"
+    },
+    "document": "Millet has fewer serious pest problems than maize or groundnut, but several threats require monitoring in Casamance. Scout fields at 2-week intervals from seedling emergence through to grain filling.\n\nDowny mildew (Sclerospora graminicola): The most destructive millet disease in West Africa. Infected plants show yellow-green streaking on leaves, and severely affected plants produce no head ('green ear' symptom — the entire head turns green and sterile). The pathogen spreads in wet, humid conditions during July-August. Management: use Metalaxyl seed treatment (Apron 35 WS); plant resistant varieties (ICMV IS 89305); rogue out infected plants immediately.\n\nShoot fly (Atherigona spp.): Larvae cut the growing point of young seedlings, causing 'dead heart' — the central leaf yellows and dies while the outer leaves remain green. Most damaging in the first 3 weeks. Early planting and use of vigorous seedling varieties reduces exposure. No chemical control is typically cost-effective at low infestation levels.\n\nMillet head miner (Heliocheilus albipunctella): The larvae bore into developing grain heads during August-September, causing direct grain loss. Inspect heads from 60 days after planting. Control: neem oil spray on heads at early grain filling; early-maturing varieties escape the peak infestation period.\n\nQuelea birds: Major pest at grain-filling in Casamance. Traditional noise-making, scarecrows, and communal bird-scaring groups are the primary control. Harvest as soon as grain is physiologically mature to minimise bird losses."
+  },
+  {
+    "id": "millet_pest_monitoring_child",
+    "collection": "farming_practices",
+    "metadata": {
+      "topic_id": "practice_millet_pest_monitoring",
+      "topic": "millet_pest_monitoring",
+      "practice_type": "maintenance",
+      "growth_stage": "growing",
+      "crop": "millet",
+      "season": "wet",
+      "chunk_type": "child"
+    },
+    "document": "What is downy mildew on millet and how can I prevent it? My millet seedlings have a dead yellow centre leaf — what is causing this? How do I protect my millet heads from insects and birds near harvest time? What pests and diseases should I watch for when growing millet in Casamance?"
+  },
+  {
+    "id": "millet_harvest_technique_parent",
+    "collection": "farming_practices",
+    "metadata": {
+      "topic_id": "practice_millet_harvest_technique",
+      "topic": "millet_harvest_technique",
+      "practice_type": "harvesting",
+      "growth_stage": "harvesting",
+      "crop": "millet",
+      "season": "dry",
+      "chunk_type": "parent"
+    },
+    "document": "Early-maturing millet varieties (Souna III, Thialack II) planted in mid-June are harvestable in late August to early September in Casamance — well before the end of the rains. This is one of millet's key advantages: it provides food in the 'hungry season' (soudure) when other staple crops are not yet ready.\n\nMaturity signs: Grain is mature when the head (panicle) has turned golden-brown to grey. Test-squeeze individual grains — mature grains are hard and do not yield to fingernail pressure. Rub a head briskly between palms — mature grain threshes easily while immature grain remains attached to the rachis.\n\nHarvest technique:\n1. Cut heads with a knife or sickle, leaving 10-20 cm of stem for a handle.\n2. Place heads in baskets immediately — do not pile on the ground where insects and moisture can damage them.\n3. Do not cut the entire stalk at harvest — leave stalks standing for 1-2 weeks after head removal. Stalks continue to dry and can be harvested as fodder for livestock.\n4. For large fields, cut heads in the morning when the temperature is low and grain is less likely to shatter during handling.\n\nStaggered harvesting: Where multiple varieties are grown (e.g., Thialack II early + Souna III main crop), harvest in stages to manage labour and reduce post-harvest bottlenecks. Yield expectation: 0.8-1.2 t/ha for traditional varieties; 1.5-2.5 t/ha for improved varieties with fertilizer management."
+  },
+  {
+    "id": "millet_harvest_technique_child",
+    "collection": "farming_practices",
+    "metadata": {
+      "topic_id": "practice_millet_harvest_technique",
+      "topic": "millet_harvest_technique",
+      "practice_type": "harvesting",
+      "growth_stage": "harvesting",
+      "crop": "millet",
+      "season": "dry",
+      "chunk_type": "child"
+    },
+    "document": "When is millet ready to harvest in Casamance? How do I cut millet heads correctly at harvest time? My millet can be harvested before the rains finish — is that possible? How many bags of millet can I expect from one hectare?"
+  },
+  {
+    "id": "millet_post_harvest_handling_parent",
+    "collection": "farming_practices",
+    "metadata": {
+      "topic_id": "practice_millet_post_harvest_handling",
+      "topic": "millet_post_harvest_handling",
+      "practice_type": "post_harvest",
+      "growth_stage": "post_harvest",
+      "crop": "millet",
+      "season": "dry",
+      "chunk_type": "parent"
+    },
+    "document": "Millet is one of the easiest staple grains to store safely because its small, hard seed coat resists insect penetration when grain is properly dried. However, early-harvested millet (August-September) still has 18-22% moisture content and requires careful drying before storage.\n\nDrying heads: Spread cut heads on raised drying racks or hang in bundles from rafters in a well-ventilated room for 7-14 days. Never dry on bare ground — soil moisture slows drying and contamination causes mould. Target moisture content: below 12% for safe storage. Test: rub a small sample between palms vigorously — if the threshed grain feels warm and free-flowing (not sticky or clumping), moisture is acceptable.\n\nThreshing: Beat dried heads against a hard surface (a suspended log or a large stone) to separate grain from the rachis. Traditional hand threshing is adequate for small quantities. Pedal threshers are available for hire through cooperatives in Ziguinchor and Kolda, reducing threshing time for 1 ha from 5 person-days to under 1 day.\n\nWinnowing and cleaning: After threshing, winnow by pouring grain from one container to another in a light breeze to remove chaff and light debris. Pass through a clean sieve to remove stones and coarse material.\n\nStorage: Store threshed, clean, dry millet in sealed clay pots (traditional, effective for up to 2 years), airtight metal drums, or PICS hermetic bags. Millet stored unthreshed on the head (traditional granary storage) can keep 2-3 years in dry Casamance conditions — this is the most effective traditional storage method. For market sales, the Ziguinchor grain market and Kolda periodic markets are the main outlets; prices are highest in April-June before the new harvest."
+  },
+  {
+    "id": "millet_post_harvest_handling_child",
+    "collection": "farming_practices",
+    "metadata": {
+      "topic_id": "practice_millet_post_harvest_handling",
+      "topic": "millet_post_harvest_handling",
+      "practice_type": "post_harvest",
+      "growth_stage": "post_harvest",
+      "crop": "millet",
+      "season": "dry",
+      "chunk_type": "child"
+    },
+    "document": "How do I dry millet heads after harvest and how long does it take? What is the best way to store millet grain in Casamance for a long time? How do I thresh and clean millet grain without a machine? Can I sell millet in Ziguinchor or Kolda market and when is the price highest?"
+  }
+]

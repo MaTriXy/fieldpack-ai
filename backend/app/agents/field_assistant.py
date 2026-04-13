@@ -430,6 +430,8 @@ async def run_field_assistant_stream(
             "rerank_results", "generate_answer", "needs_search_node",
         }
         pipeline_start = time.perf_counter()
+        # Keyed by parent_run_id so each node's LLM metrics stay isolated
+        llm_meta_by_run: dict[str, dict] = {}
 
         in_generate = False
 
@@ -450,6 +452,21 @@ async def run_field_assistant_stream(
                     "tool_calls_log_entry": tcl[-1:] if tcl else None,
                 }
 
+            # Capture LLM eval metadata for tok/s reporting (Ollama-specific)
+            if kind == "on_chat_model_end":
+                chunk_data = event.get("data", {})
+                output = chunk_data.get("output", None)
+                if output and hasattr(output, "response_metadata"):
+                    meta = output.response_metadata or {}
+                    eval_count = meta.get("eval_count", 0)
+                    eval_duration = meta.get("eval_duration", 0)
+                    if eval_count > 0 and eval_duration > 0:
+                        parent_id = event.get("parent_ids", [""])[0] if event.get("parent_ids") else event.get("run_id", "")
+                        llm_meta_by_run[parent_id] = {
+                            "eval_count": eval_count,
+                            "eval_duration": eval_duration,
+                        }
+
             # Node end → emit tool_calls_log + node_stats with latency
             if kind == "on_chain_end" and name in _NODE_STATUS_MAP:
                 if name == "generate_answer":
@@ -468,12 +485,24 @@ async def run_field_assistant_stream(
                         "tool_calls_log_entry": entries[-1],
                     }
 
-                yield {
+                stats_event: dict = {
                     "type": "node_stats",
                     "node": name,
                     "latency_ms": latency_ms,
                     "model": settings.ollama_model,
                 }
+
+                # Add tok/s if we captured Ollama eval metrics for this node
+                run_id = event.get("run_id", "")
+                node_meta = llm_meta_by_run.pop(run_id, None)
+                if node_meta and name in _LLM_NODES:
+                    eval_count = node_meta["eval_count"]
+                    eval_duration = node_meta["eval_duration"]
+                    tok_per_sec = round(eval_count / (eval_duration / 1e9), 1)
+                    stats_event["tok_per_sec"] = tok_per_sec
+                    stats_event["eval_count"] = eval_count
+
+                yield stats_event
 
             # Accumulate all node outputs into final_state
             if kind == "on_chain_end" and name in _NODE_STATUS_MAP:

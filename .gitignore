@@ -64,3 +64,27 @@ backend/data/
 screenshots/
 start_ollama_optimized.bat
 stitch-designs/
+
+# Debug screenshots & test artifacts (root level)
+screenshot*.png
+test-*.png
+test-screenshots/
+screens/
+test*.txt
+test*.json
+test*.log
+e2b_test1.json
+t1.json
+
+# SQLite WAL/SHM files
+*.db-shm
+*.db-wal
+
+# Local databases (generated)
+fieldpack.db
+
+# ChromaDB backups
+packs/*/chroma_db_backup_*/
+
+# Docs drafts (generated)
+docs/SUBMISSION_PLAYBOOK.md

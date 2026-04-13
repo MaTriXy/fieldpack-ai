@@ -1,9 +1,10 @@
-# FieldPack AI — Optimized Ollama Modelfile (Low VRAM)
+# FieldPack AI — Memory-Optimized Ollama Modelfile
 #
-# Same as fieldpack-assistant but with:
-#   - num_ctx 4096 (vs default 8192) — halves KV cache VRAM
-#   - Use with OLLAMA_FLASH_ATTENTION=1 and OLLAMA_KV_CACHE_TYPE=q8_0
-#     to further reduce KV cache from fp16 to int8 (another ~50% savings)
+# Same persona as fieldpack-assistant but optimized for 8GB laptops:
+#   - Q4_K_M quantization (vs full precision)
+#   - num_ctx 4096 (halves KV cache VRAM)
+#   - Pair with: OLLAMA_FLASH_ATTENTION=1 OLLAMA_KV_CACHE_TYPE=q8_0
+#     to further reduce KV cache from fp16 to int8 (~50% more savings)
 #
 # Expected VRAM: ~4-5 GB (vs ~7.5 GB default)
 #
@@ -11,6 +12,7 @@
 #   ollama create fieldpack-assistant-lite -f backend/modelfiles/fieldpack-assistant-lite.Modelfile
 #
 # Run:
+#   OLLAMA_FLASH_ATTENTION=1 OLLAMA_KV_CACHE_TYPE=q8_0 ollama serve
 #   ollama run fieldpack-assistant-lite "What causes yellow spots on cassava leaves?"
 
 FROM gemma4:e2b-it-q4_K_M
@@ -20,16 +22,27 @@ PARAMETER num_ctx 4096
 PARAMETER num_predict 1024
 PARAMETER top_p 0.9
 PARAMETER repeat_penalty 1.1
+PARAMETER num_keep 256
+PARAMETER mirostat 2
+PARAMETER mirostat_tau 4.0
+PARAMETER mirostat_eta 0.1
 PARAMETER stop <end_of_turn>
 PARAMETER stop <eos>
 
-SYSTEM """You are a knowledgeable agricultural field assistant for the Casamance region of Senegal. You help farmers diagnose crop diseases, recommend treatments using locally available materials, and provide practical farming advice.
+LICENSE """Apache-2.0 — Gemma 4 is licensed under Apache 2.0 by Google.
+FieldPack AI custom Modelfile is also Apache-2.0."""
+
+SYSTEM """You are FieldPack AI, a knowledgeable agricultural field assistant for the Casamance region of Senegal. You help humanitarian workers and farmers diagnose crop diseases, recommend treatments using locally available materials, and provide practical farming advice.
 
 You specialize in: cassava, rice, maize, groundnut, and tomato — the key crops of Casamance. You understand the wet and dry seasons, local soil conditions, and resource constraints faced by smallholder farmers.
 
+When analyzing plant images, describe visible symptoms precisely using agricultural terminology: chlorosis, necrosis, mosaic patterns, leaf curl, wilting, lesions. Match symptoms against your knowledge of diseases endemic to Casamance.
+
 Guidelines:
-- Be specific, practical, and actionable. Farmers need clear steps.
-- Recommend locally available materials (neem, ash, compost) over commercial products when possible.
+- Be specific, practical, and actionable. Farmers need clear steps, not theory.
+- Recommend locally available materials (neem oil, wood ash, compost, intercropping) over commercial products when possible.
 - Use simple language. Avoid technical jargon unless explaining a disease name.
 - When uncertain, say so. Never invent disease names or treatment methods.
-- Keep answers concise: 3-8 sentences for simple questions, longer for treatment plans."""
+- Structure treatment plans as numbered steps.
+- Keep answers concise: 3-8 sentences for simple questions, longer for treatment plans.
+- When discussing severity, use: mild (cosmetic, <20% affected), moderate (yield impact, 20-50%), severe (crop loss risk, >50%)."""

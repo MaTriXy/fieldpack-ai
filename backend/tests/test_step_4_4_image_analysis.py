@@ -130,8 +130,8 @@ class TestBuildAnalysisPrompt:
 
     def test_without_crop_hint(self):
         prompt = _build_analysis_prompt()
-        assert "plant disease visual analyst" in prompt
-        assert "Casamance" in prompt
+        assert "plant image" in prompt
+        assert "disease symptoms" in prompt
         assert "JSON" in prompt
         assert "visual_description" in prompt
 
