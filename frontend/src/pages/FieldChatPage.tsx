@@ -29,6 +29,9 @@ import {
   type QueuedChatMessage,
 } from '../lib/offline-queue'
 import ServerSettings, { ServerSettingsButton } from '../components/ServerSettings'
+import ThinkingBubble, { STEP_LABELS } from '../components/ThinkingBubble'
+import { FIELD_FACTS } from '../lib/field-facts'
+import { useInsightDrip } from '../hooks/useInsightDrip'
 
 interface Message {
   id: string
@@ -108,134 +111,7 @@ function PhotoAnalysisOverlay() {
   )
 }
 
-const FIELD_FACTS = [
-  // Staple crops
-  { icon: '🌾', text: 'Cassava feeds over 500 million people across Africa every day' },
-  { icon: '🌽', text: 'Maize is the most widely grown crop in sub-Saharan Africa' },
-  { icon: '🍚', text: 'West Africa produces over 19 million tonnes of rice per year' },
-  { icon: '🥜', text: 'Groundnuts fix nitrogen in the soil, benefiting the next crop rotation' },
-  { icon: '🫘', text: 'Cowpeas can grow in poor soils and tolerate drought better than most legumes' },
-  { icon: '🍠', text: 'Orange-fleshed sweet potato is rich in vitamin A and grows in 3-4 months' },
-  { icon: '🌾', text: 'Sorghum and millet can survive where rainfall is below 500mm per year' },
-  { icon: '🫛', text: 'Pigeon pea roots can break through compacted soil layers up to 2 meters deep' },
-  // Soil & water
-  { icon: '🧪', text: 'You can test soil pH with litmus strips from any pharmacy' },
-  { icon: '💧', text: 'Mulching with crop residues can reduce water evaporation by up to 70%' },
-  { icon: '🌱', text: 'Intercropping legumes with cereals naturally adds nitrogen to the soil' },
-  { icon: '🌿', text: 'Cover crops reduce soil erosion by up to 90% during heavy rains' },
-  { icon: '🪨', text: 'Contour stone bunds slow rainwater runoff and reduce erosion on slopes' },
-  { icon: '💧', text: 'Half-moon water harvesting pits can triple millet yields in the Sahel' },
-  { icon: '🧱', text: 'Zai pits \u2014 small planting holes with compost \u2014 restore degraded Sahel land' },
-  // Pests & disease
-  { icon: '🐛', text: 'Neem leaf extract is a natural pesticide used across West Africa' },
-  { icon: '🐔', text: 'Free-range chickens can eat up to 80 armyworms per hour in maize fields' },
-  { icon: '🦗', text: 'A single healthy bat can eat up to 1,000 mosquitoes per hour' },
-  { icon: '🍅', text: 'You can test for tomato bacterial wilt by placing a cut stem in clear water' },
-  { icon: '🐜', text: 'Push-pull farming uses Napier grass to trap stem borers away from maize' },
-  { icon: '🌼', text: 'Planting marigolds between vegetable rows repels root-knot nematodes' },
-  { icon: '🦟', text: 'Rice paddies with alternating wet-dry cycles reduce mosquito breeding by 60%' },
-  { icon: '🪲', text: 'Lady beetles are natural aphid predators \u2014 one can eat 50 aphids a day' },
-  // Post-harvest & storage
-  { icon: '🌡️', text: 'Grain stored above 14% moisture can develop dangerous aflatoxin mould' },
-  { icon: '☀️', text: 'Solar drying on raised racks prevents grain spoilage after harvest' },
-  { icon: '🏺', text: 'Hermetic (airtight) grain bags can protect stored grain without chemicals' },
-  { icon: '🧂', text: 'Mixing wood ash into stored beans repels weevils naturally' },
-  { icon: '📦', text: 'Africa loses up to 40% of harvested food due to poor post-harvest handling' },
-  // Climate & seasons
-  { icon: '🌍', text: 'The Sahel rainy season has shifted later by 2-3 weeks over the past 30 years' },
-  { icon: '🌧️', text: 'Most of West Africa receives 80% of its annual rainfall in just 4 months' },
-  { icon: '🌤️', text: 'Agroforestry trees provide shade that can lower soil temperature by 5-8\u00B0C' },
-  { icon: '🌊', text: 'Mangrove restoration in coastal West Africa protects rice paddies from salt intrusion' },
-  // Techniques & innovation
-  { icon: '🐄', text: 'Composting cow manure for 3 weeks kills most weed seeds and pathogens' },
-  { icon: '🐟', text: 'Rice-fish farming in flooded paddies provides protein and controls weeds' },
-  { icon: '🌳', text: 'Farmer-managed natural regeneration has re-greened 5 million hectares in the Sahel' },
-  { icon: '🐝', text: 'Beehive fences in East Africa protect farms from elephants and produce honey' },
-  { icon: '🧑\u200D🌾', text: 'Seed fairs help farmers access diverse local varieties adapted to their climate' },
-  { icon: '🔬', text: 'Simple seed float tests \u2014 discard seeds that float \u2014 improve germination rates' },
-  { icon: '🪴', text: 'Grafting local rootstock with improved varieties gives disease resistance and better yield' },
-  { icon: '🐐', text: 'Integrating small ruminants with crops turns crop residues into manure and income' },
-]
-
-function ThinkingBubble({ step, mode, insights }: { step: string | null; mode: 'quick' | 'rag' | null; insights: string[] }) {
-  const [factIndex, setFactIndex] = useState(() => Math.floor(Math.random() * FIELD_FACTS.length))
-  const [fadeKey, setFadeKey] = useState(0)
-
-  useEffect(() => {
-    if (mode !== 'rag') return
-    const id = setInterval(() => {
-      setFactIndex((i) => (i + 1) % FIELD_FACTS.length)
-      setFadeKey((k) => k + 1)
-    }, 15000)
-    return () => clearInterval(id)
-  }, [mode])
-
-  const fact = FIELD_FACTS[factIndex]
-  const stepLabel = step ? (STEP_LABELS[step] || step) : null
-
-  if (mode === 'quick' || mode === null) {
-    // Minimal typing indicator for fast responses
-    return (
-      <div className="flex gap-1.5 items-center h-5">
-        <span className="w-2 h-2 bg-primary/40 rounded-full animate-bounceTyping" />
-        <span className="w-2 h-2 bg-primary/40 rounded-full animate-bounceTyping [animation-delay:0.15s]" />
-        <span className="w-2 h-2 bg-primary/40 rounded-full animate-bounceTyping [animation-delay:0.3s]" />
-      </div>
-    )
-  }
-
-  // RAG pipeline — show live insights one by one + step + fact
-  return (
-    <div className="space-y-2">
-      {/* Current step spinner — always on top */}
-      {stepLabel && (
-        <div className="flex items-center gap-2">
-          <div className="w-3.5 h-3.5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-          <span className="text-[11px] text-primary font-medium">{stepLabel}...</span>
-        </div>
-      )}
-      {/* Pipeline activity feed — completed steps appear below */}
-      {insights.length > 0 && (
-        <div className="space-y-0.5 border-l-2 border-primary/20 pl-2.5 ml-[5px]">
-          {insights.map((text, i) => {
-            const isLatest = i === insights.length - 1
-            return (
-              <div
-                key={`${i}-${text}`}
-                className={`flex items-center gap-1.5 ${isLatest ? 'animate-fadeIn' : ''}`}
-              >
-                <span className={`text-[10px] leading-none ${isLatest ? 'text-primary' : 'text-text-muted/50'}`}>✓</span>
-                <span className={`text-[11px] leading-snug ${isLatest ? 'text-text-secondary' : 'text-text-muted/50'}`}>
-                  {text}
-                </span>
-              </div>
-            )
-          })}
-        </div>
-      )}
-      {/* Field fact — only before any insights arrive */}
-      {insights.length === 0 && (
-        <div key={fadeKey} className="flex items-start gap-2.5 animate-fadeIn">
-          <span className="text-lg leading-none mt-0.5">{fact.icon}</span>
-          <p className="text-xs text-text-muted italic leading-relaxed">{fact.text}</p>
-        </div>
-      )}
-    </div>
-  )
-}
-
-// Maps backend step names to user-friendly labels (matches real pipeline order)
-const STEP_LABELS: Record<string, string> = {
-  classifying: 'Understanding your question',
-  evaluating: 'Checking what I know',
-  routing: 'Planning search strategy',
-  crafting: 'Building search queries',
-  searching: 'Searching knowledge base',
-  reranking: 'Picking the best results',
-  expanding: 'Widening the search',
-  generating: 'Writing your answer',
-  saving: 'Saving observation',
-}
+// ThinkingBubble, STEP_LABELS, and FIELD_FACTS are imported from shared modules above
 
 // Ordered steps for the progress bar (matches real pipeline order)
 const STEP_ORDER = ['classifying', 'evaluating', 'crafting', 'searching', 'reranking', 'generating']
@@ -290,14 +166,7 @@ export default function FieldChatPage() {
   const [expandedSource, setExpandedSource] = useState<string | null>(null)
   const [wsError, setWsError] = useState<string | null>(null)
   const [pipelineMode, setPipelineMode] = useState<'quick' | 'rag' | null>(null)
-  const [pipelineInsights, setPipelineInsights] = useState<string[]>([])
-  const insightQueueRef = useRef<string[]>([])
-  const insightTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const clearInsights = useCallback(() => {
-    insightQueueRef.current = []
-    if (insightTimerRef.current) { clearTimeout(insightTimerRef.current); insightTimerRef.current = null }
-    setPipelineInsights([])
-  }, [])
+  const { insights: pipelineInsights, enqueueInsight, clearInsights } = useInsightDrip()
 
   // Offline mode
   const { reachable } = useBackendReachable()
@@ -438,20 +307,7 @@ export default function FieldChatPage() {
 
         case 'pipeline_insight':
           if (data.text) {
-            insightQueueRef.current.push(data.text as string)
-            // Start drip if not already running
-            if (!insightTimerRef.current) {
-              const drip = () => {
-                const next = insightQueueRef.current.shift()
-                if (next) {
-                  setPipelineInsights((prev) => [...prev.slice(-4), next])
-                  insightTimerRef.current = setTimeout(drip, 1500)
-                } else {
-                  insightTimerRef.current = null
-                }
-              }
-              drip()
-            }
+            enqueueInsight(data.text as string)
           }
           break
 
@@ -1061,7 +917,7 @@ export default function FieldChatPage() {
         subtitle="Agentic RAG · Gemma 4 E2B"
         backTo="/"
         back
-        badge={{ label: 'Offline', variant: 'offline' }}
+        badge={reachable ? { label: 'Online', variant: 'online' } : { label: 'Offline', variant: 'offline' }}
         leftAction={
           <button
             onClick={openSidebar}

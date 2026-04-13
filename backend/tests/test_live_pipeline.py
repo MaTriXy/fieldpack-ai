@@ -476,7 +476,12 @@ class TestPhaseD:
         assert crops_step.table_name == "crops"
 
         t0 = time.perf_counter()
-        records, attempts = await _compile_one_table(crops_step, findings, compiled_ids)
+        records, attempts = await _compile_one_table(
+            crops_step, findings, compiled_ids,
+            region="Casamance, Senegal",
+            crops=["cassava"],
+            currency="XOF (West African CFA franc)",
+        )
         elapsed = time.perf_counter() - t0
 
         assert len(records) > 0, "No crop records compiled"
@@ -500,6 +505,9 @@ class TestPhaseD:
 
         state = {
             "findings": findings,
+            "region": "Casamance, Senegal",
+            "crops": ["cassava"],
+            "currency": "XOF (West African CFA franc)",
             "status_messages": [],
             "current_phase": "gap_analysis",
         }

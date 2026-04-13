@@ -234,3 +234,63 @@ async def mission_ws(websocket: WebSocket):
 
     except WebSocketDisconnect:
         pass
+
+
+# ------------------------------------------------------------------
+# /mission/chat/ws — streaming mission chat via WebSocket
+# ------------------------------------------------------------------
+
+
+@router.websocket("/chat/ws")
+async def mission_chat_stream_ws(websocket: WebSocket):
+    """Stream mission chat responses via WebSocket."""
+    await websocket.accept()
+    try:
+        data = await websocket.receive_text()
+        try:
+            msg = json.loads(data)
+        except json.JSONDecodeError:
+            await websocket.send_json({"type": "error", "message": "Invalid JSON"})
+            await websocket.close(code=1003)
+            return
+
+        message = msg.get("message", "")
+        history = [
+            MissionChatMessage(role=m["role"], content=m["content"])
+            for m in msg.get("conversation_history", [])
+        ]
+        language = msg.get("language")
+
+        prompt = _build_mission_chat_prompt(message, history, language)
+
+        # Emit planning status
+        await websocket.send_json({"type": "status", "step": "planning"})
+
+        # Try Google AI Studio first
+        result = await _try_google_planner(prompt)
+
+        if result is None:
+            # Fallback to Ollama
+            await websocket.send_json({"type": "status", "step": "fallback"})
+            result = await _try_ollama_planner(prompt)
+
+        if result is None:
+            await websocket.send_json({
+                "type": "error",
+                "message": "Mission planner unavailable. No LLM reachable.",
+            })
+        else:
+            await websocket.send_json({
+                "type": "done",
+                "reply": result.reply,
+                "mission_card": result.mission_card.model_dump() if result.ready and result.mission_card else None,
+            })
+
+    except WebSocketDisconnect:
+        pass
+    except Exception as exc:
+        logger.exception("mission_chat_stream_ws error: %s", exc)
+        try:
+            await websocket.send_json({"type": "error", "message": str(exc)})
+        except Exception:
+            pass

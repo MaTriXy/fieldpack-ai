@@ -55,6 +55,17 @@ export function getMissionWsUrl(): string {
   return `${protocol}//${window.location.host}/ws/mission/ws`
 }
 
+/** Full WebSocket URL for the mission chat streaming endpoint. */
+export function getMissionChatWsUrl(): string {
+  const server = getServerUrl()
+  if (server) {
+    const wsBase = server.replace(/^http/, 'ws')
+    return `${wsBase}/mission/chat/ws`
+  }
+  const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
+  return `${protocol}//${window.location.host}/ws/mission/chat/ws`
+}
+
 /** Build a full API endpoint URL. */
 export function apiUrl(path: string): string {
   return `${getApiBase()}${path}`

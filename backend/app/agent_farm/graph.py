@@ -308,7 +308,7 @@ async def run_agent_farm_stream(
                     "detail": detail,
                 }
 
-            # Node end → phase_complete event
+            # Node end → phase_complete event + stats
             if kind == "on_chain_end" and name in _NODE_STATUS_MAP:
                 latency_ms = None
                 if name in node_timings:
@@ -328,6 +328,23 @@ async def run_agent_farm_stream(
                 output = event.get("data", {}).get("output", {})
                 if isinstance(output, dict):
                     final_state.update(output)
+
+                    # Emit accumulated stats after each phase
+                    comp = final_state.get("compilation")
+                    chunks = final_state.get("chunks", {})
+                    yield {
+                        "type": "stats",
+                        "findings": len(final_state.get("findings", [])),
+                        "tables": {
+                            table: len(getattr(comp, table, []))
+                            for table in [
+                                "crops", "diseases", "treatments", "climate",
+                                "pests", "varieties",
+                            ]
+                        } if comp else {},
+                        "chunks": sum(len(v) for v in chunks.values()),
+                        "images": len(final_state.get("downloaded_images", [])),
+                    }
 
         # Done — emit summary
         total_latency_ms = round(

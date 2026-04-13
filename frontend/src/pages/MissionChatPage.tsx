@@ -2,18 +2,18 @@ import { useState, useRef, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Send, Menu, Leaf, FileText } from 'lucide-react'
 import MarkdownContent from '../components/MarkdownContent'
+import ThinkingBubble from '../components/ThinkingBubble'
 import TopBar from '../components/layout/TopBar'
 import ChatSidebar from '../components/ChatSidebar'
 import { useSwipeToOpen } from '../hooks/useSwipeToOpen'
 import { useAndroidBack } from '../hooks/useAndroidBack'
-import { isNative } from '../lib/config'
+import { isNative, getMissionChatWsUrl } from '../lib/config'
 import { getLanguage } from '../lib/settings'
 import {
   listConversations,
   createConversation,
   getConversation,
   saveConversation,
-  chatMission,
   type ConversationSummary,
   type MessageData,
 } from '../lib/api'
@@ -82,6 +82,7 @@ export default function MissionChatPage() {
   const [input, setInput] = useState('')
   const [isTyping, setIsTyping] = useState(false)
   const [editing, setEditing] = useState(false)
+  const [currentStep, setCurrentStep] = useState<string | null>(null)
 
   // Conversation state
   const [conversationId, setConversationId] = useState<string | null>(null)
@@ -93,6 +94,7 @@ export default function MissionChatPage() {
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const skipNextSave = useRef(false)
+  const chatWsRef = useRef<WebSocket | null>(null)
   const navigate = useNavigate()
 
   const openSidebar = useCallback(() => setSidebarOpen(true), [])
@@ -120,10 +122,12 @@ export default function MissionChatPage() {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
 
-  // Cleanup save timer on unmount
+  // Cleanup save timer and chat WebSocket on unmount
   useEffect(() => {
     return () => {
       if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current)
+      chatWsRef.current?.close()
+      chatWsRef.current = null
     }
   }, [])
 
@@ -179,6 +183,7 @@ export default function MissionChatPage() {
     setMessages((prev) => [...prev, userMsg])
     setInput('')
     setIsTyping(true)
+    setCurrentStep(null)
 
     // Auto-create conversation if none active
     if (!conversationId) {
@@ -189,30 +194,106 @@ export default function MissionChatPage() {
 
     try {
       const allMessages = [...messages, userMsg]
-      const response = await chatMission(userMsg.content, messagesToApi(allMessages), getLanguage())
+      const history = messagesToApi(allMessages).slice(0, -1).map((m) => ({
+        role: m.role,
+        content: m.content,
+      }))
 
-      const assistantMsg: Message = {
-        id: (Date.now() + 1).toString(),
-        role: 'assistant',
-        content: response.reply,
-      }
+      const ws = new WebSocket(getMissionChatWsUrl())
+      chatWsRef.current = ws
 
-      if (response.mission_card) {
-        assistantMsg.missionCard = {
-          region: response.mission_card.region,
-          crops: response.mission_card.crops,
-          season: response.mission_card.season,
-          focusAreas: response.mission_card.focus_areas,
-          scaleEstimate: response.mission_card.scale_estimate || undefined,
+      await new Promise<void>((resolve, reject) => {
+        let handled = false
+
+        ws.onopen = () => {
+          ws.send(JSON.stringify({
+            message: userMsg.content,
+            language: getLanguage() || undefined,
+            conversation_history: history,
+          }))
         }
-        assistantMsg.actions = [
-          { label: 'Dispatch Agents \u2192', variant: 'primary' },
-          { label: 'Edit details', variant: 'secondary' },
-        ]
-        setEditing(false)
-      }
 
-      setMessages((prev) => [...prev, assistantMsg])
+        ws.onmessage = (event) => {
+          let data: Record<string, unknown>
+          try {
+            data = JSON.parse(event.data)
+          } catch {
+            return
+          }
+
+          if (data.type === 'status') {
+            setCurrentStep(data.step as string)
+          } else if (data.type === 'done') {
+            handled = true
+            const reply = data.reply as string
+            const card = data.mission_card as {
+              region: string
+              crops: string[]
+              season: string
+              focus_areas: string[]
+              scale_estimate?: string
+            } | null
+
+            const assistantMsg: Message = {
+              id: (Date.now() + 1).toString(),
+              role: 'assistant',
+              content: reply,
+            }
+
+            if (card) {
+              assistantMsg.missionCard = {
+                region: card.region,
+                crops: card.crops,
+                season: card.season,
+                focusAreas: card.focus_areas,
+                scaleEstimate: card.scale_estimate || undefined,
+              }
+              assistantMsg.actions = [
+                { label: 'Dispatch Agents \u2192', variant: 'primary' },
+                { label: 'Edit details', variant: 'secondary' },
+              ]
+              setEditing(false)
+            }
+
+            setMessages((prev) => [...prev, assistantMsg])
+            ws.close()
+            resolve()
+          } else if (data.type === 'error') {
+            handled = true
+            const message = (data.message as string) || 'Unknown error'
+            setMessages((prev) => [
+              ...prev,
+              {
+                id: (Date.now() + 1).toString(),
+                role: 'assistant',
+                content: `I couldn't process that request. ${message}`,
+              },
+            ])
+            ws.close()
+            resolve()
+          }
+        }
+
+        ws.onerror = () => {
+          handled = true
+          reject(new Error('WebSocket connection failed'))
+        }
+
+        ws.onclose = () => {
+          chatWsRef.current = null
+          if (!handled) {
+            setMessages((prev) => [
+              ...prev,
+              {
+                id: (Date.now() + 1).toString(),
+                role: 'assistant',
+                content: 'Connection lost. Please try again.',
+              },
+            ])
+          }
+          resolve()
+        }
+      })
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Unknown error'
       setMessages((prev) => [
@@ -225,6 +306,7 @@ export default function MissionChatPage() {
       ])
     } finally {
       setIsTyping(false)
+      setCurrentStep(null)
     }
   }
 
@@ -408,11 +490,15 @@ export default function MissionChatPage() {
               <Leaf size={14} className="text-primary" />
             </div>
             <div className="bg-card text-text-muted rounded-xl rounded-bl-sm px-4 py-3 shadow-sm animate-fadeIn">
-              <div className="flex gap-1.5 items-center h-5">
-                <span className="w-2 h-2 bg-primary/40 rounded-full animate-bounceTyping" />
-                <span className="w-2 h-2 bg-primary/40 rounded-full animate-bounceTyping [animation-delay:0.15s]" />
-                <span className="w-2 h-2 bg-primary/40 rounded-full animate-bounceTyping [animation-delay:0.3s]" />
-              </div>
+              <ThinkingBubble
+                step={currentStep}
+                mode="quick"
+                insights={[]}
+                stepLabels={{
+                  planning: 'Planning your mission',
+                  fallback: 'Switching to local model',
+                }}
+              />
             </div>
           </div>
         )}

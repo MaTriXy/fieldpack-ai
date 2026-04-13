@@ -7,7 +7,8 @@ guided by rich Field(description=...) annotations.
 Climate records from Phase A skip LLM — they're converted directly to
 Finding objects in Python.
 
-Concurrency: asyncio.Semaphore caps concurrent LLM calls (default 10).
+Concurrency: asyncio.Semaphore caps concurrent LLM calls (default 5).
+Rate-limited (429) sections retry up to 3 times with 15/30/60s backoff.
 The AdaptiveRateLimiter handles per-model sliding window + backoff.
 """
 
@@ -28,7 +29,9 @@ from app.config import settings
 from app.logger import Step, pipeline_logger as log
 from app.models.online_llm import get_research_llm, invoke_structured
 
-_MAX_CONCURRENT = 10
+_MAX_CONCURRENT = 5
+_MAX_RETRIES = 3
+_RETRY_BACKOFF = [5, 15, 30]  # seconds between retries
 _MODEL_NAME = settings.online_model_research
 
 
@@ -96,35 +99,55 @@ async def _extract_section(
 
         source_ref = f"{section.source_name} — {section.heading}"
 
-        try:
-            with log.timed(Step.AGENT_FARM_EXTRACT, "llm_call") as t:
-                result = await invoke_structured(llm, prompt, ExtractionOutput)
-                t.set(details={
-                    "source": section.source_name,
-                    "heading": section.heading,
-                    "crop": section.crop,
-                    "findings_count": len(result.findings),
-                })
+        for attempt in range(_MAX_RETRIES + 1):
+            try:
+                with log.timed(Step.AGENT_FARM_EXTRACT, "llm_call") as t:
+                    result = await invoke_structured(llm, prompt, ExtractionOutput)
+                    t.set(details={
+                        "source": section.source_name,
+                        "heading": section.heading,
+                        "crop": section.crop,
+                        "findings_count": len(result.findings),
+                        "attempt": attempt + 1,
+                    })
 
-            rate_limiter.on_success(model_name)
+                rate_limiter.on_success(model_name)
 
-            return [
-                finding_extract_to_dataclass(fe, source=source_ref)
-                for fe in result.findings
-            ]
+                return [
+                    finding_extract_to_dataclass(fe, source=source_ref)
+                    for fe in result.findings
+                ]
 
-        except Exception as exc:
-            error_str = str(exc)
-            if "429" in error_str or "rate" in error_str.lower():
-                rate_limiter.on_rate_limit(model_name)
+            except Exception as exc:
+                error_str = str(exc)
+                is_rate_limit = "429" in error_str or "rate" in error_str.lower()
 
-            log.log_step(Step.AGENT_FARM_EXTRACT, "extraction_failed",
-                         level="WARNING", details={
-                             "source": section.source_name,
-                             "heading": section.heading,
-                             "error": error_str[:200],
-                         })
-            return []
+                if is_rate_limit:
+                    rate_limiter.on_rate_limit(model_name)
+
+                if attempt < _MAX_RETRIES and is_rate_limit:
+                    backoff = _RETRY_BACKOFF[attempt]
+                    log.log_step(Step.AGENT_FARM_EXTRACT, "retry_backoff",
+                                 level="INFO", details={
+                                     "source": section.source_name,
+                                     "heading": section.heading,
+                                     "attempt": attempt + 1,
+                                     "backoff_s": backoff,
+                                 })
+                    await asyncio.sleep(backoff)
+                    await rate_limiter.wait(model_name)
+                    continue
+
+                log.log_step(Step.AGENT_FARM_EXTRACT, "extraction_failed",
+                             level="WARNING", details={
+                                 "source": section.source_name,
+                                 "heading": section.heading,
+                                 "error": error_str[:200],
+                                 "attempts": attempt + 1,
+                             })
+                return []
+
+        return []  # unreachable, but satisfies type checker
 
 
 # ------------------------------------------------------------------

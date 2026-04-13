@@ -162,3 +162,13 @@ body {
 @utility animate-heroShimmer {
   animation: heroShimmer 6s ease-in-out infinite;
 }
+
+@keyframes scaleUp {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.02); }
+  100% { transform: scale(1); }
+}
+
+@utility animate-scaleUp {
+  animation: scaleUp 0.3s ease-out;
+}
