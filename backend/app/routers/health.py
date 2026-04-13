@@ -21,6 +21,26 @@ async def health_check():
     Returns Ollama version, whether the configured model exists and is loaded,
     and model details (parameter count, quantization, family, memory usage).
     """
+    if settings.demo_mode:
+        from app.demo_replay import get_demo_pack_info
+        return {
+            "service": "fieldpack-ai",
+            "status": "ok",
+            "demo_mode": True,
+            "ollama": "demo",
+            "ollama_version": "demo",
+            "model": {
+                "name": "fieldpack-assistant-lite",
+                "exists": True,
+                "loaded": True,
+                "parameters": "5.1B",
+                "quantization": "Q4_K_M",
+                "family": "gemma4",
+                "memory_mb": 3200,
+            },
+            "pack": {"loaded": True, **get_demo_pack_info()},
+        }
+
     base = settings.ollama_base_url
     headers = _ollama_headers()
     result = {

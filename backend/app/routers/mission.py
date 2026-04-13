@@ -4,6 +4,13 @@ import logging
 from fastapi import APIRouter, HTTPException, WebSocket, WebSocketDisconnect
 from pydantic import BaseModel, Field
 
+from app.config import settings
+from app.demo_replay import (
+    replay_mission_chat_http,
+    replay_mission_chat_ws,
+    replay_mission_pipeline_ws,
+)
+
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/mission", tags=["mission"])
@@ -138,6 +145,10 @@ def _build_mission_chat_prompt(
 @router.post("/chat", response_model=MissionChatResponse)
 async def mission_chat(req: MissionChatRequest):
     """Parse a mission description via LLM (Google AI Studio with Ollama fallback)."""
+    if settings.demo_mode:
+        result = await replay_mission_chat_http(req.message)
+        return MissionChatResponse(**result)
+
     prompt = _build_mission_chat_prompt(req.message, req.conversation_history, req.language)
 
     # Try Google AI Studio first (online planner)
@@ -194,8 +205,6 @@ async def _try_ollama_planner(prompt: str) -> _MissionChatLLMOutput | None:
 
 @router.websocket("/ws")
 async def mission_ws(websocket: WebSocket):
-    from app.agent_farm.graph import run_agent_farm_stream
-
     await websocket.accept()
     try:
         data = await websocket.receive_text()
@@ -218,6 +227,16 @@ async def mission_ws(websocket: WebSocket):
         logger.info(
             "mission_ws: starting pipeline region=%r crops=%r", region, crops
         )
+
+        if settings.demo_mode:
+            try:
+                await replay_mission_pipeline_ws(websocket, crops, region)
+            except Exception as exc:
+                logger.exception("Demo mission pipeline error: %s", exc)
+                await websocket.send_json({"type": "error", "message": str(exc)})
+            return
+
+        from app.agent_farm.graph import run_agent_farm_stream
 
         try:
             async for event in run_agent_farm_stream(
@@ -255,6 +274,11 @@ async def mission_chat_stream_ws(websocket: WebSocket):
             return
 
         message = msg.get("message", "")
+
+        if settings.demo_mode:
+            await replay_mission_chat_ws(websocket, message)
+            return
+
         history = [
             MissionChatMessage(role=m["role"], content=m["content"])
             for m in msg.get("conversation_history", [])

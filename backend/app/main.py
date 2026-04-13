@@ -42,7 +42,10 @@ async def lifespan(app: FastAPI):
     # Startup: ensure directories exist, then auto-load first available pack
     settings.packs_path
     settings.uploads_path
-    _auto_load_first_pack()
+    if settings.demo_mode:
+        log.log_step(Step.PACK_LOAD, "demo_mode", details={"demo": True})
+    else:
+        _auto_load_first_pack()
     yield
     # Shutdown: cleanup if needed
 

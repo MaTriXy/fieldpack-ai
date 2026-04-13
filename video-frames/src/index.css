@@ -1,0 +1,133 @@
+@import "tailwindcss";
+
+@theme {
+  /* FieldPack brand — dark cinematic variant */
+  --color-bg: #0F1A14;
+  --color-bg-card: #162920;
+  --color-bg-card-hover: #1D3A2E;
+  --color-cream: #F5F1EB;
+  --color-cream-muted: #C8C2B8;
+  --color-gold: #D4A017;
+  --color-gold-light: #E8C55A;
+  --color-green: #2D6A4F;
+  --color-green-light: #52B788;
+  --color-green-glow: #40916C;
+  --color-red: #C44536;
+  --color-red-light: #D4645A;
+
+  --font-heading: 'Plus Jakarta Sans', system-ui, sans-serif;
+  --font-body: 'Inter', system-ui, sans-serif;
+}
+
+/* Base */
+html, body, #root {
+  margin: 0;
+  padding: 0;
+  width: 1152px;
+  height: 1080px;
+  overflow: hidden;
+  background: var(--color-bg);
+  color: var(--color-cream);
+  font-family: var(--font-body);
+}
+
+/* ═══ Shared Animations ═══ */
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeInOnly {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(30px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes countPulse {
+  0%   { transform: scale(1); }
+  50%  { transform: scale(1.03); }
+  100% { transform: scale(1); }
+}
+
+@keyframes glowPulse {
+  0%   { box-shadow: 0 0 20px rgba(212, 160, 23, 0); }
+  50%  { box-shadow: 0 0 30px rgba(212, 160, 23, 0.3); }
+  100% { box-shadow: 0 0 20px rgba(212, 160, 23, 0); }
+}
+
+@keyframes dotPulse {
+  0%   { opacity: 1;    box-shadow: 0 0 4px rgba(212, 160, 23, 0.5); }
+  50%  { opacity: 0.35; box-shadow: 0 0 10px rgba(212, 160, 23, 0.9); }
+  100% { opacity: 1;    box-shadow: 0 0 4px rgba(212, 160, 23, 0.5); }
+}
+
+@keyframes barFill {
+  from { width: 0%; }
+}
+
+@keyframes textReveal {
+  from { opacity: 0; transform: translateX(-10px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes popIn {
+  0%   { opacity: 0; transform: scale(0.8); }
+  70%  { transform: scale(1.05); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+@keyframes drawLine {
+  from { stroke-dashoffset: 100; }
+  to   { stroke-dashoffset: 0; }
+}
+
+@keyframes checkMark {
+  from { opacity: 0; transform: scale(0); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+/* Utility classes for staggered animations */
+.animate-in {
+  animation: fadeIn 0.8s ease-out both;
+}
+
+.animate-slide-up {
+  animation: slideUp 0.8s ease-out both;
+}
+
+.animate-pop {
+  animation: popIn 0.5s ease-out both;
+}
+
+.animate-fade {
+  animation: fadeInOnly 0.6s ease-out both;
+}
+
+/* Stagger delays */
+.delay-0 { animation-delay: 0s; }
+.delay-1 { animation-delay: 0.3s; }
+.delay-2 { animation-delay: 0.6s; }
+.delay-3 { animation-delay: 0.9s; }
+.delay-4 { animation-delay: 1.2s; }
+.delay-5 { animation-delay: 1.5s; }
+.delay-6 { animation-delay: 1.8s; }
+.delay-7 { animation-delay: 2.1s; }
+.delay-8 { animation-delay: 2.4s; }
+.delay-9 { animation-delay: 2.7s; }
+.delay-10 { animation-delay: 3.0s; }
+
+/* Divider line */
+.divider {
+  height: 1px;
+  background: linear-gradient(
+    to right,
+    transparent,
+    var(--color-green-light),
+    transparent
+  );
+}

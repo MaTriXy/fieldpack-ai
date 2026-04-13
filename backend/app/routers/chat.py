@@ -9,6 +9,7 @@ from pydantic import BaseModel, Field
 
 from app.agents.field_assistant import run_field_assistant, run_field_assistant_stream
 from app.config import settings
+from app.demo_replay import replay_field_chat_http, replay_field_chat_ws
 from app.knowledge_pack.loader import get_active_pack
 from app.tools.observation_log import log_observation
 
@@ -66,6 +67,10 @@ def _validate_image_path(image_path: str | None) -> str | None:
 @router.post("/", response_model=ChatResponse)
 async def chat(msg: ChatMessage):
     """Send a message to the field assistant (HTTP, non-streaming)."""
+    if settings.demo_mode:
+        result = await replay_field_chat_http(msg.message, msg.image_path)
+        return ChatResponse(**result)
+
     pack = get_active_pack()
     if pack is None:
         raise HTTPException(
@@ -239,6 +244,19 @@ async def chat_ws(websocket: WebSocket):
                     "type": "error",
                     "message": "Empty or oversized message",
                 })
+                continue
+
+            # Demo mode: replay from script.json, no LLM/ChromaDB needed
+            if settings.demo_mode:
+                try:
+                    await replay_field_chat_ws(
+                        websocket, message,
+                        image_path=msg.get("image_path"),
+                        msg=msg,
+                    )
+                except Exception as e:
+                    _logger.exception("Demo replay error")
+                    await websocket.send_json({"type": "error", "message": str(e)})
                 continue
 
             pack = get_active_pack()

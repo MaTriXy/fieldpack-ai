@@ -4,6 +4,7 @@ from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel
 
 from app.config import settings
+from app.demo_replay import get_demo_pack_info
 from app.knowledge_pack.loader import get_active_pack, load_pack as loader_load_pack, unload_pack
 from app.logger import Step, pipeline_logger as log
 from app.tools.fts_search import fts_search
@@ -36,6 +37,19 @@ class PackLoadResponse(BaseModel):
 @router.get("/", response_model=list[PackInfo])
 async def list_packs():
     """List all available Knowledge Packs."""
+    if settings.demo_mode:
+        info = get_demo_pack_info()
+        return [PackInfo(
+            pack_id=info["pack_id"],
+            name=info["name"],
+            region=info["region"],
+            crops=info["crops"],
+            diseases_count=15,
+            knowledge_entries=info["knowledge_entries"],
+            sources=info["sources"],
+            loaded=True,
+        )]
+
     packs = []
     packs_dir = settings.packs_path
     active = get_active_pack()
@@ -68,6 +82,17 @@ async def list_packs():
 @router.post("/load/{pack_id}", response_model=PackLoadResponse)
 async def load_pack_endpoint(pack_id: str):
     """Load a Knowledge Pack for offline use."""
+    if settings.demo_mode:
+        info = get_demo_pack_info()
+        return PackLoadResponse(
+            status="loaded",
+            pack_id=info["pack_id"],
+            name=info["name"],
+            region=info["region"],
+            crops=info["crops"],
+            diseases_count=15,
+        )
+
     pack_path = (settings.packs_path / pack_id).resolve()
     packs_root = settings.packs_path.resolve()
     if not pack_path.is_relative_to(packs_root):
@@ -425,8 +450,11 @@ async def browse_pack(
     Chroma for practices) is used; otherwise a plain structured browse is
     returned.
     """
-    if get_active_pack() is None:
+    if not settings.demo_mode and get_active_pack() is None:
         raise HTTPException(status_code=503, detail="No Knowledge Pack is loaded. Load a pack first.")
+
+    if settings.demo_mode:
+        return {"count": 0, "items": []}
 
     type_lower = category_filter.lower()
     if type_lower not in _VALID_TYPES:

@@ -38,6 +38,10 @@ class Settings(BaseSettings):
     log_level: str = "DEBUG"
     log_buffer_size: int = 500  # In-memory ring buffer entries
 
+    # Demo mode — serves pre-computed responses for video recording
+    demo_mode: bool = False  # Override with DEMO_MODE=true in .env
+    demo_script_path: Path = Path("../demo/script.json")
+
     # Server
     host: str = "0.0.0.0"
     port: int = 8000
