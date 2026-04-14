@@ -121,6 +121,31 @@ html, body, #root {
 .delay-9 { animation-delay: 2.7s; }
 .delay-10 { animation-delay: 3.0s; }
 
+/* Slow zoom for background photos — cinematic Ken Burns effect */
+@keyframes kenBurns {
+  0%   { transform: scale(1); }
+  100% { transform: scale(1.08); }
+}
+
+.photo-bg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  animation: kenBurns 12s ease-in-out both;
+}
+
+/* Animated dashed route line — dashes travel along the path */
+@keyframes routeTravel {
+  from { stroke-dashoffset: 0; }
+  to   { stroke-dashoffset: -44; }
+}
+
+.animate-route {
+  animation: routeTravel 2s linear infinite;
+}
+
 /* Divider line */
 .divider {
   height: 1px;

@@ -20,9 +20,23 @@ export default function MapFrame() {
   const CAS_Y = 422
 
   return (
-    <div className="w-full h-full flex flex-col items-center justify-center bg-bg gap-10">
+    <div className="w-full h-full flex flex-col items-center justify-center bg-bg gap-6" style={{ position: 'relative', overflow: 'hidden' }}>
 
-      <div className="animate-fade delay-1">
+      {/* Background photo — Casamance landscape with baobab */}
+      <img
+        src="/photos/landscape_casamance.jpg"
+        alt=""
+        aria-hidden="true"
+        className="photo-bg"
+        style={{ objectPosition: 'center 50%' }}
+      />
+      {/* Dark overlay — map SVG needs to stay legible */}
+      <div
+        aria-hidden="true"
+        style={{ position: 'absolute', inset: 0, background: 'rgba(15, 26, 20, 0.82)', pointerEvents: 'none' }}
+      />
+
+      <div className="animate-fade delay-1" style={{ position: 'relative' }}>
         <svg
           viewBox="0 0 400 520"
           width="480"
@@ -115,7 +129,7 @@ export default function MapFrame() {
             y="334"
             textAnchor="middle"
             fontFamily="Inter, system-ui, sans-serif"
-            fontSize="10"
+            fontSize="13"
             fontWeight="600"
             fill="#2D6A4F"
             letterSpacing="2.5"
@@ -212,9 +226,10 @@ export default function MapFrame() {
             fill="none"
             stroke="#D4A017"
             strokeWidth="2.5"
-            strokeDasharray="8 6"
+            strokeDasharray="22 22"
             strokeLinecap="round"
-            className="animate-fade delay-3"
+            className="delay-3"
+            style={{ animation: 'fadeInOnly 0.6s ease-out 0.9s both, routeTravel 2s linear 1.5s infinite' }}
           />
 
           {/* ── 450 km pill label ── */}
@@ -266,7 +281,7 @@ export default function MapFrame() {
       </div>
 
       {/* ── Warning labels ─────────────────────────────────────────────── */}
-      <div className="flex flex-col items-center gap-4">
+      <div className="flex flex-col items-center gap-4" style={{ position: 'relative' }}>
 
         <div
           className="flex items-center gap-3 px-6 py-3 rounded-xl animate-slide-up delay-5"

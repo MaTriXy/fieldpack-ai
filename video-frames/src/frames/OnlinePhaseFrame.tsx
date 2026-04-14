@@ -116,8 +116,20 @@ function QueuedAgentRow({ icon, name, animateClass }: QueuedAgentRowProps) {
 
 export default function OnlinePhaseFrame() {
   return (
-    <div className="w-full h-full flex items-center justify-center bg-bg px-20">
-      <div className="w-full max-w-[680px]">
+    <div className="w-full h-full flex items-center justify-center bg-bg px-20" style={{ position: 'relative', overflow: 'hidden' }}>
+      {/* Background photo -- woman planting in field */}
+      <img
+        src="/photos/persona_planting.jpg"
+        alt=""
+        aria-hidden="true"
+        className="photo-bg"
+      />
+      {/* Dark overlay -- heavy, data needs to stay dominant */}
+      <div
+        aria-hidden="true"
+        style={{ position: 'absolute', inset: 0, background: 'rgba(15, 26, 20, 0.88)', pointerEvents: 'none' }}
+      />
+      <div className="w-full max-w-[680px]" style={{ position: 'relative' }}>
 
         {/* Header */}
         <div className="animate-in delay-0">

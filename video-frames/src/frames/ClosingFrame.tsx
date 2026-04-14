@@ -7,24 +7,20 @@
 
 export default function ClosingFrame() {
   return (
-    <div className="w-full h-full flex items-center justify-center bg-bg relative">
+    <div className="w-full h-full flex items-center justify-center bg-bg relative" style={{ overflow: 'hidden' }}>
 
-      {/* Deep cinematic radial glow — green warmth at center */}
-      <div
-        className="absolute inset-0"
-        style={{
-          background: 'radial-gradient(ellipse at center, #162920 0%, #0F1A14 65%)',
-          pointerEvents: 'none',
-        }}
+      {/* Background photo — bookend with title frame */}
+      <img
+        src="/photos/community_children.jpg"
+        alt=""
+        aria-hidden="true"
+        className="photo-bg"
+        style={{ objectPosition: 'center 30%' }}
       />
-
-      {/* Strong vignette — darkens all four edges */}
+      {/* Dark overlay — heavier than title for gravitas */}
       <div
-        className="absolute inset-0"
-        style={{
-          background: 'radial-gradient(ellipse at center, transparent 30%, rgba(0,0,0,0.5) 100%)',
-          pointerEvents: 'none',
-        }}
+        aria-hidden="true"
+        style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse at center, rgba(15,26,20,0.72) 0%, rgba(15,26,20,0.90) 100%)', pointerEvents: 'none' }}
       />
 
       {/* Content stack — true vertical + horizontal center */}
@@ -66,14 +62,14 @@ export default function ClosingFrame() {
         >
           <p
             className="font-body text-cream-muted"
-            style={{ fontSize: '34px', fontWeight: 400, fontStyle: 'italic', margin: 0 }}
+            style={{ fontSize: '38px', fontWeight: 400, fontStyle: 'italic', margin: 0 }}
           >
             The people who need AI most
           </p>
           <p
             className="font-body"
             style={{
-              fontSize: '34px',
+              fontSize: '38px',
               fontWeight: 400,
               fontStyle: 'italic',
               color: '#D4A017',

@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from 'react'
-import { Check } from 'lucide-react'
 
 /**
  * SCENE 9 (1:10-1:30): Knowledge pack compilation dashboard
@@ -94,85 +93,24 @@ function ProgressBar({ label, fillPercent, target, delayClass, countDelay }: Bar
   )
 }
 
-// ---- Checklist item variants ----
-
-interface ChecklistItemProps {
-  state: 'done' | 'active' | 'pending'
-  label: string
-  delayClass: string
-}
-
-function ChecklistItem({ state, label, delayClass }: ChecklistItemProps) {
-  let indicator: React.ReactNode
-  let textClass: string
-
-  if (state === 'done') {
-    indicator = (
-      <div
-        className="w-6 h-6 rounded-full flex items-center justify-center shrink-0"
-        style={{ background: 'var(--color-green-light)' }}
-      >
-        <Check className="w-3.5 h-3.5" style={{ color: '#fff' }} />
-      </div>
-    )
-    textClass = 'font-body text-cream font-semibold'
-  } else if (state === 'active') {
-    indicator = (
-      <div
-        className="w-6 h-6 rounded-full shrink-0"
-        style={{
-          background: 'var(--color-gold)',
-          animation: 'glowPulse 2s infinite',
-        }}
-      />
-    )
-    textClass = 'font-body text-gold font-bold'
-  } else {
-    indicator = (
-      <div
-        className="w-6 h-6 rounded-full shrink-0"
-        style={{ border: '2px solid rgba(200, 194, 184, 0.30)' }}
-      />
-    )
-    textClass = 'font-body font-normal'
-  }
-
-  if (state === 'active') {
-    return (
-      <div
-        className={`flex items-center gap-3 animate-in ${delayClass} rounded-lg px-3 py-3`}
-        style={{
-          background: 'rgba(212, 160, 23, 0.08)',
-          borderLeft: '3px solid var(--color-gold)',
-        }}
-      >
-        {indicator}
-        <span className={textClass} style={{ fontSize: '18px' }}>{label}</span>
-      </div>
-    )
-  }
-
-  return (
-    <div
-      className={`flex items-center gap-3 animate-in ${delayClass} px-3 py-1`}
-    >
-      {indicator}
-      <span
-        className={textClass}
-        style={state === 'pending' ? { fontSize: '18px', color: 'rgba(200, 194, 184, 0.65)' } : { fontSize: '18px' }}
-      >
-        {label}
-      </span>
-    </div>
-  )
-}
-
 // ---- Main frame ----
 
 export default function ProgressFrame() {
   return (
-    <div className="w-full h-full flex items-center justify-center bg-bg px-20">
-      <div className="w-full max-w-[680px]">
+    <div className="w-full h-full flex items-center justify-center bg-bg px-20" style={{ position: 'relative', overflow: 'hidden' }}>
+      {/* Background photo -- woman planting in Sierra Leone */}
+      <img
+        src="/photos/persona_planting.jpg"
+        alt=""
+        aria-hidden="true"
+        className="photo-bg"
+      />
+      {/* Dark overlay -- heavy, progress data needs to dominate */}
+      <div
+        aria-hidden="true"
+        style={{ position: 'absolute', inset: 0, background: 'rgba(15, 26, 20, 0.85)', pointerEvents: 'none' }}
+      />
+      <div className="w-full max-w-[680px]" style={{ position: 'relative' }}>
 
         {/* Header — clear anchor, text-base with strong letter-spacing */}
         <div className="animate-in delay-0 mb-6">
@@ -241,23 +179,6 @@ export default function ProgressFrame() {
           </div>
         </div>
 
-        {/* Checklist card */}
-        <div
-          className="animate-in delay-5 rounded-xl mt-6"
-          style={{
-            background: 'var(--color-bg-card)',
-            border: '1px solid rgba(45, 106, 79, 0.30)',
-            padding: '1.25rem 1rem',
-          }}
-        >
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-            <ChecklistItem state="done"    label="Source Gathering"      delayClass="delay-6"  />
-            <ChecklistItem state="done"    label="Knowledge Extraction"  delayClass="delay-7"  />
-            <ChecklistItem state="active"  label="Compilation..."        delayClass="delay-8"  />
-            <ChecklistItem state="pending" label="Chunk Generation"      delayClass="delay-9"  />
-            <ChecklistItem state="pending" label="Image Download"        delayClass="delay-10" />
-          </div>
-        </div>
 
       </div>
     </div>

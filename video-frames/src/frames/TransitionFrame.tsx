@@ -16,14 +16,28 @@
  */
 export default function TransitionFrame() {
   return (
-    <div className="w-full h-full flex flex-col items-center bg-bg px-20 pt-[15%]">
+    <div className="w-full h-full flex flex-col items-center bg-bg px-20 pt-[15%]" style={{ position: 'relative', overflow: 'hidden' }}>
+
+      {/* Background photo — Casamance path with baobab */}
+      <img
+        src="/photos/landscape_casamance.jpg"
+        alt=""
+        aria-hidden="true"
+        className="photo-bg"
+        style={{ objectPosition: 'center 60%' }}
+      />
+      {/* Dark overlay — heavy, the NO WIFI text needs to punch through */}
+      <div
+        aria-hidden="true"
+        style={{ position: 'absolute', inset: 0, background: 'rgba(15, 26, 20, 0.78)', pointerEvents: 'none' }}
+      />
 
       {/* ── Ghost map — Dakar to Casamance journey ─────────────────────
           Opacity 0.28 so it is felt, not read. The map is atmosphere,
           not information. It recedes behind the words.
           Scaled from 400x260 viewBox to 320x200 render size.
       ─────────────────────────────────────────────────────────────────── */}
-      <div className="animate-fade delay-0 mb-12" style={{ opacity: 0.28 }}>
+      <div className="animate-fade delay-0 mb-12" style={{ opacity: 0.28, position: 'relative' }}>
         <svg
           viewBox="0 0 400 260"
           width="320"
@@ -164,7 +178,7 @@ export default function TransitionFrame() {
           108px + letterSpacing 0.10em + mb-3 = wall of words, not a list.
           Double-space between NO and the word creates visual breath.
       ─────────────────────────────────────────────────────────────────── */}
-      <div className="flex flex-col items-center">
+      <div className="flex flex-col items-center" style={{ position: 'relative' }}>
 
         <h2
           className="animate-in delay-3 font-heading font-extrabold text-cream leading-none"
@@ -197,6 +211,7 @@ export default function TransitionFrame() {
       <div
         className="animate-fade delay-8 mt-12 mb-6"
         style={{
+          position: 'relative',
           width: '320px',
           height: '1px',
           background: 'rgba(200, 194, 184, 0.20)',
@@ -209,7 +224,7 @@ export default function TransitionFrame() {
       ─────────────────────────────────────────────────────────────────── */}
       <p
         className="animate-fade delay-9 font-body italic text-2xl"
-        style={{ color: 'rgba(212, 160, 23, 0.50)' }}
+        style={{ position: 'relative', color: 'rgba(212, 160, 23, 0.50)' }}
       >
         Just her and her Knowledge Pack.
       </p>

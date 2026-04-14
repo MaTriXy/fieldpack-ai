@@ -32,8 +32,22 @@ const SOURCES: SourceEntry[] = [
 
 export default function GroundedFrame() {
   return (
-    <div className="w-full h-full flex items-center justify-center bg-bg px-16">
-      <div className="w-full max-w-[640px]">
+    <div className="w-full h-full flex items-center justify-center bg-bg px-16" style={{ position: 'relative', overflow: 'hidden' }}>
+
+      {/* Background photo — mother harvesting, emotional warmth */}
+      <img
+        src="/photos/persona_mother.jpg"
+        alt=""
+        aria-hidden="true"
+        className="photo-bg"
+        style={{ objectPosition: 'center 35%' }}
+      />
+      {/* Dark overlay — sources card and text need high readability */}
+      <div
+        aria-hidden="true"
+        style={{ position: 'absolute', inset: 0, background: 'rgba(15, 26, 20, 0.80)', pointerEvents: 'none' }}
+      />
+      <div className="w-full max-w-[640px]" style={{ position: 'relative' }}>
 
         {/* Title */}
         <h1
@@ -93,13 +107,13 @@ export default function GroundedFrame() {
         >
           <p
             className="text-cream-muted"
-            style={{ fontFamily: 'monospace', fontSize: '13px', lineHeight: 1.6 }}
+            style={{ fontFamily: 'monospace', fontSize: '16px', lineHeight: 1.6 }}
           >
             <span style={{ color: 'rgba(82,183,136,0.8)' }}>query:</span> cassava mosaic disease treatment
           </p>
           <p
             className="text-cream-muted"
-            style={{ fontFamily: 'monospace', fontSize: '13px', lineHeight: 1.6 }}
+            style={{ fontFamily: 'monospace', fontSize: '16px', lineHeight: 1.6 }}
           >
             <span style={{ color: 'rgba(82,183,136,0.8)' }}>matches:</span> 3 chunks retrieved &nbsp;&middot;&nbsp; relevance <span style={{ color: '#F5F1EB' }}>0.94</span> / <span style={{ color: '#F5F1EB' }}>0.89</span> / <span style={{ color: '#F5F1EB' }}>0.82</span>
           </p>

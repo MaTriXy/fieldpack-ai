@@ -4,13 +4,21 @@
  */
 export default function TitleFrame() {
   return (
-    <div className="w-full h-full relative flex items-center justify-center">
-      {/* Cinematic radial background */}
+    <div className="w-full h-full relative flex items-center justify-center overflow-hidden">
+      {/* Background photo — laughing children, golden light */}
+      <img
+        src="/photos/community_children.jpg"
+        alt=""
+        aria-hidden="true"
+        className="photo-bg"
+        style={{ objectPosition: 'center 30%' }}
+      />
+      {/* Dark overlay — heavy so title text dominates */}
       <div
         style={{
           position: 'absolute',
           inset: 0,
-          background: 'radial-gradient(ellipse at center, #1A2E20 0%, #0F1A14 100%)',
+          background: 'radial-gradient(ellipse at center, rgba(15,26,20,0.65) 0%, rgba(15,26,20,0.85) 100%)',
         }}
       />
 
@@ -21,7 +29,7 @@ export default function TitleFrame() {
       >
         {/* Main title */}
         <h1
-          className="font-heading text-cream animate-in delay-0"
+          className="font-heading text-white animate-in delay-0"
           style={{
             fontSize: '96px',
             fontWeight: 800,

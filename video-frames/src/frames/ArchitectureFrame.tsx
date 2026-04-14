@@ -8,8 +8,20 @@ import { Cloud, Package, Smartphone, ChevronDown } from 'lucide-react'
  */
 export default function ArchitectureFrame() {
   return (
-    <div className="w-full h-full flex items-center justify-center bg-bg px-16">
-      <div className="w-full max-w-[620px] flex flex-col items-center">
+    <div className="w-full h-full flex items-center justify-center bg-bg px-16" style={{ position: 'relative', overflow: 'hidden' }}>
+      {/* Background photo — subtle warmth to match other frames */}
+      <img
+        src="/photos/persona_planting.jpg"
+        alt=""
+        aria-hidden="true"
+        className="photo-bg"
+      />
+      {/* Dark overlay — very heavy, architecture diagram needs max clarity */}
+      <div
+        aria-hidden="true"
+        style={{ position: 'absolute', inset: 0, background: 'rgba(15, 26, 20, 0.90)', pointerEvents: 'none' }}
+      />
+      <div className="w-full max-w-[620px] flex flex-col items-center" style={{ position: 'relative' }}>
 
         {/* Phase 1 label — gold to signal online/cloud */}
         <p

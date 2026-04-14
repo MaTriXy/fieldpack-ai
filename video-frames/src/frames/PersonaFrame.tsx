@@ -15,22 +15,17 @@ export default function PersonaFrame() {
   return (
     <div className="w-full h-full flex items-center justify-center bg-bg px-16" style={{ position: 'relative', overflow: 'hidden' }}>
 
-      {/* Warm atmospheric background layer — simulates farmland photo warmth.
-          Replace with actual Senegal farmland stock photo for final video.
-          Stock photo: replace src with actual Senegal farmland image */}
+      {/* Background photo — woman harvesting cassava in West Africa */}
+      <img
+        src="/photos/persona_smiling.jpg"
+        alt=""
+        aria-hidden="true"
+        className="photo-bg"
+      />
+      {/* Dark overlay for text readability */}
       <div
         aria-hidden="true"
-        style={{
-          position: 'absolute',
-          inset: 0,
-          // Primary warm earth tone pool — simulates late-afternoon field light
-          background: [
-            'radial-gradient(ellipse at 30% 60%, rgba(139,90,43,0.08) 0%, transparent 70%)',
-            'radial-gradient(ellipse at 75% 25%, rgba(101,130,60,0.06) 0%, transparent 60%)',
-            'radial-gradient(ellipse at 55% 85%, rgba(160,110,50,0.05) 0%, transparent 55%)',
-          ].join(', '),
-          pointerEvents: 'none',
-        }}
+        style={{ position: 'absolute', inset: 0, background: 'rgba(15, 26, 20, 0.70)', pointerEvents: 'none' }}
       />
 
       <div className="w-full max-w-[680px]" style={{ position: 'relative' }}>
@@ -46,17 +41,17 @@ export default function PersonaFrame() {
         <div className="bg-bg-card rounded-2xl border border-green/30 border-l-[3px] border-l-gold overflow-hidden">
           {/* Header */}
           <div className="px-10 pt-10 pb-6 border-b border-green/20 flex items-center gap-6 animate-in delay-1">
-            {/* Initials avatar — personal, not generic */}
+            {/* Photo avatar — cropped from background photo */}
             <div
-              className="w-20 h-20 rounded-full shrink-0 flex items-center justify-center"
-              style={{
-                background: 'rgba(212, 160, 23, 0.15)',
-                border: '2px solid rgba(212, 160, 23, 0.4)',
-              }}
+              className="w-20 h-20 rounded-full shrink-0 overflow-hidden"
+              style={{ border: '2px solid rgba(212, 160, 23, 0.4)' }}
             >
-              <span className="font-heading font-bold text-2xl text-gold select-none">
-                AD
-              </span>
+              <img
+                src="/photos/persona_smiling.jpg"
+                alt="Amina Diallo"
+                className="w-full h-full object-cover"
+                style={{ objectPosition: 'center 20%' }}
+              />
             </div>
             <div>
               <h2 className="font-heading font-bold text-5xl text-cream tracking-tight">

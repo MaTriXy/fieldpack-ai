@@ -115,7 +115,7 @@ function StatBlock({ config, label, animateClass }: StatBlockProps) {
       <p
         className="font-body text-cream-muted"
         style={{
-          fontSize: '24px',
+          fontSize: '28px',
           marginTop: '16px',
           whiteSpace: 'nowrap',
           letterSpacing: '0.01em',
@@ -131,17 +131,32 @@ export default function StatsFrame() {
   return (
     // Outer shell: full canvas, true vertical + horizontal center
     <div
-      className="bg-bg"
       style={{
         width: '100%',
         height: '100%',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
+        position: 'relative',
+        overflow: 'hidden',
+        background: 'var(--color-bg)',
       }}
     >
+      {/* Background photo — Senegal marketplace, conveys digital divide */}
+      <img
+        src="/photos/community_marketplace.jpg"
+        alt=""
+        aria-hidden="true"
+        className="photo-bg"
+        style={{ objectPosition: 'center 40%' }}
+      />
+      {/* Dark overlay — stats need high contrast */}
+      <div
+        aria-hidden="true"
+        style={{ position: 'absolute', inset: 0, background: 'rgba(15, 26, 20, 0.75)', pointerEvents: 'none' }}
+      />
       {/* Content block: generous max-width so numbers have room to breathe */}
-      <div style={{ width: '100%', maxWidth: '800px', paddingLeft: '80px', paddingRight: '80px', margin: '0 auto' }}>
+      <div style={{ position: 'relative', width: '100%', maxWidth: '800px', paddingLeft: '80px', paddingRight: '80px', margin: '0 auto' }}>
 
         {/* Stat 1: 800M */}
         <StatBlock

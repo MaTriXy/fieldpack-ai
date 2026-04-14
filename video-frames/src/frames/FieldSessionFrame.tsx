@@ -8,9 +8,22 @@ import { Zap } from 'lucide-react'
 
 export default function FieldSessionFrame() {
   return (
-    <div className="w-full h-full flex items-center justify-center bg-bg px-20">
+    <div className="w-full h-full flex items-center justify-center bg-bg px-20" style={{ position: 'relative', overflow: 'hidden' }}>
+      {/* Background photo — Casamance landscape */}
+      <img
+        src="/photos/landscape_casamance.jpg"
+        alt=""
+        aria-hidden="true"
+        className="photo-bg"
+        style={{ objectPosition: 'center 60%' }}
+      />
+      {/* Dark overlay — heavy, dashboard data needs to stay readable */}
+      <div
+        aria-hidden="true"
+        style={{ position: 'absolute', inset: 0, background: 'rgba(15, 26, 20, 0.88)', pointerEvents: 'none' }}
+      />
       {/* marginTop nudges content below true center for optical centering */}
-      <div className="w-full max-w-[640px]" style={{ marginTop: '20px' }}>
+      <div className="w-full max-w-[640px]" style={{ marginTop: '20px', position: 'relative' }}>
 
         {/* Header */}
         <div className="animate-in delay-0">
