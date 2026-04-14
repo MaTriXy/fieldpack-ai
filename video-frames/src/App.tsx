@@ -11,6 +11,7 @@ import GroundedFrame from './frames/GroundedFrame'
 import PlatformFrame from './frames/PlatformFrame'
 import TitleFrame from './frames/TitleFrame'
 import ClosingFrame from './frames/ClosingFrame'
+import PipelineFrame from './frames/PipelineFrame'
 
 const FRAMES: Record<string, React.FC> = {
   persona: PersonaFrame,
@@ -25,6 +26,7 @@ const FRAMES: Record<string, React.FC> = {
   platform: PlatformFrame,
   title: TitleFrame,
   closing: ClosingFrame,
+  pipeline: PipelineFrame,
 }
 
 // Frame ordering for auto-play mode
@@ -38,6 +40,7 @@ const FRAME_ORDER = [
   'progress',
   'transition',
   'field-session',
+  'pipeline',
   'grounded',
   'platform',
   'closing',

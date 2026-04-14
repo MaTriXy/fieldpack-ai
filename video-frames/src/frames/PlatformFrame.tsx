@@ -8,8 +8,20 @@ import { Wheat, Stethoscope, BookOpen, Binoculars, Building2, ShieldAlert } from
  */
 export default function PlatformFrame() {
   return (
-    <div className="w-full h-full flex items-center justify-center bg-bg px-20">
-      <div className="flex flex-col items-start w-full max-w-[640px]">
+    <div className="w-full h-full flex items-center justify-center bg-bg px-20" style={{ position: 'relative', overflow: 'hidden' }}>
+      {/* Background photo — marketplace, platform = many domains */}
+      <img
+        src="/photos/community_marketplace.jpg"
+        alt=""
+        aria-hidden="true"
+        className="photo-bg"
+      />
+      {/* Dark overlay — very heavy, 6-card grid needs max readability */}
+      <div
+        aria-hidden="true"
+        style={{ position: 'absolute', inset: 0, background: 'rgba(15, 26, 20, 0.88)', pointerEvents: 'none' }}
+      />
+      <div className="flex flex-col items-start w-full max-w-[640px]" style={{ position: 'relative' }}>
 
         {/* Headline */}
         <div className="animate-in delay-0">
