@@ -1,0 +1,15 @@
+{
+  "name": "fieldpack-demo",
+  "version": "1.0.0",
+  "description": "Playwright recording orchestration for FieldPack AI demo video",
+  "scripts": {
+    "record": "npx tsx record.ts",
+    "record:dry": "npx tsx record.ts --dry-run"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.59.1",
+    "playwright": "^1.59.1",
+    "tsx": "^4.21.0",
+    "typescript": "^6.0.2"
+  }
+}

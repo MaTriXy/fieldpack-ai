@@ -1,0 +1,184 @@
+<p align="center">
+  <h1 align="center">FieldPack AI</h1>
+  <p align="center">
+    <strong>Offline expert knowledge for humanitarian field workers</strong>
+  </p>
+  <p align="center">
+    Gemma 4 cloud agents curate mission-specific Knowledge Packs.<br>
+    An edge model serves them without internet.
+  </p>
+  <p align="center">
+    <a href="https://www.kaggle.com/competitions/gemma-4-good-hackathon"><img src="https://img.shields.io/badge/Kaggle-Gemma%204%20Good%20Hackathon-20BEFF?logo=kaggle" alt="Kaggle"></a>
+    <a href="https://ai.google.dev/gemma"><img src="https://img.shields.io/badge/Built%20with-Gemma%204-4285F4?logo=google" alt="Gemma 4"></a>
+    <a href="https://ollama.com"><img src="https://img.shields.io/badge/Powered%20by-Ollama-000000?logo=ollama" alt="Ollama"></a>
+    <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-green" alt="MIT License"></a>
+  </p>
+</p>
+
+---
+
+> *"The people who need AI most are the ones furthest from the cloud."*
+
+**FieldPack AI** is an offline-first AI system for humanitarian field workers. Powerful cloud models (Gemma 4 31B/26B) curate domain-specific knowledge before deployment. A lightweight edge model (Gemma 4 E2B, 5.1B params via Ollama) serves that knowledge in the field — no internet required.
+
+**Demo video:** [YouTube link coming soon]
+
+<p align="center">
+  <img src="frontend/qa-screenshots/01-home.png" alt="Home screen" width="200">
+  &nbsp;
+  <img src="frontend/qa-screenshots/03-mission-chat.png" alt="Mission planning" width="200">
+  &nbsp;
+  <img src="frontend/qa-screenshots/03-field-chat.png" alt="Plant diagnosis — 92% confidence" width="200">
+  &nbsp;
+  <img src="frontend/qa-screenshots/08-agent-progress.png" alt="Live pipeline agents" width="200">
+</p>
+
+## The Problem
+
+3.7 billion people lack reliable internet. Among them are the humanitarian workers, farmers, and health workers who hold communities together. They need expert-level knowledge to do their jobs, but AI requires the cloud, and the cloud requires internet.
+
+Offline AI exists — but a general model without domain knowledge is like a doctor with a degree but no information about the disease in front of them. **The value of offline AI is not the model. It is the knowledge the model carries.**
+
+## How It Works
+
+### Two Phases, One System
+
+![Architecture — Cloud agents curate Knowledge Packs, edge model serves them offline via Ollama](docs/images/architecture-diagram.png)
+
+### The Agentic RAG Pipeline
+
+The Field Assistant doesn't follow a fixed retrieval chain. It's a LangGraph state machine that decides at each step whether it has enough context to answer:
+
+![Agentic RAG Pipeline — classify, route, search, rerank, generate with retry loop](docs/images/pipeline-diagram.png)
+
+## Quick Start
+
+### Demo Mode (no GPU/Ollama required)
+
+```bash
+git clone https://github.com/orkohol/fieldpack-ai.git
+cd fieldpack-ai
+
+# Setup
+python -m venv venv
+source venv/bin/activate            # macOS/Linux
+# source venv/Scripts/activate      # Windows (Git Bash)
+pip install -r backend/requirements.txt
+cd frontend && npm install && cd ..
+
+# Configure
+cp backend/.env.example backend/.env  # DEMO_MODE=true by default
+
+# Start backend (from repo root)
+cd backend && PYTHONPATH=. uvicorn app.main:app --reload --host 0.0.0.0 --port 8000 &
+cd ..
+
+# Start frontend (from repo root)
+cd frontend && npm run dev
+# Open http://localhost:5173
+```
+
+### Full Mode (Ollama + Gemma 4 E2B)
+
+```bash
+# Install Ollama: https://ollama.com/download
+ollama pull gemma4:e2b-it-q4_K_M
+ollama serve
+
+# Set in backend/.env:
+#   DEMO_MODE=false
+#   FIELD_LLM_PROVIDER=ollama-local
+#   OLLAMA_BASE_URL=http://localhost:11434
+
+# Start backend (from repo root)
+cd backend && PYTHONPATH=. uvicorn app.main:app --reload --host 0.0.0.0 --port 8000 &
+cd ..
+
+# Start frontend (from repo root)
+cd frontend && npm run dev
+```
+
+See [`backend/.env.example`](backend/.env.example) for all configuration options.
+
+## Tech Stack
+
+| Component | Technology | Purpose |
+|-----------|-----------|---------|
+| Backend | FastAPI | Async API server, WebSocket streaming |
+| Agent Orchestration | LangGraph | State machine for agentic RAG pipeline |
+| Vector Store | ChromaDB (persistent) | Semantic search over Knowledge Pack |
+| Embeddings | sentence-transformers (MiniLM-L6-v2) | Offline-capable embedding model |
+| Structured DB | SQLite | Portable knowledge storage |
+| Edge LLM | Gemma 4 E2B Q4_K_M via Ollama | 5.1B params, ~8 GB RAM, runs on CPU |
+| Cloud LLMs | Gemma 4 31B + 26B via AI Studio | Knowledge curation agents |
+| Frontend | React 19 + Tailwind v4 + TypeScript | Responsive field-ready UI |
+| Mobile | Capacitor 8 | Android APK (thin client) |
+
+## Project Structure
+
+```
+fieldpack-ai/
+├── backend/
+│   ├── app/
+│   │   ├── agents/              # Field Assistant (offline RAG)
+│   │   │   ├── nodes/           # Pipeline nodes: classify, route, rerank, generate
+│   │   │   ├── field_assistant.py
+│   │   │   └── state.py         # LangGraph state definition
+│   │   ├── agent_farm/          # Cloud agents (online knowledge curation)
+│   │   │   ├── phases/          # Source gathering, knowledge extraction
+│   │   │   ├── sources/         # PDF, HTML, climate, CGIAR parsers
+│   │   │   └── tools/           # Web search, web fetch
+│   │   ├── knowledge_pack/      # Pack builder, schema, seed data
+│   │   ├── models/              # LLM providers (Ollama, Google AI Studio)
+│   │   ├── routers/             # API endpoints
+│   │   ├── tools/               # RAG tools: ChromaDB search, SQLite, images
+│   │   └── main.py              # FastAPI app entry point
+│   ├── tests/                   # 581 tests, 10,765 lines
+│   └── .env.example
+├── frontend/
+│   ├── src/
+│   │   ├── pages/               # Chat, diagnosis, observations, settings
+│   │   ├── components/          # Reusable UI components
+│   │   ├── hooks/               # Server connection, swipe, Android back
+│   │   └── lib/                 # API client, config, offline queue
+│   └── android/                 # Capacitor Android project
+├── packs/
+│   └── casamance_agriculture/   # Demo Knowledge Pack
+│       ├── knowledge.db         # SQLite structured data
+│       ├── chroma_db/           # Vector embeddings
+│       ├── images/              # Reference crop photos
+│       └── SOURCES.md           # Data provenance
+├── notebooks/
+│   └── colab_ollama_gpu.ipynb   # Colab GPU tunnel for remote Ollama
+├── docs/
+│   ├── images/                  # Architecture diagrams, cover image
+│   ├── PHILOSOPHY.md            # Project strategy & competition analysis
+│   ├── TECH_FRAMEWORK.md        # Full architecture documentation
+│   ├── VIDEO_SCRIPT.md          # 3-minute video production bible
+│   └── KAGGLE_WRITEUP.md        # Competition writeup
+└── video-frames/                # React app for video frame generation
+```
+
+## Knowledge Packs
+
+A Knowledge Pack is a portable, self-contained knowledge base built for a specific mission:
+
+| Contents | Format | Purpose |
+|----------|--------|---------|
+| Structured data | SQLite | Diseases, treatments, crops, climate |
+| Semantic vectors | ChromaDB | Natural language search over 200+ chunks |
+| Reference images | JPEG | Crop disease identification |
+| Manifest | JSON | Pack metadata, version, provenance |
+
+The demo ships with the **Casamance Agriculture Pack** — covering cassava diseases, treatment protocols, drought-resistant farming, and regional climate data for southern Senegal. See [`packs/casamance_agriculture/SOURCES.md`](packs/casamance_agriculture/SOURCES.md) for full data provenance.
+
+The architecture is domain-agnostic: the same system supports disaster medical triage, rural literacy education, wildlife conservation, or any domain where expert knowledge needs to travel offline.
+
+
+## Competition
+
+This project is an entry in the [Kaggle Gemma 4 Good Hackathon](https://www.kaggle.com/competitions/gemma-4-good-hackathon) ($200K prize pool, deadline May 18, 2026).
+
+## License
+
+[MIT](LICENSE)

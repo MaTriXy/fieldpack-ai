@@ -92,9 +92,9 @@ class TestBuildClassifyPrompt:
 
     def test_basic_prompt_structure(self):
         messages = _build_classify_prompt("My cassava is sick", None, [])
-        # System prompt + few-shots (user+assistant pairs) + user message
-        assert len(messages) >= 7
-        assert "classification system" in messages[0].content
+        # System prompt + 2 few-shot pairs (2 Human + 2 AI) + final user message = 6
+        assert len(messages) == 6
+        assert "Classify an agricultural field question" in messages[0].content
 
     def test_includes_few_shot_examples(self):
         messages = _build_classify_prompt("test", None, [])

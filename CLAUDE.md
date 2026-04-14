@@ -48,7 +48,7 @@ classify → route → needs_search
 
 - **Backend**: FastAPI, LangGraph, ChromaDB, sentence-transformers (MiniLM-L6-v2), pydantic-settings
 - **Frontend**: React 19, Vite 8, Tailwind v4, Capacitor 8, TypeScript, Lucide icons
-- **LLM**: Gemma 4 E2B Q4_K_M via Ollama (5.1B params, ~7.5GB VRAM)
+- **LLM**: Gemma 4 E2B Q4_K_M via Ollama (5.1B params, ~8 GB RAM)
 
 ## Architecture
 

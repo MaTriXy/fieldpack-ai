@@ -76,6 +76,13 @@ test*.log
 e2b_test1.json
 t1.json
 
+# Review & video-frame screenshots (root level)
+review_*.png
+review_frames/
+*_frame.png
+*_frame.jpg
+*_frame_review.png
+
 # SQLite WAL/SHM files
 *.db-shm
 *.db-wal
@@ -88,3 +95,6 @@ packs/*/chroma_db_backup_*/
 
 # Docs drafts (generated)
 docs/SUBMISSION_PLAYBOOK.md
+
+# Diagram source files (PNGs are the deliverables)
+docs/images/*.html

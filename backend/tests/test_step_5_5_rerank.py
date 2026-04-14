@@ -172,21 +172,21 @@ class TestNormalizeScores:
         assert scored[0].relevance_score == 0.8
         assert scored[1].relevance_score == 0.75
 
-    def test_fts_scores_normalized_to_max(self):
+    def test_fts_scores_capped_at_max(self):
         results = [
             SearchResult(content="a", source="s", score=6.0, result_type=ResultType.FTS),
             SearchResult(content="b", source="s", score=3.0, result_type=ResultType.FTS),
             SearchResult(content="c", source="s", score=0.0, result_type=ResultType.FTS),
         ]
         scored = _normalize_scores(results)
-        assert scored[0].relevance_score == 1.0  # 6/6
-        assert scored[1].relevance_score == 0.5  # 3/6
-        assert scored[2].relevance_score == 0.3  # 0/6 floored to 0.3
+        assert scored[0].relevance_score == 0.8  # capped at FTS_SCORE_CAP
+        assert scored[1].relevance_score == 0.8  # 3.0 still above cap
+        assert scored[2].relevance_score == 0.3  # floored to 0.3
 
     def test_structured_gets_neutral_score(self):
         results = _make_search_results(2, result_type=ResultType.STRUCTURED)
         scored = _normalize_scores(results)
-        assert all(s.relevance_score == 0.7 for s in scored)
+        assert all(s.relevance_score == 0.65 for s in scored)
 
     def test_mixed_engines(self):
         results = [
@@ -195,9 +195,9 @@ class TestNormalizeScores:
             SearchResult(content="c", source="s", score=0.7, result_type=ResultType.STRUCTURED),
         ]
         scored = _normalize_scores(results)
-        assert scored[0].relevance_score == 0.9   # chroma pass-through
-        assert scored[1].relevance_score == 1.0    # fts 5/5
-        assert scored[2].relevance_score == 0.7    # structured neutral
+        assert scored[0].relevance_score == 0.9    # chroma pass-through
+        assert scored[1].relevance_score == 0.8    # fts capped at FTS_SCORE_CAP
+        assert scored[2].relevance_score == 0.65   # structured neutral
 
 
 # ============================================================
