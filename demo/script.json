@@ -150,7 +150,7 @@
         {"title": "Pest Record — Whitefly (Bemisia tabaci)", "score": 0.867, "content": "Bemisia tabaci is the primary vector of cassava mosaic geminiviruses in Casamance. Population peaks during the early rainy season (June-July) when new cassava plantings are most vulnerable. Neem oil (Azadirachta indica) at 5ml/L provides effective suppression. Intercropping with maize reduces landing rates significantly."},
         {"title": "Variety Info #3 — TME 419", "score": 0.845, "content": "TME 419 is the recommended cassava variety for the Casamance region. Developed by IITA, it shows strong resistance to cassava mosaic disease (CMD) and cassava bacterial blight (CBB). Maturity: 12 months. Yield potential: 25-35 tonnes/hectare under good management."}
       ],
-      "stream_chars_per_sec": 28,
+      "stream_chars_per_sec": 90,
       "node_stats": [
         {"node": "classify_and_extract", "latency_ms": 1180, "model": "fieldpack-assistant-lite"},
         {"node": "needs_search_node", "latency_ms": 480, "model": "fieldpack-assistant-lite"},
@@ -188,7 +188,7 @@
         {"title": "Treatment Record #7 — Neem-Based Pest Control", "score": 0.856, "content": "Neem-based treatments are the most accessible biological pest control in Casamance. Neem trees are abundant throughout the region. Both commercial neem oil and homemade leaf extracts are effective against soft-bodied insects including whiteflies, aphids, and mealybugs. Safe for pollinators at recommended concentrations."},
         {"title": "Cassava Mosaic Disease — Prevention (Cassava)", "score": 0.812, "content": "Integrated pest management for CMD vectors: combine neem sprays with cultural practices including intercropping, border crops, and field sanitation. Neem spray alone reduces whitefly populations by 60-70% but should be combined with resistant varieties for complete management."}
       ],
-      "stream_chars_per_sec": 30,
+      "stream_chars_per_sec": 120,
       "node_stats": [
         {"node": "classify_and_extract", "latency_ms": 680, "model": "fieldpack-assistant-lite"},
         {"node": "needs_search_node", "latency_ms": 480, "model": "fieldpack-assistant-lite"},

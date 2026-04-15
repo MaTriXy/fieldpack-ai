@@ -65,24 +65,30 @@ async function typeSlowly(page: Page, selector: string, text: string, delayMs = 
 }
 
 // Helper: wait until streaming response finishes (stop button disappears)
+// NOTE: waitForFunction(fn, arg, options) — second arg is passed to fn, NOT options.
+// Must pass null as arg when not needed, otherwise timeout is silently ignored (30s default).
 async function waitForResponseDone(page: Page, timeoutMs = 30_000) {
   // Wait for the stop button to appear first (streaming started)
   await page.waitForSelector('[aria-label="Stop generating"]', { timeout: 10_000 }).catch(() => {})
   // Then wait for it to disappear (streaming finished)
   await page.waitForFunction(
     () => !document.querySelector('[aria-label="Stop generating"]'),
+    null,
     { timeout: timeoutMs }
   )
   // Small settle time for final rendering
   await wait(500)
 }
 
-// Helper: wait for mission chat response (typing indicator disappears)
-async function waitForMissionResponse(page: Page, timeoutMs = 15_000) {
-  // Wait for the assistant message to appear
-  await wait(1000)
-  // Wait for isTyping to become false — the send button re-enables
-  await page.waitForSelector('button[aria-label="Send message"]:not([disabled])', { timeout: timeoutMs })
+// Helper: wait for mission chat response by checking for expected text
+// NOTE: Can't use button:not([disabled]) — button stays disabled when input is empty
+// (disabled={!input.trim() || isTyping}). Must wait for response text instead.
+async function waitForMissionResponse(page: Page, expectedText: string, timeoutMs = 15_000) {
+  await page.waitForFunction(
+    (text: string) => document.body.innerText.includes(text),
+    expectedText,
+    { timeout: timeoutMs }
+  )
   await wait(500)
 }
 
@@ -183,7 +189,7 @@ const SCENES: Scene[] = [
       await wait(400)
       await right.click('button[aria-label="Send message"]')
       log('Sent mission message 1, waiting for response...')
-      await waitForMissionResponse(right)
+      await waitForMissionResponse(right, 'Welcome')
 
       // Message 2: Specify crops → triggers mission_card
       log('Typing crops message...')
@@ -195,7 +201,7 @@ const SCENES: Scene[] = [
       await wait(400)
       await right.click('button[aria-label="Send message"]')
       log('Sent mission message 2, waiting for response + mission card...')
-      await waitForMissionResponse(right, 20_000)
+      await waitForMissionResponse(right, 'Dispatch Agents', 20_000)
 
       // Wait for the Dispatch button to render
       await wait(1000)
@@ -270,7 +276,7 @@ const SCENES: Scene[] = [
       await wait(300)
       await right.click('button[aria-label="Send message"]')
       log('Sent planting question, waiting for response...')
-      await waitForResponseDone(right, 20_000)
+      await waitForResponseDone(right, 50_000)
       log('Planting response complete')
     },
   },
@@ -296,7 +302,7 @@ const SCENES: Scene[] = [
       log('Sending photo for diagnosis...')
       await right.click('button[aria-label="Send message"]')
       log('Photo sent, waiting for diagnosis to stream...')
-      await waitForResponseDone(right, 35_000)
+      await waitForResponseDone(right, 75_000)
       log('Diagnosis complete — hero shot done!')
       await wait(2000)  // hold on the complete diagnosis
     },
@@ -309,6 +315,17 @@ const SCENES: Scene[] = [
     endSec: 155,
     leftFrame: 'grounded',
     rightAction: async ({ right, log }) => {
+      // Wait for any leftover streaming from hero-shot to finish
+      const stillStreaming = await right.$('[aria-label="Stop generating"]')
+      if (stillStreaming) {
+        log('Previous response still streaming — waiting for it to finish...')
+        await right.waitForFunction(
+          () => !document.querySelector('[aria-label="Stop generating"]'),
+          null,
+          { timeout: 60_000 }
+        )
+        await wait(500)
+      }
       // Type a follow-up about neem spray
       log('Typing neem spray follow-up...')
       await typeSlowly(
@@ -319,7 +336,7 @@ const SCENES: Scene[] = [
       await wait(300)
       await right.click('button[aria-label="Send message"]')
       log('Sent neem follow-up, waiting for response...')
-      await waitForResponseDone(right, 20_000)
+      await waitForResponseDone(right, 55_000)
       log('Neem response complete')
     },
   },
