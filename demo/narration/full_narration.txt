@@ -1,0 +1,35 @@
+This diagnosis just happened without internet.
+
+Without cloud. Without a single byte of data leaving this device.
+
+Meet Amina. She's an agronomist with Action Against Hunger, deploying to Senegal's Casamance region for three weeks. Her mission: help smallholder farmers survive a drought season complicated by cassava mosaic virus outbreaks.
+
+Casamance is 450 kilometers from Dakar. Once she's there — no reliable internet. No cloud AI. No expert database to fall back on.
+
+Cassava feeds 800 million people. In Sub-Saharan Africa, mosaic virus alone destroys up to half the harvest. And 3.7 billion people worldwide lack the internet access that could bring AI to help.
+
+What if AI could prepare before she loses connectivity? Powerful cloud models research her specific mission, compile a portable Knowledge Pack, and hand it to an edge AI that works completely offline.
+
+Before leaving Dakar, Amina describes her mission. The AI understands what she needs — disease identification, treatment protocols, resistant crop varieties, climate data — all specific to Casamance.
+
+A team of AI agents fans out — gathering data from crop disease databases, agricultural extension services, climate records. In minutes, they compile everything into a single portable Knowledge Pack. 200 megabytes of expert knowledge she can carry in her pocket.
+
+Amina flies to Ziguinchor. No WiFi. No data. No cloud.
+
+Just her and her Knowledge Pack.
+
+Day three in the field. A farmer asks about planting schedules. Amina asks her Knowledge Pack.
+
+Locally relevant. Source-cited. Immediate. No internet required.
+
+A farmer shows her a plant with curled, yellowing leaves. She photographs it.
+
+Cassava Mosaic Disease. Moderate severity. Remove infected plants. Replant with CMD-resistant TME 419 — available right here in Ziguinchor. Use neem oil against whiteflies — neem trees grow everywhere in Casamance.
+
+Every answer traced back to verified sources. Not hallucination. Curated knowledge.
+
+She asks follow-ups. Gets prevention strategies, intercropping advice, biological control methods — all from verified agricultural databases. No hallucination. No guessing. Curated, mission-specific knowledge.
+
+Agriculture is just the first Knowledge Pack. The same architecture serves any expert going where internet doesn't. Disaster medical triage. Rural education. Wildlife conservation. Infrastructure assessment. Same system. Different pack. Any mission. Anywhere. Offline.
+
+FieldPack AI. Built with Gemma 4 on Ollama. Because the people who need AI most are the ones furthest from the cloud.

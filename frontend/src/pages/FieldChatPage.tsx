@@ -230,7 +230,6 @@ export default function FieldChatPage() {
   const bottomRef = useRef<HTMLDivElement>(null)
   const wsRef = useRef<WebSocket | null>(null)
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const scrollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const isStreamingRef = useRef(false)
   const skipNextSave = useRef(false)
   const pendingSourcesRef = useRef<{ name: string; score: number; content?: string }[] | null>(null)
@@ -545,19 +544,18 @@ export default function FieldChatPage() {
     }
   }, [location.state])
 
-  // Auto-scroll on new messages or streaming tokens (debounced to avoid layout thrash)
+  // Auto-scroll on new messages or streaming tokens
   useEffect(() => {
-    if (scrollTimerRef.current) clearTimeout(scrollTimerRef.current)
-    scrollTimerRef.current = setTimeout(() => {
+    const id = requestAnimationFrame(() => {
       bottomRef.current?.scrollIntoView({ behavior: 'instant' })
-    }, 80)
+    })
+    return () => cancelAnimationFrame(id)
   }, [messages, streamingContent])
 
-  // Cleanup save timer and scroll timer on unmount
+  // Cleanup save timer on unmount
   useEffect(() => {
     return () => {
       if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current)
-      if (scrollTimerRef.current) clearTimeout(scrollTimerRef.current)
     }
   }, [])
 
@@ -1122,7 +1120,7 @@ export default function FieldChatPage() {
           </div>
         )}
 
-        {messages.map((msg) => (
+        {messages.map((msg, msgIdx) => (
           msg._queued ? (
             <div key={msg.id} className="flex justify-start gap-2">
               <div className="w-7 h-7 rounded-full bg-secondary/10 flex items-center justify-center flex-shrink-0 mt-1">
@@ -1216,7 +1214,17 @@ export default function FieldChatPage() {
                   </div>
                   <p className="text-xs text-text-muted">{msg.diagnosis.pathogen}</p>
                   <button
-                    onClick={() => navigate('/field/diagnosis', { state: { image: msg.image } })}
+                    onClick={() => {
+                      // Find the nearest preceding user message with an image
+                      let photoUrl: string | undefined
+                      for (let i = msgIdx - 1; i >= 0; i--) {
+                        if (messages[i].role === 'user' && messages[i].image) {
+                          photoUrl = messages[i].image
+                          break
+                        }
+                      }
+                      navigate('/field/diagnosis', { state: { image: photoUrl } })
+                    }}
                     className="mt-2 text-xs font-semibold bg-secondary text-white px-3 py-2.5 rounded-lg hover:bg-secondary-light transition-colors min-h-[44px]"
                   >
                     View Full Diagnosis →

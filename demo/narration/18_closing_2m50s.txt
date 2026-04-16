@@ -1,0 +1,1 @@
+FieldPack AI. Built with Gemma 4 on Ollama. Because the people who need AI most are the ones furthest from the cloud.

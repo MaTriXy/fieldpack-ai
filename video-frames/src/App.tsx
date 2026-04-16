@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import RecordingPage from './RecordingPage'
 import PersonaFrame from './frames/PersonaFrame'
 import MapFrame from './frames/MapFrame'
 import StatsFrame from './frames/StatsFrame'
@@ -46,7 +47,12 @@ const FRAME_ORDER = [
   'closing',
 ]
 
+// ?mode=record → full 1920x1080 recording canvas with embedded phone mockup
+const isRecordingMode = new URLSearchParams(window.location.search).get('mode') === 'record'
+
 export default function App() {
+  if (isRecordingMode) return <RecordingPage />
+
   const [currentFrame, setCurrentFrame] = useState<string>('title')
 
   // Listen for hash changes — Playwright drives this

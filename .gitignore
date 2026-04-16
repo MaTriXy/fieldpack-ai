@@ -98,3 +98,8 @@ docs/SUBMISSION_PLAYBOOK.md
 
 # Diagram source files (PNGs are the deliverables)
 docs/images/*.html
+
+# Demo — generated & large files
+demo/timestamps.json
+demo/narration/*.mp3
+ffmpeg/

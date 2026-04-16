@@ -1,38 +1,36 @@
 /**
  * FieldPack AI — Demo Video Recording Orchestration
  *
- * Drives TWO browser windows simultaneously for OBS screen capture:
- *   Left  (1152x1080): video-frames app at :5178 — hash-based frame changes
- *   Right (~430x932):  frontend phone app at :5173 — types, clicks, uploads
+ * Drives a SINGLE 1920x1080 browser window for OBS screen capture:
+ *   Left  (1152x1080): video-frames app — hash-based frame changes
+ *   Right (768x1080):  phone mockup with embedded frontend app (iframe)
+ *
+ * The video-frames app at :5178?mode=record renders both panels in one page.
+ * Playwright changes left frames via URL hash and drives the phone iframe
+ * via page.frame('phone-app').
  *
  * Prerequisites:
- *   1. Backend running with DEMO_MODE=true on :8000
+ *   1. Backend running with DEMO_MODE=true on :8003
  *   2. Frontend dev server on :5173
  *   3. Video-frames dev server on :5178
- *   4. OBS capturing the positioned windows
+ *   4. OBS capturing the single browser window
  *
  * Run:  cd demo && npm run record
  * Dry:  cd demo && npm run record:dry   (prints timeline, no browser)
  */
 
-import { chromium, type Page } from 'playwright'
+import { chromium, type Page, type Frame } from 'playwright'
 import * as path from 'path'
 import * as fs from 'fs'
 
 // ─── Config ──────────────────────────────────────────────────────────────────
 
-const LEFT_URL = 'http://localhost:5178'
-const RIGHT_URL = 'http://localhost:5173'
-const PHOTO_PATH = path.resolve(__dirname, 'assets/photos/disease_cmd_figure.jpg')
+const RECORDING_URL = 'http://localhost:5178/?mode=record'
+const PHOTO_PATH = path.resolve(__dirname, 'assets/photos/disease_cmd_field.jpg')
 
-// Window geometry
-const LEFT_WIDTH = 1152
-const LEFT_HEIGHT = 1080
-const RIGHT_WIDTH = 430
-const RIGHT_HEIGHT = 932
-// Position the right window next to the left, with some margin for the phone frame
-const RIGHT_X = LEFT_WIDTH + 40
-const RIGHT_Y = Math.floor((LEFT_HEIGHT - RIGHT_HEIGHT) / 2) // vertically center
+// Single window at full HD
+const WIDTH = 1920
+const HEIGHT = 1080
 
 // Typing speed: characters per keystroke delay (ms)
 const TYPING_DELAY = 45
@@ -45,13 +43,13 @@ interface Scene {
   id: string
   startSec: number
   endSec: number
-  leftFrame: string | null   // hash fragment, or null = no change / full-screen moment
+  leftFrame: string | null   // hash fragment, or null = no change
   rightAction: (ctx: Context) => Promise<void>
 }
 
 interface Context {
-  left: Page
-  right: Page
+  page: Page           // the main page (video-frames recording page)
+  phone: Frame         // the iframe containing the frontend app
   log: (msg: string) => void
 }
 
@@ -59,19 +57,18 @@ interface Context {
 const wait = (ms: number) => new Promise<void>(r => setTimeout(r, ms))
 
 // Helper: type character by character (cinematic feel)
-async function typeSlowly(page: Page, selector: string, text: string, delayMs = TYPING_DELAY) {
-  await page.click(selector)
-  await page.type(selector, text, { delay: delayMs })
+async function typeSlowly(frame: Frame, selector: string, text: string, delayMs = TYPING_DELAY) {
+  await frame.click(selector)
+  await frame.type(selector, text, { delay: delayMs })
 }
 
 // Helper: wait until streaming response finishes (stop button disappears)
-// NOTE: waitForFunction(fn, arg, options) — second arg is passed to fn, NOT options.
-// Must pass null as arg when not needed, otherwise timeout is silently ignored (30s default).
-async function waitForResponseDone(page: Page, timeoutMs = 30_000) {
-  // Wait for the stop button to appear first (streaming started)
-  await page.waitForSelector('[aria-label="Stop generating"]', { timeout: 10_000 }).catch(() => {})
+async function waitForResponseDone(frame: Frame, timeoutMs = 30_000) {
+  // Wait for the stop button to appear (streaming started).
+  // Use a short timeout — if the button already appeared and vanished, fall through quickly.
+  await frame.waitForSelector('[aria-label="Stop generating"]', { timeout: 1_000 }).catch(() => {})
   // Then wait for it to disappear (streaming finished)
-  await page.waitForFunction(
+  await frame.waitForFunction(
     () => !document.querySelector('[aria-label="Stop generating"]'),
     null,
     { timeout: timeoutMs }
@@ -81,10 +78,8 @@ async function waitForResponseDone(page: Page, timeoutMs = 30_000) {
 }
 
 // Helper: wait for mission chat response by checking for expected text
-// NOTE: Can't use button:not([disabled]) — button stays disabled when input is empty
-// (disabled={!input.trim() || isTyping}). Must wait for response text instead.
-async function waitForMissionResponse(page: Page, expectedText: string, timeoutMs = 15_000) {
-  await page.waitForFunction(
+async function waitForMissionResponse(frame: Frame, expectedText: string, timeoutMs = 15_000) {
+  await frame.waitForFunction(
     (text: string) => document.body.innerText.includes(text),
     expectedText,
     { timeout: timeoutMs }
@@ -95,140 +90,201 @@ async function waitForMissionResponse(page: Page, expectedText: string, timeoutM
 const SCENES: Scene[] = [
   // ────────────────────────────────────────────────────────────────────────
   // SCENE 1: Cold Open — diseased leaf (0:00–0:05)
-  // Full-screen story moment — no app shown. Left panel blank, right panel blank.
-  // This scene is composited in Resolve with the stock cassava leaf photo.
+  // Full-screen story moment — composited in Resolve with stock photo.
   {
     id: 'cold-open',
     startSec: 0,
     endSec: 5,
     leftFrame: null,
-    rightAction: async () => {},  // nothing — OBS captures static setup
+    rightAction: async () => {},
   },
 
   // SCENE 2: The Answer — phone centered with diagnosis streaming (0:05–0:12)
-  // Full-screen app moment. In the video this is a composed shot.
-  // Right panel shows field chat with a pre-loaded diagnosis — we skip this
-  // in the Playwright flow because it's composited from the hero shot footage.
+  // Full-screen app moment — composited in Resolve from hero shot footage.
   {
     id: 'the-answer',
     startSec: 5,
     endSec: 12,
     leftFrame: null,
-    rightAction: async () => {},  // composited in Resolve from hero shot footage
+    rightAction: async () => {},
   },
 
   // SCENE 3: Title Card (0:12–0:18)
-  // Full-screen story moment.
+  // Phone starts fresh → lands on onboarding Welcome slide
   {
     id: 'title-card',
     startSec: 12,
     endSec: 18,
     leftFrame: 'title',
-    rightAction: async () => {},
+    rightAction: async ({ phone, log }) => {
+      // Phone was pre-loaded to Welcome slide during startup — no reload needed
+      await phone.waitForSelector('button:has-text("Get Started")', { timeout: 3_000 })
+      log('Onboarding: Welcome slide ready')
+      // Hold on Welcome slide for the rest of the scene
+      await wait(3000)
+    },
   },
 
   // SCENE 4: Amina's Profile (0:18–0:28)
-  // Split screen begins. Right panel: home screen with pack loaded.
+  // Swipe through onboarding: Hero Workflow → Three Modes
   {
     id: 'persona',
     startSec: 18,
     endSec: 28,
     leftFrame: 'persona',
-    rightAction: async ({ right }) => {
-      await right.goto(`${RIGHT_URL}/`)
-      await wait(1000)
+    rightAction: async ({ phone, log }) => {
+      // Guard: Welcome slide must still be showing its nav button
+      await phone.waitForSelector('button:has-text("Get Started")', { timeout: 5_000 })
+      // Click "Get Started" → Hero Workflow (slide 1)
+      await phone.locator('button:has-text("Get Started")').click()
+      log('Onboarding: Hero Workflow slide')
+      // Wait for slide animation to complete, then hold on slide 1 so the viewer sees it
+      await wait(400)
+
+      // Dwell on Hero Workflow for ~3.5s so it reads on screen
+      await wait(3500)
+
+      // Click "How it works" → Three Modes (slide 2)
+      await phone.waitForSelector('button:has-text("How it works")', { timeout: 3_000 })
+      await phone.locator('button:has-text("How it works")').click()
+      log('Onboarding: Three Modes slide')
+      // Wait for slide animation, then hold so the viewer sees Three Modes briefly
+      await wait(400)
+      await wait(1200)
     },
   },
 
   // SCENE 5: The Map (0:28–0:35)
+  // Continue onboarding: Three Modes visible at start → Knowledge Packs slide
   {
     id: 'map',
     startSec: 28,
     endSec: 35,
     leftFrame: 'map',
-    rightAction: async () => {},  // right stays on home
+    rightAction: async ({ phone, log }) => {
+      // Dwell on Three Modes slide for 2s so the viewer can read it
+      await wait(2000)
+      // Click "Got it" → Knowledge Packs (slide 3)
+      await phone.waitForSelector('button:has-text("Got it")', { timeout: 3_000 })
+      await phone.locator('button:has-text("Got it")').click()
+      log('Onboarding: Knowledge Packs slide')
+      // Wait for slide animation to settle, then hold so the viewer sees the pack card
+      await wait(400)
+      await wait(2000)
+    },
   },
 
   // SCENE 6: Impact Stats (0:35–0:45)
+  // Finish onboarding: Knowledge Packs visible at start → Connect slide → auto-connects → "Get Started"
   {
     id: 'stats',
     startSec: 35,
     endSec: 45,
     leftFrame: 'stats',
-    rightAction: async () => {},  // right stays on home
+    rightAction: async ({ phone, log }) => {
+      // Dwell on Knowledge Packs slide so the viewer can read the pack card
+      await wait(3500)
+      // Click "Connect" bottom nav button → Connect slide (slide 4)
+      // Use .first() to be explicit — the nav button is the primary "Connect" on this slide
+      await phone.waitForSelector('button:has-text("Connect")', { timeout: 3_000 })
+      await phone.locator('button:has-text("Connect")').first().click()
+      log('Onboarding: Connect slide')
+      // Wait for slide animation to settle
+      await wait(400)
+
+      // In browser mode connection status starts as "connected", so "FieldStation Found!"
+      // renders immediately. Wait for it, then click "Get Started" in the connected-state content.
+      try {
+        await phone.waitForFunction(
+          () => document.body.innerText.includes('FieldStation Found'),
+          null,
+          { timeout: 6_000 }
+        )
+        log('FieldStation found! Holding for viewer...')
+        // Let the viewer read the connected state for a beat
+        await wait(1500)
+        log('Clicking Get Started to complete onboarding...')
+        // The only "Get Started" visible on slide 4 is inside the connected-state content area
+        await phone.waitForSelector('button:has-text("Get Started")', { timeout: 3_000 })
+        await phone.locator('button:has-text("Get Started")').click()
+        log('Onboarding complete — navigating to HomePage')
+      } catch {
+        log('Connection timeout — clicking Skip setup')
+        await phone.waitForSelector('button:has-text("Skip setup")', { timeout: 3_000 })
+        await phone.locator('button:has-text("Skip setup")').click()
+      }
+    },
   },
 
   // SCENE 7: Architecture (0:45–0:55)
+  // HomePage — pack loaded, system status visible
   {
     id: 'architecture',
     startSec: 45,
     endSec: 55,
     leftFrame: 'architecture',
-    rightAction: async () => {},  // right stays on home
+    rightAction: async ({ phone, log }) => {
+      // Should now be on HomePage after onboarding complete
+      log('HomePage — showing loaded pack and system status')
+      await wait(2000)
+    },
   },
 
   // SCENE 8: Online Phase — Mission Chat (0:55–1:10)
-  // Right panel: mission chat — two messages + dispatch button
   {
     id: 'mission-chat',
     startSec: 55,
     endSec: 70,
     leftFrame: 'online-phase',
-    rightAction: async ({ right, log }) => {
-      await right.goto(`${RIGHT_URL}/mission`)
-      await wait(1500)  // let initial welcome message render
+    rightAction: async ({ phone, log }) => {
+      await phone.goto('http://localhost:5173/mission')
+      await wait(1500)
 
       // Message 1: Describe the mission
       log('Typing mission description...')
       const missionTextarea = 'textarea[placeholder="Describe your mission..."]'
       await typeSlowly(
-        right,
+        phone,
         missionTextarea,
         "I'm deploying to the Casamance region of Senegal to help smallholder farmers with cassava disease and drought",
       )
       await wait(400)
-      await right.click('button[aria-label="Send message"]')
+      await phone.click('button[aria-label="Send message"]')
       log('Sent mission message 1, waiting for response...')
-      await waitForMissionResponse(right, 'Welcome')
+      await waitForMissionResponse(phone, 'Welcome')
 
       // Message 2: Specify crops → triggers mission_card
       log('Typing crops message...')
       await typeSlowly(
-        right,
+        phone,
         missionTextarea,
         'Working with cassava and rice farmers',
       )
       await wait(400)
-      await right.click('button[aria-label="Send message"]')
-      log('Sent mission message 2, waiting for response + mission card...')
-      await waitForMissionResponse(right, 'Dispatch Agents', 20_000)
-
-      // Wait for the Dispatch button to render
+      await phone.click('button[aria-label="Send message"]')
+      log('Sent mission message 2, waiting for response + Dispatch button...')
+      // Wait for the Dispatch Agents button to render (appears on the mission card)
+      await phone.waitForSelector('button:has-text("Dispatch Agents")', { timeout: 20_000 })
       await wait(1000)
       log('Clicking Dispatch Agents...')
-      const dispatchBtn = right.getByRole('button', { name: /Dispatch Agents/i })
-      await dispatchBtn.click()
+      await phone.locator('button:has-text("Dispatch Agents")').click()
       log('Dispatched — navigating to progress page')
     },
   },
 
   // SCENE 9: Agent Progress (1:10–1:30)
-  // Auto-plays pipeline. 25.5s demo time but scene is 20s.
-  // Let it run — the overflow into transition scene looks good on video.
   {
     id: 'agent-progress',
     startSec: 70,
     endSec: 90,
     leftFrame: 'progress',
-    rightAction: async ({ right, log }) => {
-      // AgentProgressPage auto-starts on mount via location.state.missionCard
-      // Wait for "Pack Ready" or completion indicator
+    rightAction: async ({ phone, log }) => {
       log('Waiting for pipeline completion...')
       try {
-        await right.waitForFunction(
-          () => document.body.innerText.includes('Pack Ready') ||
-                document.body.innerText.includes('Complete') ||
-                document.body.innerText.includes('ready'),
+        await phone.waitForFunction(
+          () => document.body.innerText.includes('Knowledge Pack Ready') ||
+                document.body.innerText.includes('Build complete'),
+          null,
           { timeout: 28_000 }
         )
         log('Pipeline complete!')
@@ -244,67 +300,77 @@ const SCENES: Scene[] = [
     startSec: 90,
     endSec: 100,
     leftFrame: 'transition',
-    rightAction: async ({ right }) => {
-      // Navigate to home or settings to show "offline" state
-      await right.goto(`${RIGHT_URL}/`)
+    rightAction: async ({ phone }) => {
+      await phone.goto('http://localhost:5173/')
       await wait(500)
     },
   },
 
   // SCENE 11: Field Session — first offline interaction (1:40–1:55)
-  // Right panel: navigate to field chat, load pack, type planting question
   {
     id: 'field-session',
     startSec: 100,
     endSec: 115,
     leftFrame: 'field-session',
-    rightAction: async ({ right, log }) => {
-      // Navigate to field chat — in DEMO_MODE the pack is already "loaded",
-      // so packInfo is set automatically from the API and chat is ready
-      await right.goto(`${RIGHT_URL}/field`)
-      await right.waitForSelector('textarea[placeholder="Ask about your crops..."]', { timeout: 10_000 })
+    rightAction: async ({ phone, log }) => {
+      await phone.goto('http://localhost:5173/field')
+      await phone.waitForSelector('textarea[placeholder="Ask about your crops..."]', { timeout: 10_000 })
       log('Field chat ready (pack auto-loaded)')
       await wait(1000)
 
-      // Type the planting question
       log('Typing planting question...')
       await typeSlowly(
-        right,
+        phone,
         'textarea[placeholder="Ask about your crops..."]',
         'When should I plant cassava in Casamance this season?',
       )
       await wait(300)
-      await right.click('button[aria-label="Send message"]')
+      await phone.click('button[aria-label="Send message"]')
       log('Sent planting question, waiting for response...')
-      await waitForResponseDone(right, 50_000)
+      await waitForResponseDone(phone, 50_000)
       log('Planting response complete')
     },
   },
 
   // SCENE 12: Hero Shot — plant photo → diagnosis (1:55–2:20)
-  // THE key moment. Upload photo, wait for full diagnosis to stream.
+  // THE key moment.
   {
     id: 'hero-shot',
     startSec: 115,
     endSec: 140,
     leftFrame: 'pipeline',
-    rightAction: async ({ right, log }) => {
+    rightAction: async ({ phone, log }) => {
+      // Type the question first, then attach photo
+      log('Typing diagnosis question...')
+      await typeSlowly(
+        phone,
+        'textarea[placeholder="Ask about your crops..."]',
+        'Something is wrong with my cassava, what is this?',
+      )
+      await wait(500)
+
       // Inject the cassava disease photo via file input
       log('Uploading plant disease photo...')
-      const fileInput = right.locator('input[type="file"][accept="image/jpeg,image/png,image/webp"]')
+      const fileInput = phone.locator('input[type="file"][accept="image/jpeg,image/png,image/webp"]')
       await fileInput.setInputFiles(PHOTO_PATH)
-      // Wait for preview to appear
       await wait(1500)
 
-      // Send with the default text "What disease does this plant have?"
-      // The textarea placeholder changes to "Describe the issue (optional)..." when image attached
-      // handleSend will use the default text if input is empty and pendingImage is set
       log('Sending photo for diagnosis...')
-      await right.click('button[aria-label="Send message"]')
+      await phone.click('button[aria-label="Send message"]')
       log('Photo sent, waiting for diagnosis to stream...')
-      await waitForResponseDone(right, 75_000)
-      log('Diagnosis complete — hero shot done!')
-      await wait(2000)  // hold on the complete diagnosis
+      await waitForResponseDone(phone, 75_000)
+      log('Diagnosis complete!')
+
+      // Click "View Full Diagnosis" to show the analysis page
+      try {
+        await phone.waitForSelector('button:has-text("View Full Diagnosis")', { timeout: 5_000 })
+        await phone.locator('button:has-text("View Full Diagnosis")').click()
+        log('Navigated to Diagnosis Card page')
+        await wait(3000)
+      } catch {
+        log('View Full Diagnosis button not found — staying on chat')
+        await wait(2000)
+      }
     },
   },
 
@@ -314,29 +380,29 @@ const SCENES: Scene[] = [
     startSec: 140,
     endSec: 155,
     leftFrame: 'grounded',
-    rightAction: async ({ right, log }) => {
-      // Wait for any leftover streaming from hero-shot to finish
-      const stillStreaming = await right.$('[aria-label="Stop generating"]')
-      if (stillStreaming) {
-        log('Previous response still streaming — waiting for it to finish...')
-        await right.waitForFunction(
-          () => !document.querySelector('[aria-label="Stop generating"]'),
-          null,
-          { timeout: 60_000 }
-        )
-        await wait(500)
+    rightAction: async ({ phone, log }) => {
+      // Navigate back to field chat from diagnosis page
+      try {
+        const backBtn = phone.locator('button:has-text("Back to Chat")')
+        if (await backBtn.count() > 0) {
+          await backBtn.click()
+          log('Back to field chat from diagnosis page')
+          await phone.waitForSelector('textarea[placeholder="Ask about your crops..."]', { timeout: 5_000 })
+          await wait(500)
+        }
+      } catch {
+        // Already on field chat
       }
-      // Type a follow-up about neem spray
       log('Typing neem spray follow-up...')
       await typeSlowly(
-        right,
+        phone,
         'textarea[placeholder="Ask about your crops..."]',
         'How do I prepare the neem oil spray?',
       )
       await wait(300)
-      await right.click('button[aria-label="Send message"]')
+      await phone.click('button[aria-label="Send message"]')
       log('Sent neem follow-up, waiting for response...')
-      await waitForResponseDone(right, 55_000)
+      await waitForResponseDone(phone, 55_000)
       log('Neem response complete')
     },
   },
@@ -347,9 +413,9 @@ const SCENES: Scene[] = [
     startSec: 155,
     endSec: 170,
     leftFrame: 'platform',
-    rightAction: async ({ right, log }) => {
+    rightAction: async ({ phone, log }) => {
       log('Navigating to pack list...')
-      await right.goto(`${RIGHT_URL}/packs`)
+      await phone.goto('http://localhost:5173/packs')
       await wait(1000)
     },
   },
@@ -360,7 +426,7 @@ const SCENES: Scene[] = [
     startSec: 170,
     endSec: 180,
     leftFrame: 'closing',
-    rightAction: async () => {},  // static — hold on pack list or home
+    rightAction: async () => {},
   },
 ]
 
@@ -394,74 +460,51 @@ async function main() {
     process.exit(1)
   }
 
-  console.log('\n  FieldPack AI — Demo Recording\n')
-  console.log('  Launching browsers...')
+  console.log('\n  FieldPack AI — Demo Recording (Single Window Mode)\n')
+  console.log('  Launching browser...')
 
-  // Two separate browser instances = two separate OS windows
-  const leftBrowser = await chromium.launch({
+  // Single browser window at 1920x1080
+  const browser = await chromium.launch({
     headless: false,
     args: [
       '--disable-infobars',
       '--no-first-run',
       '--no-default-browser-check',
-      `--window-position=0,0`,
-      `--window-size=${LEFT_WIDTH},${LEFT_HEIGHT}`,
+      '--window-position=0,0',
+      `--window-size=${WIDTH},${HEIGHT}`,
+      '--start-maximized',
     ],
   })
 
-  const rightBrowser = await chromium.launch({
-    headless: false,
-    args: [
-      '--disable-infobars',
-      '--no-first-run',
-      '--no-default-browser-check',
-      `--window-position=${RIGHT_X},${RIGHT_Y}`,
-      `--window-size=${RIGHT_WIDTH},${RIGHT_HEIGHT}`,
-    ],
-  })
-
-  // ── Left window: video-frames app ──
-  const leftContext = await leftBrowser.newContext({
-    viewport: { width: LEFT_WIDTH, height: LEFT_HEIGHT },
+  const context = await browser.newContext({
+    viewport: { width: WIDTH, height: HEIGHT },
     colorScheme: 'dark',
   })
-  const left = await leftContext.newPage()
+  const page = await context.newPage()
 
-  // ── Right window: frontend phone app ──
-  const rightContext = await rightBrowser.newContext({
-    viewport: { width: RIGHT_WIDTH, height: RIGHT_HEIGHT },
-    colorScheme: 'dark',
-  })
-  const right = await rightContext.newPage()
+  // Navigate to the recording page
+  await page.goto(RECORDING_URL)
+  await wait(2000)
 
-  // Fine-tune window positions via CDP (the launch args set initial position,
-  // but CDP gives pixel-perfect control after the window is created)
-  try {
-    const leftCdp = await leftContext.newCDPSession(left)
-    const leftWindowId = (await leftCdp.send('Browser.getWindowForTarget')).windowId
-    await leftCdp.send('Browser.setWindowBounds', {
-      windowId: leftWindowId,
-      bounds: { left: 0, top: 0, width: LEFT_WIDTH, height: LEFT_HEIGHT, windowState: 'normal' },
-    })
-
-    const rightCdp = await rightContext.newCDPSession(right)
-    const rightWindowId = (await rightCdp.send('Browser.getWindowForTarget')).windowId
-    await rightCdp.send('Browser.setWindowBounds', {
-      windowId: rightWindowId,
-      bounds: { left: RIGHT_X, top: RIGHT_Y, width: RIGHT_WIDTH, height: RIGHT_HEIGHT, windowState: 'normal' },
-    })
-  } catch {
-    console.warn('  Warning: Could not fine-tune window positions via CDP — adjust manually')
+  // Get a handle to the phone iframe
+  const phoneFrame = page.frame('phone-app')
+  if (!phoneFrame) {
+    console.error('ERROR: Could not find phone-app iframe. Is the frontend running on :5173?')
+    await browser.close()
+    process.exit(1)
   }
 
-  // Navigate to starting URLs
-  await left.goto(`${LEFT_URL}/`)
-  await right.goto(`${RIGHT_URL}/`)
-  await wait(2000)
+  // Pre-load the phone to the onboarding Welcome slide BEFORE recording starts
+  // (avoids a visible blank flash when scene 3 tries to reload the same URL)
+  await phoneFrame.evaluate(() => {
+    localStorage.removeItem('fieldpack_onboarded')
+    window.location.href = 'http://localhost:5173/'
+  })
+  await phoneFrame.waitForSelector('button:has-text("Get Started")', { timeout: 10_000 })
+  console.log('  Phone ready on onboarding Welcome slide.')
 
   // Timestamp log file for narration alignment
   const timestamps: { scene: string; startedAt: string; elapsedMs: number }[] = []
-  const recordingStart = Date.now()
 
   const log = (msg: string) => {
     const elapsed = Date.now() - recordingStart
@@ -472,9 +515,12 @@ async function main() {
     console.log(`  [${ts}] ${msg}`)
   }
 
+  let recordingStart = Date.now()
+
   // ── Ready signal ──
   console.log('\n  ============================================')
-  console.log('  Windows positioned. Start OBS recording now.')
+  console.log('  Single window ready. Start OBS capture now.')
+  console.log('  In OBS: Window Capture → this Chromium window')
   console.log('  Press Enter to begin the 3-minute demo...')
   console.log('  ============================================\n')
 
@@ -493,17 +539,16 @@ async function main() {
     })
   })
 
-  const t0 = Date.now()
+  recordingStart = Date.now()
   log('Recording started!')
 
   // ── Execute timeline ──
   for (let i = 0; i < SCENES.length; i++) {
     const scene = SCENES[i]
-    const sceneStart = Date.now()
 
     // Wait until scene start time
     const targetMs = scene.startSec * 1000
-    const elapsed = Date.now() - t0
+    const elapsed = Date.now() - recordingStart
     if (elapsed < targetMs) {
       await wait(targetMs - elapsed)
     }
@@ -513,31 +558,26 @@ async function main() {
     timestamps.push({
       scene: scene.id,
       startedAt: new Date().toISOString(),
-      elapsedMs: Date.now() - t0,
+      elapsedMs: Date.now() - recordingStart,
     })
 
-    // Left panel: change frame
+    // Left panel: change frame via hash
     if (scene.leftFrame) {
-      await left.goto(`${LEFT_URL}/#${scene.leftFrame}`)
+      await page.evaluate((frame) => {
+        window.location.hash = frame
+      }, scene.leftFrame)
     }
 
-    // Right panel: execute action
+    // Right panel: execute action on the phone iframe
     try {
-      await scene.rightAction({ left, right, log })
+      await scene.rightAction({ page, phone: phoneFrame, log })
     } catch (err) {
       log(`  ✗ Error in scene ${scene.id}: ${err instanceof Error ? err.message : err}`)
-    }
-
-    // If the right action finished early, hold until scene end
-    const sceneElapsed = Date.now() - sceneStart
-    const sceneDuration = (scene.endSec - scene.startSec) * 1000
-    if (sceneElapsed < sceneDuration) {
-      // Don't hard-wait the full remainder — the next scene's targetMs handles sync
     }
   }
 
   // Wait until 3:00
-  const totalElapsed = Date.now() - t0
+  const totalElapsed = Date.now() - recordingStart
   if (totalElapsed < 180_000) {
     log(`Holding for ${Math.ceil((180_000 - totalElapsed) / 1000)}s until 3:00...`)
     await wait(180_000 - totalElapsed)
@@ -550,13 +590,11 @@ async function main() {
   fs.writeFileSync(logPath, JSON.stringify(timestamps, null, 2))
   log(`Timestamps written to ${logPath}`)
 
-  console.log('\n  Stop OBS recording now. Windows will close in 5 seconds...\n')
+  console.log('\n  Stop OBS recording now. Window will close in 5 seconds...\n')
   await wait(5000)
 
-  await leftContext.close()
-  await rightContext.close()
-  await leftBrowser.close()
-  await rightBrowser.close()
+  await context.close()
+  await browser.close()
 }
 
 function fmtTime(sec: number): string {

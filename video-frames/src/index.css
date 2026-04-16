@@ -31,6 +31,15 @@ html, body, #root {
   font-family: var(--font-body);
 }
 
+/* Recording mode: full 1920x1080 canvas */
+html.recording-mode,
+html.recording-mode body,
+html.recording-mode #root {
+  width: 1920px;
+  height: 1080px;
+}
+
+
 /* ═══ Shared Animations ═══ */
 
 @keyframes fadeIn {
@@ -144,6 +153,16 @@ html, body, #root {
 
 .animate-route {
   animation: routeTravel 2s linear infinite;
+}
+
+/* Hide scrollbar inside phone mockup iframe */
+.phone-screen,
+.phone-screen iframe {
+  scrollbar-width: none; /* Firefox */
+}
+.phone-screen::-webkit-scrollbar,
+.phone-screen iframe::-webkit-scrollbar {
+  display: none; /* Chrome/Safari */
 }
 
 /* Divider line */

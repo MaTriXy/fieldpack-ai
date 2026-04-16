@@ -309,7 +309,7 @@ export default function PipelineFrame() {
     >
       {/* Background photo — cassava disease reference */}
       <img
-        src="/photos/disease_cmd_figure.jpg"
+        src="/photos/disease_cmd_field.jpg"
         alt=""
         aria-hidden="true"
         className="photo-bg"
@@ -431,7 +431,7 @@ export default function PipelineFrame() {
             }}
           >
             <img
-              src="/photos/disease_cmd_figure.jpg"
+              src="/photos/disease_cmd_field.jpg"
               alt="Cassava mosaic disease — healthy vs infected leaves"
               style={{
                 width: '100%',

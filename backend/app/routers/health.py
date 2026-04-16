@@ -36,7 +36,7 @@ async def health_check():
                 "parameters": "5.1B",
                 "quantization": "Q4_K_M",
                 "family": "gemma4",
-                "memory_mb": 3200,
+                "memory_mb": 7322,
             },
             "pack": {"loaded": True, **get_demo_pack_info()},
         }

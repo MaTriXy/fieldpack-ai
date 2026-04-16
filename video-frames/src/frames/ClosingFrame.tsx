@@ -156,7 +156,7 @@ export default function ClosingFrame() {
             margin: 0,
           }}
         >
-          github.com/or-kol/fieldpack-ai
+          github.com/orkohol/fieldpack-ai
         </p>
 
       </div>

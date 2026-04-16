@@ -42,6 +42,18 @@ body {
   overscroll-behavior: none;
 }
 
+/* Hide all scrollbars when embedded in iframe (demo recording phone mockup) */
+html.in-iframe,
+html.in-iframe body,
+html.in-iframe * {
+  scrollbar-width: none !important;
+}
+html.in-iframe::-webkit-scrollbar,
+html.in-iframe body::-webkit-scrollbar,
+html.in-iframe *::-webkit-scrollbar {
+  display: none !important;
+}
+
 #root {
   min-height: 100dvh;
 }

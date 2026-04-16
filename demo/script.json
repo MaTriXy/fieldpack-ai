@@ -3,7 +3,7 @@
     "description": "Demo script for FieldPack AI video recording. Pre-computed responses that replay without LLM/Ollama.",
     "version": "1.0.0",
     "pack_name": "Casamance Agriculture Pack",
-    "stream_chars_per_sec": 30
+    "stream_chars_per_sec": 60
   },
 
   "mission_chat": [
@@ -30,16 +30,16 @@
   "mission_pipeline": {
     "id": "build_casamance_pack",
     "steps": [
-      {"phase": "gathering", "detail": "Querying FAO, IITA, PlantVillage, AfricaRice, ICRISAT, ISRA Senegal...", "delay_ms": 3000},
-      {"phase": "gathering", "detail": "Found 47 disease records across 6 sources", "delay_ms": 2500},
-      {"phase": "extracting", "detail": "Extracting structured data from research papers...", "delay_ms": 3500},
-      {"phase": "extracting", "detail": "Processed 31 treatments, 15 diseases, 31 farming practices", "delay_ms": 2000},
-      {"phase": "gap_analysis", "detail": "Checking coverage: cassava diseases ✓, rice diseases ✓, treatments ✓", "delay_ms": 2500},
-      {"phase": "gap_analysis", "detail": "Filling 3 gaps: millet varieties, groundnut pest control, post-harvest storage", "delay_ms": 3000},
-      {"phase": "compiling", "detail": "Building knowledge graph and cross-references...", "delay_ms": 3000},
-      {"phase": "compiling", "detail": "Generating embedding vectors (MiniLM-L6-v2)...", "delay_ms": 2500},
-      {"phase": "chunks", "detail": "Splitting into 190 searchable chunks with parent/child linking", "delay_ms": 2000},
-      {"phase": "chunks", "detail": "Indexing in ChromaDB vector store", "delay_ms": 1500}
+      {"phase": "gathering", "detail": "Querying FAO, IITA, PlantVillage, AfricaRice, ICRISAT, ISRA Senegal...", "delay_ms": 2000},
+      {"phase": "gathering", "detail": "Found 47 disease records across 6 sources", "delay_ms": 1500},
+      {"phase": "extracting", "detail": "Extracting structured data from research papers...", "delay_ms": 2500},
+      {"phase": "extracting", "detail": "Processed 31 treatments, 15 diseases, 31 farming practices", "delay_ms": 1500},
+      {"phase": "gap_analysis", "detail": "Checking coverage: cassava diseases ✓, rice diseases ✓, treatments ✓", "delay_ms": 2000},
+      {"phase": "gap_analysis", "detail": "Filling 3 gaps: millet varieties, groundnut pest control, post-harvest storage", "delay_ms": 2000},
+      {"phase": "compiling", "detail": "Building knowledge graph and cross-references...", "delay_ms": 2000},
+      {"phase": "compiling", "detail": "Generating embedding vectors (MiniLM-L6-v2)...", "delay_ms": 1500},
+      {"phase": "chunks", "detail": "Splitting into 190 searchable chunks with parent/child linking", "delay_ms": 1500},
+      {"phase": "chunks", "detail": "Indexing in ChromaDB vector store", "delay_ms": 1000}
     ],
     "stats_updates": [
       {"after_step": 1, "findings": 47, "tables": {"diseases": 8}, "chunks": 0, "images": 0},
@@ -49,7 +49,7 @@
       {"after_step": 9, "findings": 128, "tables": {"diseases": 15, "treatments": 31, "farming_practices": 31}, "chunks": 190, "images": 0}
     ],
     "done_summary": {
-      "total_latency_ms": 25500,
+      "total_latency_ms": 17500,
       "findings": 128,
       "chunks": 190,
       "images": 0,
@@ -87,13 +87,13 @@
       "match_patterns": ["planting", "season", "when to plant", "cassava", "best time"],
       "pipeline_mode": "rag",
       "agent_steps": [
-        {"step": "classifying", "detail": "Analyzing your question...", "delay_ms": 800},
-        {"step": "routing", "detail": "Planning search strategy...", "delay_ms": 400},
-        {"step": "evaluating", "detail": "Deciding if search is needed...", "delay_ms": 600},
-        {"step": "crafting", "detail": "Preparing search queries...", "delay_ms": 700},
-        {"step": "searching", "detail": "Searching knowledge base...", "delay_ms": 500},
-        {"step": "reranking", "detail": "Evaluating result quality...", "delay_ms": 900},
-        {"step": "generating", "detail": "Composing answer...", "delay_ms": 1200}
+        {"step": "classifying", "detail": "Analyzing your question...", "delay_ms": 500},
+        {"step": "routing", "detail": "Planning search strategy...", "delay_ms": 300},
+        {"step": "evaluating", "detail": "Deciding if search is needed...", "delay_ms": 400},
+        {"step": "crafting", "detail": "Preparing search queries...", "delay_ms": 500},
+        {"step": "searching", "detail": "Searching knowledge base...", "delay_ms": 350},
+        {"step": "reranking", "detail": "Evaluating result quality...", "delay_ms": 600},
+        {"step": "generating", "detail": "Composing answer...", "delay_ms": 800}
       ],
       "pipeline_insights": [
         {"after_step": 0, "node": "classify_and_extract", "text": "Farming advice — Cassava"},
@@ -101,7 +101,7 @@
         {"after_step": 4, "node": "execute_searches", "text": "Found 12 results (8 semantic, 4 structured)"},
         {"after_step": 5, "node": "rerank_results", "text": "Kept 5 best results · top relevance 94%"}
       ],
-      "response": "In the Casamance region, the ideal cassava planting window is **June to July**, at the start of the rainy season. Here's what you need to know:\n\n**Planting Timeline:**\n- **Land preparation:** May — clear and ridge the field before the first rains\n- **Planting:** June–July — plant stem cuttings 10–15 cm deep at a 45° angle\n- **Spacing:** 1m × 1m for sole cropping, 2m × 0.5m if intercropping with groundnut\n\n**Key Varieties for Casamance:**\n- **TME 419** — mosaic-resistant, matures in 12 months, high starch content\n- **IITA TMS 30572** — tolerant to cassava brown streak, 10–14 month maturity\n\n**Critical First 3 Months:**\n- Weed at 3 and 8 weeks after planting — cassava is very sensitive to early competition\n- Watch for cassava mosaic virus symptoms (yellow/green mosaic on young leaves)\n- No fertilizer needed if following groundnut in rotation (nitrogen fixation)\n\n**Harvest:** April–June of the following year (10–12 months). Roots can stay in ground up to 18 months but starch content declines after 14 months.\n\nWould you like details on any specific variety or intercropping patterns?",
+      "response": "In Casamance, the ideal cassava planting window is **June to July**, at the start of the rainy season.\n\n**Planting:**\n- Prepare land in May — clear and ridge before the first rains\n- Plant stem cuttings 10–15 cm deep at a 45° angle\n- Spacing: 1m × 1m (sole crop) or 2m × 0.5m with groundnut intercrop\n\n**Recommended variety:** **TME 419** — mosaic-resistant, 12-month maturity, high starch. Available from ISRA nurseries in Ziguinchor.\n\n**Key tip:** Weed at 3 and 8 weeks — cassava is very sensitive to early competition. Harvest April–June of the following year.",
       "sources": [
         {"title": "Planting Calendar — Cassava", "score": 0.941, "content": "Cassava planting in Casamance follows the onset of the rainy season. Optimal planting window is June-July when soil moisture is sufficient for stem cutting establishment. Late planting (August) reduces yield by 20-30% due to shorter growing season before the dry period."},
         {"title": "Variety Info #3 — TME 419", "score": 0.912, "content": "TME 419 is the recommended cassava variety for the Casamance region. Developed by IITA, it shows strong resistance to cassava mosaic disease (CMD) and cassava bacterial blight (CBB). Maturity: 12 months. Yield potential: 25-35 tonnes/hectare under good management."},
@@ -109,16 +109,16 @@
         {"title": "Soil Requirements — Cassava", "score": 0.834, "content": "Cassava grows best in well-drained sandy loam soils with pH 5.5-6.5. In Casamance, the laterite soils require ridging to improve drainage. Cassava tolerates poor soils but responds well to rotation with nitrogen-fixing crops like groundnut."},
         {"title": "Intercropping Patterns — Cassava/Groundnut", "score": 0.798, "content": "Cassava-groundnut intercropping is the dominant system in Casamance. Plant cassava at 2m × 0.5m spacing with groundnut rows between. The groundnut crop is harvested in October, leaving the cassava to grow through the dry season."}
       ],
-      "stream_chars_per_sec": 30,
+      "stream_chars_per_sec": 80,
       "node_stats": [
-        {"node": "classify_and_extract", "latency_ms": 780, "model": "fieldpack-assistant-lite"},
-        {"node": "needs_search_node", "latency_ms": 580, "model": "fieldpack-assistant-lite"},
-        {"node": "craft_search_query", "latency_ms": 680, "model": "fieldpack-assistant-lite"},
+        {"node": "classify_and_extract", "latency_ms": 480, "model": "fieldpack-assistant-lite"},
+        {"node": "needs_search_node", "latency_ms": 380, "model": "fieldpack-assistant-lite"},
+        {"node": "craft_search_query", "latency_ms": 480, "model": "fieldpack-assistant-lite"},
         {"node": "execute_searches", "latency_ms": 120},
-        {"node": "rerank_results", "latency_ms": 870, "model": "fieldpack-assistant-lite"},
-        {"node": "generate_answer", "latency_ms": 4200, "model": "fieldpack-assistant-lite"}
+        {"node": "rerank_results", "latency_ms": 570, "model": "fieldpack-assistant-lite"},
+        {"node": "generate_answer", "latency_ms": 2800, "model": "fieldpack-assistant-lite"}
       ],
-      "total_latency_ms": 7230,
+      "total_latency_ms": 4830,
       "llm_calls": 4
     },
     {
@@ -142,7 +142,7 @@
         {"after_step": 5, "node": "rerank_results", "text": "Kept 5 best results · top relevance 97%"}
       ],
       "image_description": "Cassava leaf showing yellow and green mosaic pattern characteristic of Cassava Mosaic Disease (CMD). Leaves are distorted with irregular yellow patches interspersed with green areas. Some leaf curling visible.",
-      "response": "This is **Cassava Mosaic Disease (CMD)** — the most common and damaging cassava disease in the Casamance region.\n\n## Identification\n- **Pathogen:** Cassava mosaic geminiviruses (CMGs), transmitted by whitefly (*Bemisia tabaci*)\n- **Confidence:** High — the yellow-green mosaic pattern and leaf distortion are characteristic symptoms\n- **Severity:** Moderate — leaves show clear mosaic but stems appear healthy\n\n## Immediate Actions\n1. **Do NOT uproot yet** — moderate infections can still produce a harvest (30–50% yield reduction)\n2. **Remove severely affected branches** — prune and burn (do not compost) to reduce viral load\n3. **Mark this plant** — do not use its stem cuttings for next season's planting material\n\n## Treatment Plan\nThere is no chemical cure for CMD. Management is integrated:\n\n**Short-term (this season):**\n- Apply **neem oil spray** (50ml neem oil + 10L water + a few drops of soap) every 2 weeks to suppress whitefly populations\n- Remove and burn any plants showing severe stunting (>70% leaf area affected)\n- Maintain good weed control — weeds harbor whiteflies\n\n**Next season (prevention):**\n- Plant **CMD-resistant varieties**: TME 419 or IITA TMS 30572\n- Source clean planting material from a certified nursery or disease-free mother plants\n- Use **intercropping with maize or sorghum** — taller crops reduce whitefly landing rates by 40–60%\n- Establish a 2m border of maize around the cassava field as a whitefly barrier\n\n## Expected Outcome\nWith resistant varieties and clean planting material, CMD incidence drops to under 5% in the following season. The neem spray won't cure existing infections but reduces spread to neighboring plants.\n\nWould you like me to log this as a disease sighting in your field journal?",
+      "response": "This is **Cassava Mosaic Disease (CMD)** — the most common cassava disease in Casamance.\n\n## Identification\n- **Pathogen:** Cassava mosaic geminiviruses, transmitted by whitefly (*Bemisia tabaci*)\n- **Confidence:** High — yellow-green mosaic pattern and leaf distortion are characteristic\n- **Severity:** Moderate — clear mosaic but stems appear healthy\n\n## Immediate Actions\n1. **Do NOT uproot yet** — moderate infections still produce a harvest (30–50% yield reduction)\n2. **Remove severely affected branches** — prune and burn to reduce viral load\n3. **Mark this plant** — do not use its cuttings for next season\n\n## Treatment\nNo chemical cure exists. Management is integrated:\n- Apply **neem oil spray** (50ml neem oil + 10L water + soap) every 2 weeks to suppress whiteflies\n- Remove plants with severe stunting (>70% leaf area affected)\n- Next season: plant **CMD-resistant TME 419** from certified nurseries\n- **Intercrop with maize** — reduces whitefly landing rates by 40–60%",
       "sources": [
         {"title": "Cassava Mosaic Disease — Symptoms (Cassava)", "score": 0.971, "content": "Cassava Mosaic Disease (CMD) is caused by a complex of geminiviruses transmitted by the whitefly Bemisia tabaci. Symptoms include yellow-green mosaic patterns on leaves, leaf distortion, and stunting. Severity ranges from mild mosaic to severe stunting with over 70% yield loss. CMD is the most economically important disease of cassava in Sub-Saharan Africa."},
         {"title": "Cassava Mosaic Disease — Treatment (Cassava)", "score": 0.958, "content": "No chemical cure exists for CMD. Management relies on: (1) planting resistant varieties (TME 419, TMS 30572), (2) using clean planting material from certified sources, (3) roguing severely infected plants, (4) controlling whitefly vectors with neem-based sprays, (5) intercropping with taller crops to reduce whitefly landing. Resistant varieties reduce incidence from 60-80% to under 5%."},
@@ -150,7 +150,7 @@
         {"title": "Pest Record — Whitefly (Bemisia tabaci)", "score": 0.867, "content": "Bemisia tabaci is the primary vector of cassava mosaic geminiviruses in Casamance. Population peaks during the early rainy season (June-July) when new cassava plantings are most vulnerable. Neem oil (Azadirachta indica) at 5ml/L provides effective suppression. Intercropping with maize reduces landing rates significantly."},
         {"title": "Variety Info #3 — TME 419", "score": 0.845, "content": "TME 419 is the recommended cassava variety for the Casamance region. Developed by IITA, it shows strong resistance to cassava mosaic disease (CMD) and cassava bacterial blight (CBB). Maturity: 12 months. Yield potential: 25-35 tonnes/hectare under good management."}
       ],
-      "stream_chars_per_sec": 90,
+      "stream_chars_per_sec": 250,
       "node_stats": [
         {"node": "classify_and_extract", "latency_ms": 1180, "model": "fieldpack-assistant-lite"},
         {"node": "needs_search_node", "latency_ms": 480, "model": "fieldpack-assistant-lite"},
@@ -181,7 +181,7 @@
         {"after_step": 4, "node": "execute_searches", "text": "Found 9 results (6 semantic, 3 structured)"},
         {"after_step": 5, "node": "rerank_results", "text": "Kept 4 best results · top relevance 92%"}
       ],
-      "response": "Here's how to prepare and apply a neem oil spray for whitefly control on your cassava:\n\n## Neem Oil Spray Recipe\n\n**Ingredients (for 10 liters):**\n- 50 ml neem oil (cold-pressed is best — available at Ziguinchor market or agricultural supply shops)\n- 10 liters of clean water\n- 3–5 drops of liquid soap (acts as an emulsifier to mix the oil with water)\n\n**Preparation:**\n1. Mix the soap into a small amount of warm water first\n2. Add the neem oil and stir vigorously until it forms a milky emulsion\n3. Pour into the remaining water and stir well\n4. Use within 8 hours — neem degrades in sunlight\n\n## Application\n- **When:** Early morning or late afternoon (avoid midday heat)\n- **How:** Spray the undersides of leaves thoroughly — that's where whiteflies feed and lay eggs\n- **Frequency:** Every 10–14 days during the rainy season (June–October)\n- **Coverage:** About 1 liter of spray per 10 plants\n\n## Local Alternative\nIf neem oil isn't available, you can make a neem leaf extract:\n- Crush 1 kg of fresh neem leaves\n- Soak overnight in 5 liters of water\n- Strain and dilute 1:1 with water before spraying\n\nNeem trees (*Azadirachta indica*) are common throughout Casamance — look for the tall trees with compound leaves near villages and along roads.\n\n**Important:** Neem is safe for humans, bees, and beneficial insects when used at these concentrations. No withholding period needed before harvest.",
+      "response": "Here's how to prepare neem oil spray for whitefly control:\n\n## Recipe (10 liters)\n- 50 ml neem oil (cold-pressed — available at Ziguinchor market)\n- 10 liters clean water\n- 3–5 drops liquid soap (emulsifier)\n\n**Steps:**\n1. Mix soap into a small amount of warm water\n2. Add neem oil, stir vigorously until milky\n3. Pour into remaining water and mix well\n4. Use within 8 hours — neem degrades in sunlight\n\n## Application\n- **When:** Early morning or late afternoon\n- **How:** Spray undersides of leaves — where whiteflies feed and lay eggs\n- **Frequency:** Every 10–14 days during rainy season (June–October)\n\nNeem trees are common throughout Casamance. Safe for humans, bees, and beneficial insects at these concentrations.",
       "sources": [
         {"title": "Cassava Mosaic Disease — Treatment (Cassava)", "score": 0.924, "content": "Neem oil (Azadirachta indica) at 5ml/L provides effective whitefly suppression when applied every 10-14 days. Cold-pressed neem oil is preferred for higher azadirachtin content. Add a small amount of liquid soap as an emulsifier. Apply to leaf undersides where whiteflies congregate."},
         {"title": "Pest Record — Whitefly (Bemisia tabaci)", "score": 0.891, "content": "Bemisia tabaci is the primary vector of cassava mosaic geminiviruses in Casamance. Population peaks during the early rainy season (June-July) when new cassava plantings are most vulnerable. Neem oil at 5ml/L provides effective suppression. Apply early morning or late afternoon to avoid rapid degradation."},
