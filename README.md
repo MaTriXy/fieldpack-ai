@@ -68,16 +68,16 @@ Same as the 60-second setup above. Leave it running.
 
 ### Step 2 — Phone: download the APK
 
-**APK download:** [fieldpack-ai-v1.0.0-debug.apk](TODO_APK_URL) *(9.7 MB — debug build)*
+**APK download:** [fieldpack-ai-v1.0.0-debug.apk](https://drive.google.com/file/d/1fDdvSxdMTf0a_rqwmO2idPo_R_9eCQLu/view?usp=sharing) *(9.7 MB — debug build, hosted on Google Drive)*
 
 **SHA256 checksum (verify integrity):**
 ```
 831984eb9fa29bd585ddef60c409e87bdce01e4a24d038f26f68932ec6f525df
 ```
 
-**Virus scan:** [VirusTotal report](TODO_VIRUSTOTAL_URL) — 0 detections
+On Windows: `certutil -hashfile fieldpack-ai-v1.0.0-debug.apk SHA256`. On macOS/Linux: `shasum -a 256 fieldpack-ai-v1.0.0-debug.apk`.
 
-> This is a **debug-signed APK**. Android will warn "Unknown developer" — expected for hackathon submissions. The SHA256 and VirusTotal link are there so you can verify integrity before installing. Requires Android 12+ (Chrome WebView 111+).
+> This is a **debug-signed APK**. Android will warn "Unknown developer" — expected for hackathon submissions. The SHA256 above is there so you can verify integrity before installing. Requires Android 12+ (Chrome WebView 111+).
 
 Install on phone:
 1. Download the APK to the phone
