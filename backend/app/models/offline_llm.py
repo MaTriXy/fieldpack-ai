@@ -101,9 +101,9 @@ def get_field_llm(
         log.info("field_llm_provider=google, using Google AI Studio")
         return _make_google(temperature, max_output_tokens=num_predict)
     if settings.field_llm_provider == "ollama-local":
-        log.info("field_llm_provider=ollama-local, using local Ollama")
+        log.info("field_llm_provider=ollama-local, using local Ollama at %s", settings.ollama_base_url)
         return _make_ollama(
-            "http://localhost:11434", temperature,
+            settings.ollama_base_url, temperature,
             num_predict=num_predict, format=format, reasoning=reasoning,
         )
     if settings.field_llm_provider == "ollama":
@@ -116,10 +116,10 @@ def get_field_llm(
                 settings.ollama_base_url, temperature, settings.ollama_tunnel_token,
                 num_predict=num_predict, format=format, reasoning=reasoning,
             )
-        if _ollama_reachable("http://localhost:11434"):
-            log.info("field_llm_provider=ollama, using local Ollama")
+        if _ollama_reachable(settings.ollama_base_url):
+            log.info("field_llm_provider=ollama, using local Ollama at %s", settings.ollama_base_url)
             return _make_ollama(
-                "http://localhost:11434", temperature,
+                settings.ollama_base_url, temperature,
                 num_predict=num_predict, format=format, reasoning=reasoning,
             )
         raise RuntimeError(
@@ -141,7 +141,7 @@ def get_field_llm(
         return _make_google(temperature, max_output_tokens=num_predict)
     if _resolved_provider == "local":
         return _make_ollama(
-            "http://localhost:11434", temperature,
+            settings.ollama_base_url, temperature,
             num_predict=num_predict, format=format, reasoning=reasoning,
         )
 
@@ -165,7 +165,7 @@ def get_resolved_provider() -> str:
             settings.ollama_base_url, settings.ollama_tunnel_token
         ):
             return "tunnel"
-        if _ollama_reachable("http://localhost:11434"):
+        if _ollama_reachable(settings.ollama_base_url):
             return "local"
         return "none"
     import time as _time
@@ -196,8 +196,8 @@ def _resolve_provider():
         return
 
     # 3. Local Ollama
-    if _ollama_reachable("http://localhost:11434"):
-        log.info("Resolved LLM: local Ollama at localhost:11434")
+    if _ollama_reachable(settings.ollama_base_url):
+        log.info("Resolved LLM: local Ollama at %s", settings.ollama_base_url)
         _resolved_provider = "local"
         _resolved_at = _time.monotonic()
         return

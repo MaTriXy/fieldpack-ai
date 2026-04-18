@@ -1,0 +1,159 @@
+# FieldPack AI — docker-compose for real, interactive use (DEMO_MODE=false).
+#
+# Four services:
+#   ollama        — runs Gemma 4 E2B locally on port 11434
+#   ollama-init   — one-shot init that pulls the model on first run
+#   app           — FastAPI backend on port 8000 (real agentic RAG)
+#   frontend      — nginx serving the React app on port 5173
+#
+# First run pulls ~5 GB Gemma 4 E2B model (~5 min). The model persists in a
+# named volume, so subsequent runs start instantly.
+#
+# IMPORTANT: verify the model tag exists in Ollama's registry before shipping.
+# Run `ollama pull gemma4:e2b-it-q4_K_M` against a live Ollama server to confirm.
+# If the tag has changed, update OLLAMA_MODEL below + the pull command in
+# the ollama-init service.
+
+services:
+
+  # ---------------------------------------------------------------------------
+  # Ollama — local inference for Gemma 4 E2B
+  # ---------------------------------------------------------------------------
+  ollama:
+    # Pinned to 0.21.0 — the version the stack was live-tested against.
+    # Bumping is fine but re-test with the --keepalive flag and the
+    # model tag format, which have both changed across Ollama releases.
+    image: ollama/ollama:0.21.0
+    container_name: fieldpack-ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_models:/root/.ollama
+    environment:
+      # KV cache at 8-bit (q8_0) — good quality/memory tradeoff for a small
+      # 4-bit-weight model. q4_0 KV stacks quant error on already-4-bit weights
+      # and degrades attention on E2B; f16 is the reference but costs 3-4 GB more.
+      # Flash attention is required for quantized KV cache.
+      - OLLAMA_KV_CACHE_TYPE=q8_0
+      - OLLAMA_FLASH_ATTENTION=1
+      # Single-request, single-model — saves RAM on edge-class hardware.
+      - OLLAMA_NUM_PARALLEL=1
+      - OLLAMA_MAX_LOADED_MODELS=1
+      # --- GPU troubleshooting ---
+      # GPU offloading is auto-detected by default (fast on Nvidia/AMD discrete).
+      # If the model produces nonsense/garbled output, you likely have an Intel
+      # integrated GPU that Ollama is trying to partially use. Uncomment this
+      # line and restart with: docker-compose restart ollama
+      # - OLLAMA_NUM_GPU=0
+    healthcheck:
+      # Use the ollama CLI — guaranteed present since it's the image entrypoint.
+      # Passes once the model is listed. Warming the model happens in
+      # ollama-init after pull, so by the time app.depends_on fires, the
+      # model is both listed AND resident in Ollama memory (keep_alive=-1
+      # on the first inference call pins it). See ollama-init below.
+      test: ["CMD-SHELL", "ollama list 2>/dev/null | grep -q 'gemma4:e2b-it-q4_K_M' || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 90
+      start_period: 30s
+    restart: unless-stopped
+    # --- Optional: Nvidia GPU passthrough ---
+    # Uncomment if you have an Nvidia GPU and have installed nvidia-container-toolkit
+    # on the host. Without this block, Ollama runs on CPU inside the container
+    # even if the host has a GPU.
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: all
+    #           capabilities: [gpu]
+
+  # ---------------------------------------------------------------------------
+  # Model pull — one-shot init that pulls Gemma 4 E2B on first run.
+  # Uses the ollama CLI itself for the readiness probe (not curl/wget, which
+  # are not guaranteed to exist in the base image).
+  # ---------------------------------------------------------------------------
+  ollama-init:
+    image: ollama/ollama:0.21.0
+    container_name: fieldpack-ollama-init
+    depends_on:
+      - ollama
+    volumes:
+      - ollama_models:/root/.ollama
+    environment:
+      - OLLAMA_HOST=http://ollama:11434
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        set -e
+        echo "Waiting for Ollama server..."
+        until ollama list >/dev/null 2>&1; do
+          sleep 2
+        done
+        if ollama list | grep -q 'gemma4:e2b-it-q4_K_M'; then
+          echo "Model already present."
+        else
+          echo "Pulling Gemma 4 E2B (q4_K_M). ~5 GB, runs once."
+          ollama pull gemma4:e2b-it-q4_K_M
+          echo "Model pull complete."
+        fi
+        # Warm the model into memory so the first judge query does not pay
+        # a 20-60s cold-load cost. --keepalive 999999h effectively pins it;
+        # the app's per-request keep_alive=-1 will keep it pinned thereafter.
+        # --hidethinking suppresses chain-of-thought noise from this small-
+        # model warmup (we disable thinking at the API layer for real calls).
+        echo "Warming model (1-token generate, long keepalive)..."
+        ollama run gemma4:e2b-it-q4_K_M --keepalive 999999h --hidethinking "ok" >/dev/null 2>&1 || true
+        echo "Model warm and pinned."
+    restart: "no"
+
+  # ---------------------------------------------------------------------------
+  # App — FastAPI backend, real agentic RAG on port 8000
+  # ---------------------------------------------------------------------------
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: fieldpack-app
+    depends_on:
+      ollama:
+        # Wait for the Ollama server to be reachable and the model to be listed.
+        condition: service_healthy
+      ollama-init:
+        # Wait for ollama-init to finish (pull + warmup). By the time this
+        # completes, the model is loaded into memory and pinned — the first
+        # judge query returns fast instead of paying a 20-60s cold-load.
+        condition: service_completed_successfully
+    ports:
+      - "8000:8000"
+    environment:
+      - DEMO_MODE=false
+      - FIELD_LLM_PROVIDER=ollama-local
+      - OLLAMA_BASE_URL=http://ollama:11434
+      - OLLAMA_MODEL=gemma4:e2b-it-q4_K_M
+      - OLLAMA_NUM_CTX=4096
+      - OLLAMA_KEEP_ALIVE=-1
+      - HOST=0.0.0.0
+      - PORT=8000
+    volumes:
+      - uploads:/app/uploads
+    restart: unless-stopped
+
+  # ---------------------------------------------------------------------------
+  # Frontend — React app served by nginx on port 5173, proxies /api + /ws
+  # ---------------------------------------------------------------------------
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: fieldpack-frontend
+    depends_on:
+      - app
+    ports:
+      - "5173:5173"
+    restart: unless-stopped
+
+volumes:
+  ollama_models:
+  uploads:

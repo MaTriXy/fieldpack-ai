@@ -29,8 +29,7 @@ import {
   type QueuedChatMessage,
 } from '../lib/offline-queue'
 import ServerSettings, { ServerSettingsButton } from '../components/ServerSettings'
-import ThinkingBubble, { STEP_LABELS } from '../components/ThinkingBubble'
-import { FIELD_FACTS } from '../lib/field-facts'
+import ThinkingBubble from '../components/ThinkingBubble'
 import { useInsightDrip } from '../hooks/useInsightDrip'
 
 interface Message {
@@ -127,8 +126,6 @@ function PhotoAnalysisOverlay() {
     </div>
   )
 }
-
-// ThinkingBubble, STEP_LABELS, and FIELD_FACTS are imported from shared modules above
 
 // Ordered steps for the progress bar (matches real pipeline order)
 const STEP_ORDER = ['classifying', 'evaluating', 'crafting', 'searching', 'reranking', 'generating']

@@ -140,10 +140,7 @@ def _call_ollama_vision(prompt: str, image_b64: str, resolved: str = "") -> str:
     """Send image to Ollama vision API."""
     if not resolved:
         resolved = get_resolved_provider()
-    if resolved == "local":
-        base_url = "http://localhost:11434"
-    else:
-        base_url = settings.ollama_base_url
+    base_url = settings.ollama_base_url
 
     headers = {}
     if settings.ollama_tunnel_token and resolved != "local":

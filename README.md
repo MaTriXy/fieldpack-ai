@@ -100,6 +100,29 @@ cd frontend && npm run dev
 
 See [`backend/.env.example`](backend/.env.example) for all configuration options.
 
+### Run the real app in Docker (for reviewers)
+
+One command, real Ollama, real Gemma 4 E2B, real RAG — no manual setup.
+
+```bash
+git clone https://github.com/orkohol/fieldpack-ai.git
+cd fieldpack-ai
+docker-compose up
+# Open http://localhost:5173
+```
+
+**First run:** the `ollama-init` container pulls Gemma 4 E2B (~5 GB, ~5 min). The `app` container waits for the model to be ready before serving requests, so the first page load may take a few minutes. Subsequent runs start in seconds — the model persists in a Docker volume.
+
+**Requirements:** Docker Desktop (or Docker Engine + Compose), ~8 GB RAM available to the containers, ~10 GB free disk.
+
+**Do not copy `backend/.env.example` to `.env`** when running in Docker. Compose provides all required environment variables directly (with `DEMO_MODE=false`). Copying the example file is only for native (non-Docker) runs.
+
+**GPU acceleration:** Off by default (works on any machine, CPU-only). If you have an Nvidia GPU with `nvidia-container-toolkit` installed, uncomment the `deploy:` block in `docker-compose.yml` for passthrough — answers come back noticeably faster (typically several × speedup on discrete GPUs).
+
+**Troubleshooting — garbled / nonsense output:** Likely means Ollama is partially offloading to an Intel integrated GPU, which splits Gemma E2B layers across precision boundaries. Fix: uncomment `OLLAMA_NUM_GPU=0` in `docker-compose.yml` and run `docker-compose restart ollama`. Answers come back correct (CPU-only, slower).
+
+**Troubleshooting — model pull fails:** If the `ollama-init` container exits with "pull model manifest: file does not exist", the Gemma 4 E2B tag in the public Ollama registry has changed. Run `curl https://ollama.com/library/gemma4/tags` or check the library page to find the current tag, then update `OLLAMA_MODEL` in `docker-compose.yml` and the pull command inside `ollama-init`.
+
 ## Tech Stack
 
 | Component | Technology | Purpose |

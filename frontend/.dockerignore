@@ -1,0 +1,9 @@
+node_modules
+dist
+android
+.gradle
+.idea
+local.properties
+npm-debug.log
+yarn-error.log
+*.apk
