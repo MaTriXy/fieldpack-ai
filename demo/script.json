@@ -60,7 +60,7 @@
   "field_chat": [
     {
       "id": "greeting",
-      "match_patterns": ["hello", "hi", "hey", "good morning", "bonjour"],
+      "match_patterns": ["hello", "hey there", "good morning", "good afternoon", "bonjour", "salut"],
       "pipeline_mode": "quick",
       "agent_steps": [
         {"step": "classifying", "detail": "Analyzing your question...", "delay_ms": 400},
@@ -84,7 +84,7 @@
     },
     {
       "id": "cassava_planting",
-      "match_patterns": ["planting", "season", "when to plant", "cassava", "best time"],
+      "match_patterns": ["plant cassava", "planting", "when to plant", "best time to plant", "planting season", "planting calendar"],
       "pipeline_mode": "rag",
       "agent_steps": [
         {"step": "classifying", "detail": "Analyzing your question...", "delay_ms": 500},
@@ -123,7 +123,7 @@
     },
     {
       "id": "plant_diagnosis",
-      "match_patterns": ["photo", "image", "look at", "diagnose", "what is this", "disease", "leaf", "sick", "yellow"],
+      "match_patterns": ["what is this", "something is wrong", "what's wrong", "diagnose", "disease", "sick", "photo", "leaf"],
       "match_has_image": true,
       "pipeline_mode": "rag",
       "agent_steps": [
@@ -164,7 +164,7 @@
     },
     {
       "id": "followup_neem",
-      "match_patterns": ["neem", "spray", "how to", "prepare", "mix", "make", "where", "find"],
+      "match_patterns": ["neem", "neem oil", "spray", "prepare", "mix"],
       "pipeline_mode": "rag",
       "agent_steps": [
         {"step": "classifying", "detail": "Analyzing your question...", "delay_ms": 700},
@@ -202,7 +202,7 @@
     },
     {
       "id": "followup_sources",
-      "match_patterns": ["source", "where", "reference", "evidence", "how do you know", "cite"],
+      "match_patterns": ["source", "sources", "reference", "references", "evidence", "how do you know", "cite"],
       "pipeline_mode": "quick",
       "agent_steps": [
         {"step": "classifying", "detail": "Analyzing your question...", "delay_ms": 500},

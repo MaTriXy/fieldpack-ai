@@ -9,14 +9,15 @@ Graph structure:
     → [no search + other]       → generate_answer → END
     → [needs search]            → craft_query → execute_search → rerank
         → [sufficient OR max attempts]  → generate_answer → END
-        → [attempt 2]                   → expand_route → craft_query (loop)
-        → [attempt 1]                   → craft_query (loop, same route)
+        → [retry (enhanced)]            → expand_route → craft_query (loop)
 
 LLM calls: classify (#1), craft_query (#2), rerank (#3), generate (#4)
            + needs_search (ambiguous cases only)
            + log_observation (observation path only)
-Retry: max 3 attempts. Attempt 1 = same route new query.
-       Attempt 2 = expanded route new query variants.
+Retry: settings.max_retrieval_attempts (default 2 = one enhanced retry).
+       Retry expands the route, drops filters, re-crafts query, and
+       (when settings.llm_rerank_on_retry=True) runs LLM rerank.
+       Legacy 3-attempt mode preserved by setting max_retrieval_attempts=3.
 """
 
 import time
@@ -39,6 +40,7 @@ from app.agents.nodes import (
     route_intent,
 )
 from app.agents.nodes.rerank import MAX_RESULTS_FOR_RERANK
+from app.agents.nodes.route import EXPANDED_ROUTE
 from app.agents.state import FieldAssistantState
 from app.logger import Step, pipeline_logger as log
 
@@ -95,22 +97,80 @@ def _after_needs_search(state: FieldAssistantState) -> str:
 def _after_rerank(state: FieldAssistantState) -> str:
     """Route after rerank results.
 
-    Three paths:
-      - sufficient results OR max attempts → generate_answer
-      - attempt 2 → expand_route_node (broaden, then re-craft)
-      - attempt 1 → craft_search_query (same route, new query)
+    With max_retrieval_attempts=2 (default), paths collapse to:
+      - sufficient OR attempts >= max → generate_answer
+      - zero results on an already-maxed route → generate_answer (skip retry)
+      - otherwise → expand_route_node (enhanced single retry)
+
+    Legacy max_retrieval_attempts=3 preserves the old behavior: one same-route
+    re-craft, then an expanded-route retry.
     """
     is_sufficient = state.get("is_sufficient", False)
     attempts = state.get("retrieval_attempts", 0)
+    ranked = state.get("ranked_results", []) or []
+    raw = state.get("search_results", []) or []
+    max_attempts = settings.max_retrieval_attempts
+    route = state.get("route")
+    engine_count = len(route.engines) if route and route.engines else 0
 
-    if is_sufficient or attempts >= 3:
-        return "generate_answer"
+    # Stage 5 early exit: if attempt 0 returned nothing AND expanding the
+    # route would not add any new engine/collection/table, retrying is guaranteed
+    # to produce another empty result. Skip straight to generate_answer so the
+    # model can honestly say "I don't have info" instead of burning ~40s.
+    route_already_maxed = False
+    if route:
+        expanded_engines = set(EXPANDED_ROUTE["engines"])
+        expanded_collections = set(EXPANDED_ROUTE["collections"])
+        expanded_tables = set(EXPANDED_ROUTE["tables"])
+        route_already_maxed = (
+            expanded_engines <= set(route.engines)
+            and expanded_collections <= set(route.collections)
+            and expanded_tables <= set(route.tables)
+        )
 
-    if attempts == 2:
-        return "expand_route_node"
+    empty_and_unwinnable = (
+        settings.skip_retry_on_empty
+        and attempts == 1  # rerank increments first, so attempt 0 has just finished
+        and not ranked
+        and not raw
+        and route_already_maxed
+    )
 
-    # attempt 1: retry with same route, new query
-    return "craft_search_query"
+    if is_sufficient or attempts >= max_attempts:
+        decision = "generate_answer"
+        reason = "sufficient" if is_sufficient else "max_attempts"
+    elif empty_and_unwinnable:
+        decision = "generate_answer"
+        reason = "empty_maxed_route_skip_retry"
+    elif max_attempts <= 2:
+        decision = "expand_route_node"
+        reason = "retry_expand"
+    elif attempts == max_attempts - 1:
+        # Legacy 3-attempt mode, last retry (attempts == 2): expand route.
+        decision = "expand_route_node"
+        reason = "retry_expand"
+    else:
+        # Legacy 3-attempt mode, first retry (attempts == 1): re-craft query
+        # against the same route. The next pass will hit the branch above.
+        decision = "craft_search_query"
+        reason = "retry_same_route"
+
+    # Stash reason into state so _extract_insight can surface it to the frontend.
+    # (on_chain_end fires for nodes, not for edge functions, so a log_step alone
+    # would stay in the file logger but not reach the streaming pipeline.)
+    log.log_step(Step.RERANK, "route_decision", details={
+        "decision": decision,
+        "reason": reason,
+        "attempts": attempts,
+        "max_attempts": max_attempts,
+        "is_sufficient": is_sufficient,
+        "ranked_count": len(ranked),
+        "raw_search_count": len(raw),
+        "engine_count": engine_count,
+        "route_already_maxed": route_already_maxed,
+    })
+
+    return decision
 
 
 # ============================================================
@@ -363,14 +423,20 @@ def _extract_insight(node_name: str, output: dict, state: dict) -> dict | None:
     elif node_name == "rerank_results":
         results = output.get("ranked_results") or state.get("ranked_results") or []
         sufficient = output.get("is_sufficient", state.get("is_sufficient", False))
+        attempts = output.get("retrieval_attempts", state.get("retrieval_attempts", 0))
+        max_attempts = settings.max_retrieval_attempts
         kept = len(results)
         if kept:
             top_score = max((r.relevance_score for r in results if hasattr(r, "relevance_score")), default=0)
             pct = round(top_score * 100)
             text = f"Kept {kept} best results · top relevance {pct}%"
-            if not sufficient:
+            if not sufficient and attempts < max_attempts:
                 text += " · retrying for better matches"
             return {"node": node_name, "text": text}
+        # Zero kept results — make the user-facing reason explicit
+        if attempts >= max_attempts:
+            return {"node": node_name, "text": "No matches after all retries — will answer without pack context"}
+        return {"node": node_name, "text": "No matches this attempt — retrying with a broader search"}
 
     elif node_name == "expand_route_node":
         return {"node": node_name, "text": "Broadening search to more knowledge areas"}

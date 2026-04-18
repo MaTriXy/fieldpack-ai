@@ -89,48 +89,26 @@ async function waitForMissionResponse(frame: Frame, expectedText: string, timeou
 
 const SCENES: Scene[] = [
   // ────────────────────────────────────────────────────────────────────────
-  // SCENE 1: Cold Open — diseased leaf (0:00–0:05)
-  // Full-screen story moment — composited in Resolve with stock photo.
-  {
-    id: 'cold-open',
-    startSec: 0,
-    endSec: 5,
-    leftFrame: null,
-    rightAction: async () => {},
-  },
-
-  // SCENE 2: The Answer — phone centered with diagnosis streaming (0:05–0:12)
-  // Full-screen app moment — composited in Resolve from hero shot footage.
-  {
-    id: 'the-answer',
-    startSec: 5,
-    endSec: 12,
-    leftFrame: null,
-    rightAction: async () => {},
-  },
-
-  // SCENE 3: Title Card (0:12–0:18)
-  // Phone starts fresh → lands on onboarding Welcome slide
+  // SCENE 1: Title Card (0:00–0:03) — tight logo intro, no cold-open
   {
     id: 'title-card',
-    startSec: 12,
-    endSec: 18,
+    startSec: 0,
+    endSec: 3,
     leftFrame: 'title',
     rightAction: async ({ phone, log }) => {
-      // Phone was pre-loaded to Welcome slide during startup — no reload needed
       await phone.waitForSelector('button:has-text("Get Started")', { timeout: 3_000 })
       log('Onboarding: Welcome slide ready')
-      // Hold on Welcome slide for the rest of the scene
-      await wait(3000)
+      // Hold the Welcome slide stably until persona scene takes over
+      await wait(2500)
     },
   },
 
-  // SCENE 4: Amina's Profile (0:18–0:28)
+  // SCENE 2: Amina's Profile (0:03–0:13)
   // Swipe through onboarding: Hero Workflow → Three Modes
   {
     id: 'persona',
-    startSec: 18,
-    endSec: 28,
+    startSec: 3,
+    endSec: 13,
     leftFrame: 'persona',
     rightAction: async ({ phone, log }) => {
       // Guard: Welcome slide must still be showing its nav button
@@ -154,12 +132,12 @@ const SCENES: Scene[] = [
     },
   },
 
-  // SCENE 5: The Map (0:28–0:35)
+  // SCENE 3: The Map (0:13–0:20)
   // Continue onboarding: Three Modes visible at start → Knowledge Packs slide
   {
     id: 'map',
-    startSec: 28,
-    endSec: 35,
+    startSec: 13,
+    endSec: 20,
     leftFrame: 'map',
     rightAction: async ({ phone, log }) => {
       // Dwell on Three Modes slide for 2s so the viewer can read it
@@ -174,12 +152,12 @@ const SCENES: Scene[] = [
     },
   },
 
-  // SCENE 6: Impact Stats (0:35–0:45)
+  // SCENE 4: Impact Stats (0:20–0:30)
   // Finish onboarding: Knowledge Packs visible at start → Connect slide → auto-connects → "Get Started"
   {
     id: 'stats',
-    startSec: 35,
-    endSec: 45,
+    startSec: 20,
+    endSec: 30,
     leftFrame: 'stats',
     rightAction: async ({ phone, log }) => {
       // Dwell on Knowledge Packs slide so the viewer can read the pack card
@@ -216,12 +194,12 @@ const SCENES: Scene[] = [
     },
   },
 
-  // SCENE 7: Architecture (0:45–0:55)
+  // SCENE 5: Architecture (0:30–0:40)
   // HomePage — pack loaded, system status visible
   {
     id: 'architecture',
-    startSec: 45,
-    endSec: 55,
+    startSec: 30,
+    endSec: 40,
     leftFrame: 'architecture',
     rightAction: async ({ phone, log }) => {
       // Should now be on HomePage after onboarding complete
@@ -230,11 +208,11 @@ const SCENES: Scene[] = [
     },
   },
 
-  // SCENE 8: Online Phase — Mission Chat (0:55–1:10)
+  // SCENE 6: Online Phase — Mission Chat (0:40–0:55)
   {
     id: 'mission-chat',
-    startSec: 55,
-    endSec: 70,
+    startSec: 40,
+    endSec: 55,
     leftFrame: 'online-phase',
     rightAction: async ({ phone, log }) => {
       await phone.goto('http://localhost:5173/mission')
@@ -272,11 +250,11 @@ const SCENES: Scene[] = [
     },
   },
 
-  // SCENE 9: Agent Progress (1:10–1:30)
+  // SCENE 7: Agent Progress (0:55–1:15)
   {
     id: 'agent-progress',
-    startSec: 70,
-    endSec: 90,
+    startSec: 55,
+    endSec: 75,
     leftFrame: 'progress',
     rightAction: async ({ phone, log }) => {
       log('Waiting for pipeline completion...')
@@ -294,11 +272,11 @@ const SCENES: Scene[] = [
     },
   },
 
-  // SCENE 10: Transition — NO WIFI / NO DATA / NO CLOUD (1:30–1:40)
+  // SCENE 8: Transition — NO WIFI / NO DATA / NO CLOUD (1:15–1:25)
   {
     id: 'transition',
-    startSec: 90,
-    endSec: 100,
+    startSec: 75,
+    endSec: 85,
     leftFrame: 'transition',
     rightAction: async ({ phone }) => {
       await phone.goto('http://localhost:5173/')
@@ -306,11 +284,11 @@ const SCENES: Scene[] = [
     },
   },
 
-  // SCENE 11: Field Session — first offline interaction (1:40–1:55)
+  // SCENE 9: Field Session — first offline interaction (1:25–1:40)
   {
     id: 'field-session',
-    startSec: 100,
-    endSec: 115,
+    startSec: 85,
+    endSec: 100,
     leftFrame: 'field-session',
     rightAction: async ({ phone, log }) => {
       await phone.goto('http://localhost:5173/field')
@@ -332,12 +310,12 @@ const SCENES: Scene[] = [
     },
   },
 
-  // SCENE 12: Hero Shot — plant photo → diagnosis (1:55–2:20)
+  // SCENE 10: Hero Shot — plant photo → diagnosis (1:40–2:05)
   // THE key moment.
   {
     id: 'hero-shot',
-    startSec: 115,
-    endSec: 140,
+    startSec: 100,
+    endSec: 125,
     leftFrame: 'pipeline',
     rightAction: async ({ phone, log }) => {
       // Type the question first, then attach photo
@@ -359,7 +337,10 @@ const SCENES: Scene[] = [
       await phone.click('button[aria-label="Send message"]')
       log('Photo sent, waiting for diagnosis to stream...')
       await waitForResponseDone(phone, 75_000)
-      log('Diagnosis complete!')
+      log('Diagnosis complete! Letting viewer read the answer...')
+
+      // Dwell on the raw chat answer so viewers can read it before we navigate
+      await wait(2500)
 
       // Click "View Full Diagnosis" to show the analysis page
       try {
@@ -374,11 +355,11 @@ const SCENES: Scene[] = [
     },
   },
 
-  // SCENE 13: Grounded AI — follow-up question (2:20–2:35)
+  // SCENE 11: Grounded AI — follow-up question (2:05–2:20)
   {
     id: 'grounded',
-    startSec: 140,
-    endSec: 155,
+    startSec: 125,
+    endSec: 140,
     leftFrame: 'grounded',
     rightAction: async ({ phone, log }) => {
       // Navigate back to field chat from diagnosis page
@@ -407,11 +388,11 @@ const SCENES: Scene[] = [
     },
   },
 
-  // SCENE 14: Platform Vision — pack list (2:35–2:50)
+  // SCENE 12: Platform Vision — pack list (2:20–2:35)
   {
     id: 'platform',
-    startSec: 155,
-    endSec: 170,
+    startSec: 140,
+    endSec: 155,
     leftFrame: 'platform',
     rightAction: async ({ phone, log }) => {
       log('Navigating to pack list...')
@@ -420,11 +401,11 @@ const SCENES: Scene[] = [
     },
   },
 
-  // SCENE 15: Closing (2:50–3:00)
+  // SCENE 13: Closing (2:35–2:50)
   {
     id: 'closing',
-    startSec: 170,
-    endSec: 180,
+    startSec: 155,
+    endSec: 170,
     leftFrame: 'closing',
     rightAction: async () => {},
   },
@@ -443,7 +424,7 @@ function printTimeline() {
     const frame = s.leftFrame ?? '(full-screen)'
     console.log(`  ${s.id.padEnd(20)} ${(start + '–' + end).padEnd(12)} ${frame.padEnd(17)} ${dur}s`)
   }
-  console.log('\n  Total: 3:00 (180 seconds)\n')
+  console.log('\n  Total: 2:50 (170 seconds)\n')
 }
 
 // ─── Main ────────────────────────────────────────────────────────────────────
@@ -539,6 +520,14 @@ async function main() {
     })
   })
 
+  // 5-second countdown so OBS can start and first frame is clean
+  console.log('\n  Starting in...')
+  for (let i = 5; i >= 1; i--) {
+    console.log(`  ${i}...`)
+    await wait(1000)
+  }
+  console.log('  GO!\n')
+
   recordingStart = Date.now()
   log('Recording started!')
 
@@ -576,19 +565,30 @@ async function main() {
     }
   }
 
-  // Wait until 3:00
+  // Wait until 2:50
   const totalElapsed = Date.now() - recordingStart
-  if (totalElapsed < 180_000) {
-    log(`Holding for ${Math.ceil((180_000 - totalElapsed) / 1000)}s until 3:00...`)
-    await wait(180_000 - totalElapsed)
+  if (totalElapsed < 170_000) {
+    log(`Holding for ${Math.ceil((170_000 - totalElapsed) / 1000)}s until 2:50...`)
+    await wait(170_000 - totalElapsed)
   }
 
-  log('Recording complete! (3:00)')
+  log('Recording complete! (2:50)')
 
   // Write timestamp log
   const logPath = path.resolve(__dirname, 'timestamps.json')
   fs.writeFileSync(logPath, JSON.stringify(timestamps, null, 2))
   log(`Timestamps written to ${logPath}`)
+
+  // Validation: every scene in SCENES must be in timestamps.json
+  const recordedIds = new Set(timestamps.map(t => t.scene))
+  const missing = SCENES.map(s => s.id).filter(id => !recordedIds.has(id))
+  if (missing.length > 0) {
+    console.log(`\n  ⚠ WARNING: ${missing.length} scene(s) missing from timestamps.json:`)
+    for (const id of missing) console.log(`    - ${id}`)
+    console.log('  Audio build will skip narration clips tied to these scenes.\n')
+  } else {
+    console.log(`\n  ✓ All ${SCENES.length} scenes recorded to timestamps.json\n`)
+  }
 
   console.log('\n  Stop OBS recording now. Window will close in 5 seconds...\n')
   await wait(5000)

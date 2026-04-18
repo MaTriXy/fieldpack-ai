@@ -135,6 +135,9 @@ def _parse_craft_response(response_text: str) -> CraftedQuery:
 
 RETRY_VARIANTS_PROMPT = """You help write search queries for an agricultural knowledge base.
 
+This is a RETRY — the search will also be broadened across more collections
+and tables, so aim for queries that probe WIDER concept space, not narrower.
+
 Your PREVIOUS search query was: "{previous_query}"
 It returned insufficient results ({failure_reason}).
 
@@ -142,7 +145,7 @@ Generate 3 DIFFERENT search queries to try instead. Each must take a different a
 
 1. SYNONYM variant: rephrase using different words, synonyms, or alternative descriptions of the same concept
 2. LOCAL variant: use local terminology — indigenous names, French agricultural terms, regional crop variety names
-3. BROAD variant: broaden the concept slightly — search for the crop family, symptom category, or general treatment approach
+3. BROAD variant: widen the concept substantially — search for the crop family, symptom category, disease class, or general treatment approach
 
 For each query, output:
 {{"embedding_query": "...", "fts_keywords": ["...", "..."], "reasoning": "..."}}

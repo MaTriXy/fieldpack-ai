@@ -181,4 +181,15 @@ This project is an entry in the [Kaggle Gemma 4 Good Hackathon](https://www.kagg
 
 ## License
 
-[MIT](LICENSE)
+FieldPack AI source code is released under the [MIT License](LICENSE).
+
+### Third-party licenses
+
+This project uses **Gemma** models provided by Google. Gemma is subject to the
+[Gemma Terms of Use](https://ai.google.dev/gemma/terms) and the
+[Gemma Prohibited Use Policy](https://ai.google.dev/gemma/prohibited_use_policy).
+Any use, reproduction, or distribution of this project — or derivative works
+that incorporate Gemma or its outputs — must comply with those terms in
+addition to the MIT License covering FieldPack AI's own source code.
+
+See [`NOTICE`](NOTICE) for the full attribution and pass-through notice.

@@ -42,6 +42,19 @@ def expand_route_node(state: FieldAssistantState) -> dict:
         "current_collections": current_route.collections,
     })
 
+    # Detect the no-op case: the current route is already a superset of
+    # EXPANDED_ROUTE, so expand_route() won't widen the search space. The
+    # filter-drop below still helps, but be loud so we can measure the waste.
+    route_already_maxed = (
+        set(EXPANDED_ROUTE["engines"]) <= set(current_route.engines)
+        and set(EXPANDED_ROUTE["collections"]) <= set(current_route.collections)
+        and set(EXPANDED_ROUTE["tables"]) <= set(current_route.tables)
+    )
+    had_metadata_filters = bool(current_route.metadata_filters)
+    if route_already_maxed and not had_metadata_filters:
+        log.log_step(Step.EXPAND_ROUTE, "retry_noop_risk", level="WARNING",
+                     details={"reason": "route already at max and no filters to drop — retry will likely repeat prior attempt"})
+
     expanded = expand_route(current_route)
 
     # Drop metadata filters on expansion — the original filters already
@@ -53,7 +66,8 @@ def expand_route_node(state: FieldAssistantState) -> dict:
         "engines": [e.value for e in expanded.engines],
         "collections": expanded.collections,
         "tables": expanded.tables,
-        "filters_dropped": True,
+        "filters_dropped": had_metadata_filters,
+        "route_already_maxed": route_already_maxed,
     })
 
     return {"route": expanded}

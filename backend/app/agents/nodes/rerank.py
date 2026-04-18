@@ -19,6 +19,7 @@ from langchain_core.messages import HumanMessage, SystemMessage
 
 from app.agents.models import ResultType, ScoredResult, SearchResult, extract_text
 from app.agents.state import FieldAssistantState
+from app.config import settings
 from app.logger import Step, pipeline_logger as log
 from app.models.offline_llm import get_field_llm
 
@@ -333,6 +334,12 @@ def rerank_results(state: FieldAssistantState) -> dict:
     user_message = state.get("user_message", "")
     attempts = state.get("retrieval_attempts", 0)
 
+    # Breadcrumb: what the reranker saw on this attempt
+    log.log_step(Step.RERANK, "attempt_begin", details={
+        "attempt_number": attempts,
+        "search_results_in": len(search_results),
+    })
+
     if not search_results:
         log.log_step(Step.RERANK, "no_results", details={"attempts": attempts})
         return {
@@ -349,24 +356,42 @@ def rerank_results(state: FieldAssistantState) -> dict:
     detected_crop = classify_result.crop if classify_result and classify_result.crop else None
     with log.timed(Step.RERANK, "heuristic_rerank") as t:
         ranked, is_sufficient = _heuristic_rerank(top_results, image_description, detected_crop)
+        top_score = ranked[0].relevance_score if ranked else 0.0
         t.set(details={
+            "attempt_number": attempts,
             "input_count": len(top_results),
             "kept_count": len(ranked),
             "is_sufficient": is_sufficient,
+            "top_score": round(top_score, 3),
             "top_scores": [round(s.relevance_score, 3) for s in ranked[:5]],
             "method": "heuristic",
         })
 
-    # Tier 2: LLM fallback — only on retry attempts when heuristic says insufficient
-    if not is_sufficient and attempts >= 1:
-        log.log_step(Step.RERANK, "escalating_to_llm",
-                     details={"attempt": attempts, "heuristic_kept": len(ranked)})
+    # Tier 2: LLM rerank on retry.
+    # - Legacy (llm_rerank_on_retry=False): escalate only if heuristic was insufficient
+    # - Enhanced (llm_rerank_on_retry=True): always escalate on retry attempts,
+    #   because the previous attempt already exited the heuristic path as unsatisfied,
+    #   and the LLM judge is the last chance to salvage signal from noise.
+    should_llm_rerank = (
+        attempts >= 1
+        and (settings.llm_rerank_on_retry or not is_sufficient)
+    )
+    if should_llm_rerank:
+        log.log_step(Step.RERANK, "escalating_to_llm", details={
+            "attempt_number": attempts,
+            "heuristic_kept": len(ranked),
+            "heuristic_was_sufficient": is_sufficient,
+            "llm_rerank_on_retry_flag": settings.llm_rerank_on_retry,
+        })
         with log.timed(Step.RERANK, "llm_call") as t:
             ranked, is_sufficient = _llm_rerank(top_results, user_message, detected_crop, image_description)
+            top_score = ranked[0].relevance_score if ranked else 0.0
             t.set(details={
+                "attempt_number": attempts,
                 "input_count": len(top_results),
                 "kept_count": len(ranked),
                 "is_sufficient": is_sufficient,
+                "top_score": round(top_score, 3),
                 "top_scores": [round(s.relevance_score, 3) for s in ranked[:5]],
                 "method": "llm",
             })

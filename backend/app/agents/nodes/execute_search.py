@@ -11,6 +11,7 @@ import asyncio
 
 from app.agents.models import ResultType, SearchEngineType, SearchResult
 from app.agents.state import FieldAssistantState
+from app.config import settings
 from app.knowledge_pack.schema_sqlite import FTS_TABLE_MAP
 from app.logger import Step, pipeline_logger as log
 from app.tools.chroma_search import chroma_search
@@ -329,7 +330,29 @@ async def execute_searches(state: FieldAssistantState) -> dict:
             elif isinstance(result_or_error, list):
                 all_results.extend(result_or_error)
 
+        # Normalize NEW FTS scores first, using only this attempt's batch as
+        # the BM25 basis. Prior results (if any) were already normalized in
+        # their own attempt; mixing them before normalization would change the
+        # basis and artificially deflate prior ranks.
         all_results = _normalize_bm25_scores(all_results)
+
+        # Stage 3: on retry, merge prior attempt's (already-normalized) results
+        # into the candidate pool. Dedup below keeps the highest-score copy of
+        # each source, so adding prior hits can only help rankings — and because
+        # we normalized before merging, prior FTS scores keep their own basis.
+        attempts = state.get("retrieval_attempts", 0)
+        prior_results = state.get("search_results", []) or []
+        merged_count = 0
+        if attempts >= 1 and settings.merge_retry_results and prior_results:
+            new_count = len(all_results)
+            all_results.extend(prior_results)
+            merged_count = len(prior_results)
+            log.log_step(Step.SEARCH, "merge_prior_results", details={
+                "attempt": attempts,
+                "prior_count": merged_count,
+                "new_count": new_count,
+            })
+
         all_results = _deduplicate_results(all_results)
         all_results.sort(key=lambda r: r.score, reverse=True)
 

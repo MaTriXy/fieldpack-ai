@@ -776,82 +776,80 @@ The left-panel app is a simple React app that displays one frame at a time, cont
 
 ## Narration — Full Script (Continuous)
 
-For AI voice generation, the complete narration as one continuous script:
+For AI voice generation, the complete narration as one continuous script.
+
+Target timeline: **2:50 total**. Clips 1 and 2 (original cold-open VO) are not used — the video opens with a 3-second title card over music, then narration begins.
 
 ```
-[0:08]  This diagnosis just happened without internet.
-
-[0:13]  Without cloud. Without a single byte of data leaving this device.
-
-[0:18]  Meet Amina. She's an agronomist with Action Against Hunger,
+[0:03]  Meet Amina. She's an agronomist with Action Against Hunger,
         deploying to Senegal's Casamance region for three weeks.
         Her mission: help smallholder farmers survive a drought season
         complicated by cassava mosaic virus outbreaks.
 
-[0:28]  Casamance is 450 kilometers from Dakar. Once she's there —
+[0:13]  Casamance is 450 kilometers from Dakar. Once she's there —
         no reliable internet. No cloud AI. No expert database
         to fall back on.
 
-[0:35]  Cassava feeds 800 million people. In Sub-Saharan Africa,
+[0:20]  Cassava feeds 800 million people. In Sub-Saharan Africa,
         mosaic virus alone destroys up to half the harvest.
         And 3.7 billion people worldwide lack the internet access
         that could bring AI to help.
 
-[0:45]  What if AI could prepare before she loses connectivity?
+[0:30]  What if AI could prepare before she loses connectivity?
         Powerful cloud models research her specific mission,
         compile a portable Knowledge Pack, and hand it to an edge AI
         that works completely offline.
 
-[0:55]  Before leaving Dakar, Amina describes her mission. The AI
+[0:40]  Before leaving Dakar, Amina describes her mission. The AI
         understands what she needs — disease identification,
         treatment protocols, resistant crop varieties, climate data —
         all specific to Casamance.
 
-[1:10]  A team of AI agents fans out — gathering data from crop disease
+[0:55]  A team of AI agents fans out — gathering data from crop disease
         databases, agricultural extension services, climate records.
         In minutes, they compile everything into a single portable
         Knowledge Pack. 200 megabytes of expert knowledge she can carry
         in her pocket.
 
-[1:30]  Amina flies to Ziguinchor. No WiFi. No data. No cloud.
+[1:15]  Amina flies to Ziguinchor. No WiFi. No data. No cloud.
 
-[1:36]  Just her and her Knowledge Pack.
+[1:21]  Just her and her Knowledge Pack.
 
-[1:40]  Day three in the field. A farmer asks about planting schedules.
+[1:25]  Day three in the field. A farmer asks about planting schedules.
         Amina asks her Knowledge Pack.
 
-[1:50]  Locally relevant. Source-cited. Immediate.
+[1:35]  Locally relevant. Source-cited. Immediate.
         No internet required.
 
-[1:55]  A farmer shows her a plant with curled, yellowing leaves.
+[1:40]  A farmer shows her a plant with curled, yellowing leaves.
         She photographs it.
 
-[2:07]  Cassava Mosaic Disease. Moderate severity. Remove infected plants.
+[1:52]  Cassava Mosaic Disease. Moderate severity. Remove infected plants.
         Replant with CMD-resistant TME 419 — available right here
         in Ziguinchor. Use neem oil against whiteflies — neem trees
         grow everywhere in Casamance.
 
-[2:17]  Every answer traced back to verified sources.
+[2:02]  Every answer traced back to verified sources.
         Not hallucination. Curated knowledge.
 
-[2:20]  She asks follow-ups. Gets prevention strategies, intercropping
+[2:05]  She asks follow-ups. Gets prevention strategies, intercropping
         advice, biological control methods — all from verified
         agricultural databases. No hallucination. No guessing.
         Curated, mission-specific knowledge.
 
-[2:35]  Agriculture is just the first Knowledge Pack. The same
+[2:20]  Agriculture is just the first Knowledge Pack. The same
         architecture serves any expert going where internet doesn't.
         Disaster medical triage. Rural education. Wildlife conservation.
         Infrastructure assessment. Same system. Different pack.
         Any mission. Anywhere. Offline.
 
-[2:50]  FieldPack AI. Built with Gemma 4 on Ollama.
+[2:35]  FieldPack AI. Built with Gemma 4 on Ollama.
         Because the people who need AI most are the ones
         furthest from the cloud.
 ```
 
-Total narration: approximately 450 words at ~170 words/minute = ~2:40 of speaking.
-Remaining ~20 seconds is silence/ambient (cold open, transition pause, gaps between sections).
+Total narration: approximately 440 words at ~170 words/minute = ~2:35 of speaking.
+Remaining ~15 seconds is title card intro and micro-pauses between sections.
 
 ---
 

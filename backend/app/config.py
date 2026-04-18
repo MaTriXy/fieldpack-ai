@@ -29,6 +29,16 @@ class Settings(BaseSettings):
     embedding_model: str = "all-MiniLM-L6-v2"
     embedding_dimensions: int = 384
 
+    # Retrieval retry loop (agentic RAG).
+    # These flags are read once at import; changing them in .env requires a
+    # backend restart to take effect (pydantic-settings does not hot-reload).
+    #   max_retrieval_attempts=2 → one initial attempt + one enhanced retry (default).
+    #   max_retrieval_attempts=3 → legacy (initial + same-route retry + expanded retry).
+    max_retrieval_attempts: int = 2
+    merge_retry_results: bool = True   # union prior + new results on retry
+    llm_rerank_on_retry: bool = True   # always LLM-rerank on retry (not just when heuristic insufficient)
+    skip_retry_on_empty: bool = True   # skip retry when attempt 0 returned nothing and route already maxed
+
     # Paths
     knowledge_pack_dir: Path = Path("../packs")
     upload_dir: Path = Path("../uploads")

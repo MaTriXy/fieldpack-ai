@@ -14,7 +14,7 @@ DIR="C:/fieldpack-ai/demo/narration"
 TIMESTAMPS="C:/fieldpack-ai/demo/timestamps.json"
 OUT="$DIR/narration_final.mp3"
 
-TOTAL=185  # pad a few seconds beyond 3:00
+TOTAL=175  # pad a few seconds beyond 2:50
 
 # ─── Read scene timestamps from JSON ─────────────────────────────────────────
 
@@ -42,7 +42,7 @@ while IFS=' ' read -r scene ms; do
 done <<< "$SCENE_TIMES"
 
 echo "Scene timestamps from recording:"
-for scene in cold-open the-answer title-card persona map stats architecture mission-chat agent-progress transition field-session hero-shot grounded platform closing; do
+for scene in title-card persona map stats architecture mission-chat agent-progress transition field-session hero-shot grounded platform closing; do
   ms=${SCENE_MS[$scene]:-"MISSING"}
   if [ "$ms" != "MISSING" ]; then
     secs=$((ms / 1000))
@@ -59,7 +59,7 @@ echo ""
 # offset_ms = how many ms AFTER the scene starts before this clip plays
 
 CLIP_MAP=(
-  "3.mp3    persona         0"
+  "3_slow.mp3 persona       0"
   "4.mp3    map             0"
   "5.mp3    stats           0"
   "6.mp3    architecture    0"
@@ -90,6 +90,7 @@ FILTER=""
 MIXINPUTS=""
 IDX=0
 PREV_END=0
+GAP_MS=200  # minimum gap between clips to avoid clipping tails/heads
 
 for entry in "${CLIP_MAP[@]}"; do
   read -r FILE SCENE OFFSET <<< "$entry"
@@ -100,22 +101,26 @@ for entry in "${CLIP_MAP[@]}"; do
     continue
   fi
 
-  DELAY_MS=$((SCENE_START + OFFSET))
+  SCHEDULED_MS=$((SCENE_START + OFFSET))
 
-  # Get clip duration for overlap check
+  # Get clip duration
   DUR=$("$FFPROBE" -v error -show_entries format=duration -of csv=p=0 "$DIR/$FILE" 2>/dev/null | tr -d '\r')
   DUR_MS=$(echo "$DUR" | "$PYTHON" -c "import sys; print(int(float(sys.stdin.read().strip()) * 1000))" | tr -d '\r')
-  END_MS=$((DELAY_MS + DUR_MS))
 
-  # Check overlap with previous clip
-  OVERLAP=""
-  if [ "$DELAY_MS" -lt "$PREV_END" ]; then
-    OVERLAP_AMT=$(( (PREV_END - DELAY_MS) / 1000 ))
-    OVERLAP="  ⚠ overlaps prev by ~${OVERLAP_AMT}s"
+  # Anti-overlap: push clip forward if previous one is still playing
+  MIN_START=$((PREV_END + GAP_MS))
+  PUSHED=""
+  if [ "$SCHEDULED_MS" -lt "$MIN_START" ]; then
+    PUSH_AMT=$(( (MIN_START - SCHEDULED_MS) ))
+    DELAY_MS=$MIN_START
+    PUSHED="  ↪ pushed +${PUSH_AMT}ms to avoid overlap"
+  else
+    DELAY_MS=$SCHEDULED_MS
   fi
 
+  END_MS=$((DELAY_MS + DUR_MS))
   SECS=$((DELAY_MS / 1000))
-  printf "  %-10s → %6d ms  (%d:%02d)  dur=%ss%s\n" "$FILE" "$DELAY_MS" $((SECS/60)) $((SECS%60)) "$DUR" "$OVERLAP"
+  printf "  %-12s → %6d ms  (%d:%02d)  dur=%ss%s\n" "$FILE" "$DELAY_MS" $((SECS/60)) $((SECS%60)) "$DUR" "$PUSHED"
 
   INPUTS="$INPUTS -i $DIR/$FILE"
   FILTER="${FILTER}[${IDX}]aformat=sample_fmts=fltp:sample_rates=44100:channel_layouts=stereo,adelay=${DELAY_MS}|${DELAY_MS}[d${IDX}];"

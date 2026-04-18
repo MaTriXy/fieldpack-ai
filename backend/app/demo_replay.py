@@ -8,6 +8,7 @@ required — pure JSON playback for deterministic video recording.
 import asyncio
 import json
 import logging
+import re
 from pathlib import Path
 
 from app.config import settings
@@ -34,23 +35,29 @@ def _load_script() -> dict:
     return _script
 
 
+def _pattern_matches(pattern: str, msg_lower: str) -> bool:
+    """Whole-word (or whole-phrase) match, case-insensitive.
+
+    Why: substring matching hits "hi" inside "this", which mis-routes the
+    planting question to the greeting scene. Word boundaries stop that.
+    """
+    return re.search(rf"\b{re.escape(pattern.lower())}\b", msg_lower) is not None
+
+
 def _match_scene(message: str, has_image: bool, scenes: list[dict]) -> dict | None:
     """Find the best matching scene for a user message.
 
     Matches by checking if any of the scene's match_patterns appear
-    as substrings in the message (case-insensitive). If a scene requires
+    as whole words in the message (case-insensitive). If a scene requires
     an image (match_has_image=true), it only matches when has_image is true.
     Returns the first matching scene, or None.
     """
     msg_lower = message.lower()
     for scene in scenes:
-        # If scene requires an image, skip if no image
         if scene.get("match_has_image") and not has_image:
             continue
-        # If scene doesn't require an image but we have one, prefer image scenes
-        patterns = scene.get("match_patterns", [])
-        for pattern in patterns:
-            if pattern.lower() in msg_lower:
+        for pattern in scene.get("match_patterns", []):
+            if _pattern_matches(pattern, msg_lower):
                 return scene
     return None
 
@@ -60,7 +67,7 @@ def _match_mission_chat(message: str, scenes: list[dict]) -> dict | None:
     msg_lower = message.lower()
     for scene in scenes:
         for pattern in scene.get("match_patterns", []):
-            if pattern.lower() in msg_lower:
+            if _pattern_matches(pattern, msg_lower):
                 return scene
     return None
 
