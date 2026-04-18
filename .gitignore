@@ -45,6 +45,7 @@ jdk-*/
 
 # APK build artifacts
 frontend/android/app/build/
+dist-apk/
 
 # Misc
 *.log

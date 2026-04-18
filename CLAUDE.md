@@ -25,6 +25,9 @@ ollama serve
 cd frontend && npm run build && npx cap sync android
 JAVA_HOME="/c/fieldpack-ai/jdk-21.0.10+7" ANDROID_SDK_ROOT="/c/fieldpack-ai/.android-sdk" \
   PATH="$JAVA_HOME/bin:$PATH" ./android/gradlew -p android assembleDebug
+# Output: frontend/android/app/build/outputs/apk/debug/app-debug.apk
+# Ship location: dist-apk/fieldpack-ai-v1.0.0-debug.apk (gitignored — copy manually after build)
+# SHA256 of current release: record in README after each rebuild
 ```
 
 ## Pipeline
@@ -66,6 +69,10 @@ classify → route → needs_search
 
 ## Gotchas
 
+- **Rebuild APK when frontend/backend contract changes.** The shipped APK bakes in the frontend bundle — backend API changes that alter request/response shape, WebSocket event names, or URL paths require a rebuild. Current release: `dist-apk/fieldpack-ai-v1.0.0-debug.apk`, SHA256 `831984eb9fa29bd585ddef60c409e87bdce01e4a24d038f26f68932ec6f525df` (2026-04-18)
+- **APK distribution:** while repo is private, upload to Drive + VirusTotal (links go in README's "Run on Your Phone" section). When repo flips public, replace with GitHub Release (`/releases/latest`) — cleaner URL, no Drive permission glitches, zero git bloat
+- **LAN discovery:** app auto-scans on launch via `config.ts:autoScanForServer()` — probes saved URL → hotspot IPs (Windows `192.168.137.1`, Android `192.168.43.1`) → /24 subnet scan via WebRTC-detected local IP. Hardcoded list in `priorityIps` — add new hotspot patterns there
+- **Firewall:** Windows Defender prompts on first `docker-compose up` that serves on `:8000` — judges must "Allow access" or phone can't reach laptop. Document this in setup instructions
 - `CapacitorHttp: { enabled: false }` — NEVER enable, silently breaks WebSocket
 - `cleartext: true` in Capacitor config — required for HTTP over LAN (Android 9+)
 - Tailwind v4 `oklch()` — demo device must be Android 12+ (Chrome 111+ WebView)

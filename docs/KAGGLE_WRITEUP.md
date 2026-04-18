@@ -84,6 +84,31 @@ This is not a generic chatbot answer. Every detail — the variety names, the ex
 
 Amina logs the observation: location, severity, photo, diagnosis. When she eventually reaches connectivity, the data syncs, building a regional disease surveillance map that informs future Knowledge Packs — a compound flywheel where offline use generates data that improves future missions.
 
+## Try It Yourself — Reproduce Amina's Demo
+
+Two ways to experience FieldPack AI, in order of realism:
+
+**1. Docker (laptop only — 60 seconds)**
+
+```bash
+git clone https://github.com/orkohol/fieldpack-ai.git
+cd fieldpack-ai && docker-compose up
+# Open http://localhost:5173
+```
+
+First run pulls Gemma 4 E2B (~5 GB, ~5 min). Requires Docker Desktop, ~8 GB RAM. This gives you the full agentic RAG pipeline running against real Ollama.
+
+**2. Phone + Laptop (the real product)**
+
+The way FieldPack is designed to run: laptop as the AI server, phone as a thin client over local WiFi — no internet.
+
+- Laptop: `docker-compose up` (as above)
+- Phone: install [fieldpack-ai-v1.0.0-debug.apk](TODO_APK_URL) *(9.7 MB · SHA256 `831984eb9fa29bd585ddef60c409e87bdce01e4a24d038f26f68932ec6f525df` · [VirusTotal](TODO_VIRUSTOTAL_URL))*
+- Connect both devices to the same WiFi (or turn on the laptop's mobile hotspot)
+- Launch the app — it auto-scans for the backend on the local network
+
+Full step-by-step instructions: [README — Run on Your Phone](https://github.com/orkohol/fieldpack-ai#run-on-your-phone-the-real-demo).
+
 ## Technical Depth
 
 <p align="center">

@@ -54,6 +54,69 @@ docker-compose up
 
 ---
 
+## Run on Your Phone (the Real Demo)
+
+This is how FieldPack is designed to be used: the **laptop is the AI server**, the **phone is a thin client** connecting over local WiFi. Exactly what Amina does in the field — no internet.
+
+### Step 1 — Laptop: start the backend
+
+```bash
+docker-compose up
+```
+
+Same as the 60-second setup above. Leave it running.
+
+### Step 2 — Phone: download the APK
+
+**APK download:** [fieldpack-ai-v1.0.0-debug.apk](TODO_APK_URL) *(9.7 MB — debug build)*
+
+**SHA256 checksum (verify integrity):**
+```
+831984eb9fa29bd585ddef60c409e87bdce01e4a24d038f26f68932ec6f525df
+```
+
+**Virus scan:** [VirusTotal report](TODO_VIRUSTOTAL_URL) — 0 detections
+
+> This is a **debug-signed APK**. Android will warn "Unknown developer" — expected for hackathon submissions. The SHA256 and VirusTotal link are there so you can verify integrity before installing. Requires Android 12+ (Chrome WebView 111+).
+
+Install on phone:
+1. Download the APK to the phone
+2. Open it from Downloads → Android prompts "Install unknown apps" → allow for your browser → Install
+3. Launch **FieldPack AI**
+
+### Step 3 — Network: put phone and laptop on the same WiFi
+
+Three options, pick whichever is easiest:
+
+| Scenario | How |
+|---|---|
+| **Home/office WiFi** | Both phone and laptop connect to the same WiFi network |
+| **Laptop as hotspot** (closest to the demo video) | Windows: **Settings → Network → Mobile hotspot → On**. macOS: **System Settings → General → Sharing → Internet Sharing**. Then connect the phone to the laptop's hotspot SSID. |
+| **Phone as hotspot** | Turn on phone's mobile hotspot, connect the laptop to it |
+
+**Important:** your laptop's firewall must allow inbound traffic on port 8000. Windows Defender typically prompts on first run — choose "Allow access." If the phone can't connect, this is usually why.
+
+### Step 4 — Phone: connect to the laptop backend
+
+The app **auto-scans** on launch. If it finds the backend, you'll see the home screen with "Connected." If not:
+
+1. Find the laptop's IP address:
+   - **Windows:** open PowerShell → `ipconfig` → look for `IPv4 Address` under your active adapter (e.g. `192.168.1.42`)
+   - **macOS/Linux:** terminal → `ifconfig | grep "inet "` → find the `192.168.x.x` or `10.x.x.x` address
+   - **Windows hotspot:** the laptop is usually `192.168.137.1`
+2. In the app, tap the **gear icon** (top right of home screen) → enter `http://<laptop-ip>:8000` → **Test Connection** → **Save & Connect**
+
+### Step 5 — Try the hero shot
+
+Open **Field Chat** on the phone → tap the camera icon → take a photo of a cassava leaf (or any plant) → watch the diagnosis stream in, live, over your local network — the phone has no internet, and neither does the laptop during inference.
+
+**If it doesn't work:**
+- Phone says "Cannot reach server" → firewall blocking port 8000 on the laptop
+- App loads but WebSocket fails → Capacitor `cleartext` permission (already enabled in the shipped APK) or an HTTPS-only WiFi captive portal blocking LAN traffic
+- All endpoints timeout → phone and laptop aren't actually on the same subnet — double-check with `ping <laptop-ip>` from a terminal app on the phone
+
+---
+
 ## The Problem
 
 3.7 billion people lack reliable internet. Among them are the humanitarian workers, farmers, and health workers who hold communities together. They need expert-level knowledge to do their jobs, but AI requires the cloud, and the cloud requires internet.
