@@ -12,9 +12,23 @@ FFMPEG="C:/fieldpack-ai/ffmpeg/bin/ffmpeg.exe"
 FFPROBE="C:/fieldpack-ai/ffmpeg/bin/ffprobe.exe"
 DIR="C:/fieldpack-ai/demo/narration"
 TIMESTAMPS="C:/fieldpack-ai/demo/timestamps.json"
+META="C:/fieldpack-ai/demo/timestamps_meta.json"
 OUT="$DIR/narration_final.mp3"
 
-TOTAL=175  # pad a few seconds beyond 2:50
+# TOTAL is read from timestamps_meta.json (emitted by record.ts) so all three
+# scripts stay in lockstep when scene windows change. Fail loudly if missing —
+# a silent fallback would produce an audio track sized for the wrong duration.
+PYTHON="C:/fieldpack-ai/venv/Scripts/python.exe"
+if [ ! -f "$META" ]; then
+  echo "ERROR: $META not found. Run record.ts (or record:dry) first to emit it."
+  exit 1
+fi
+TOTAL=$("$PYTHON" -c "import json; print(json.load(open('$META'))['totalSec'])" 2>/dev/null | tr -d '\r')
+if [ -z "$TOTAL" ]; then
+  echo "ERROR: Could not read totalSec from $META"
+  exit 1
+fi
+echo "TOTAL duration: ${TOTAL}s (from timestamps_meta.json)"
 
 # ─── Read scene timestamps from JSON ─────────────────────────────────────────
 
@@ -23,9 +37,7 @@ if [ ! -f "$TIMESTAMPS" ]; then
   exit 1
 fi
 
-# Extract elapsedMs for each scene using python (available in venv)
-PYTHON="C:/fieldpack-ai/venv/Scripts/python.exe"
-
+# Extract elapsedMs for each scene using python (PYTHON already set above)
 # Python script outputs: SCENE_NAME ELAPSED_MS (one per line)
 SCENE_TIMES=$("$PYTHON" -c "
 import json, sys
@@ -73,8 +85,8 @@ CLIP_MAP=(
   "11.mp3   field-session   0"
   "12.mp3   field-session   10000"
   "13.mp3   hero-shot       0"
-  "14.mp3   hero-shot       12000"
-  "15.mp3   hero-shot       30000"
+  "14.mp3   hero-shot       5000"
+  "15.mp3   hero-shot       22200"
   "16.mp3   grounded        0"
   "17.mp3   platform        0"
   "18.mp3   closing         0"
@@ -118,12 +130,22 @@ for entry in "${CLIP_MAP[@]}"; do
     DELAY_MS=$SCHEDULED_MS
   fi
 
+  # Per-clip peak normalization: bring every clip up so its max_volume hits ~-3dB.
+  # TTS sometimes outputs clips ~20dB quieter than baseline (seen on 9b/9d).
+  # We measure the actual peak via ffprobe-volumedetect and boost by (-3 - max).
+  MAX_DB=$("$FFMPEG" -i "$DIR/$FILE" -af "volumedetect" -f null - 2>&1 | grep "max_volume" | sed -E 's/.*max_volume: (-?[0-9.]+) dB.*/\1/')
+  if [ -n "$MAX_DB" ]; then
+    GAIN_DB=$("$PYTHON" -c "print(max(0, -3 - float('$MAX_DB')))")
+  else
+    GAIN_DB="0"
+  fi
+
   END_MS=$((DELAY_MS + DUR_MS))
   SECS=$((DELAY_MS / 1000))
-  printf "  %-12s → %6d ms  (%d:%02d)  dur=%ss%s\n" "$FILE" "$DELAY_MS" $((SECS/60)) $((SECS%60)) "$DUR" "$PUSHED"
+  printf "  %-12s → %6d ms  (%d:%02d)  dur=%ss  gain=+%sdB%s\n" "$FILE" "$DELAY_MS" $((SECS/60)) $((SECS%60)) "$DUR" "$GAIN_DB" "$PUSHED"
 
   INPUTS="$INPUTS -i $DIR/$FILE"
-  FILTER="${FILTER}[${IDX}]aformat=sample_fmts=fltp:sample_rates=44100:channel_layouts=stereo,adelay=${DELAY_MS}|${DELAY_MS}[d${IDX}];"
+  FILTER="${FILTER}[${IDX}]aformat=sample_fmts=fltp:sample_rates=44100:channel_layouts=stereo,volume=${GAIN_DB}dB,adelay=${DELAY_MS}|${DELAY_MS}[d${IDX}];"
   MIXINPUTS="${MIXINPUTS}[d${IDX}]"
   IDX=$((IDX + 1))
 

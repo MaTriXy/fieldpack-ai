@@ -13,12 +13,24 @@
 FFMPEG="C:/fieldpack-ai/ffmpeg/bin/ffmpeg.exe"
 FFPROBE="C:/fieldpack-ai/ffmpeg/bin/ffprobe.exe"
 DIR="C:/fieldpack-ai/demo/narration"
+META="C:/fieldpack-ai/demo/timestamps_meta.json"
 
 NARRATION="$DIR/narration_final.mp3"
 MUSIC="$DIR/music.mp3"
 OUT="$DIR/narration_with_music.mp3"
 
-TOTAL=175           # output duration (seconds, matches build_audio.sh)
+# TOTAL is read from timestamps_meta.json so record.ts / build_audio.sh / mix_music.sh stay in lockstep.
+# Fail loudly if missing — silent fallback would mis-size the music bed.
+PYTHON="C:/fieldpack-ai/venv/Scripts/python.exe"
+if [ ! -f "$META" ]; then
+  echo "ERROR: $META not found. Run record.ts (or record:dry) first to emit it."
+  exit 1
+fi
+TOTAL=$("$PYTHON" -c "import json; print(json.load(open('$META'))['totalSec'])" 2>/dev/null | tr -d '\r')
+if [ -z "$TOTAL" ]; then
+  echo "ERROR: Could not read totalSec from $META"
+  exit 1
+fi
 FADE_IN=2           # music fade-in (seconds)
 FADE_OUT=3          # music fade-out (seconds)
 MUSIC_GAIN=0.07     # base music volume (7% — very faint bed, voice fully dominant)

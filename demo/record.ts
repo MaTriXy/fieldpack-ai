@@ -103,12 +103,12 @@ const SCENES: Scene[] = [
     },
   },
 
-  // SCENE 2: Amina's Profile (0:03–0:13)
+  // SCENE 2: Amina's Profile (0:03–0:19)
   // Swipe through onboarding: Hero Workflow → Three Modes
   {
     id: 'persona',
     startSec: 3,
-    endSec: 13,
+    endSec: 19,
     leftFrame: 'persona',
     rightAction: async ({ phone, log }) => {
       // Guard: Welcome slide must still be showing its nav button
@@ -119,8 +119,8 @@ const SCENES: Scene[] = [
       // Wait for slide animation to complete, then hold on slide 1 so the viewer sees it
       await wait(400)
 
-      // Dwell on Hero Workflow for ~3.5s so it reads on screen
-      await wait(3500)
+      // Dwell on Hero Workflow for ~6.5s so it reads on screen (narration is 14.5s)
+      await wait(6500)
 
       // Click "How it works" → Three Modes (slide 2)
       await phone.waitForSelector('button:has-text("How it works")', { timeout: 3_000 })
@@ -128,40 +128,40 @@ const SCENES: Scene[] = [
       log('Onboarding: Three Modes slide')
       // Wait for slide animation, then hold so the viewer sees Three Modes briefly
       await wait(400)
-      await wait(1200)
+      await wait(4000)
     },
   },
 
-  // SCENE 3: The Map (0:13–0:20)
+  // SCENE 3: The Map (0:19–0:29)
   // Continue onboarding: Three Modes visible at start → Knowledge Packs slide
   {
     id: 'map',
-    startSec: 13,
-    endSec: 20,
+    startSec: 19,
+    endSec: 29,
     leftFrame: 'map',
     rightAction: async ({ phone, log }) => {
-      // Dwell on Three Modes slide for 2s so the viewer can read it
-      await wait(2000)
+      // Dwell on Three Modes slide for 3.5s so the viewer can read it
+      await wait(3500)
       // Click "Got it" → Knowledge Packs (slide 3)
       await phone.waitForSelector('button:has-text("Got it")', { timeout: 3_000 })
       await phone.locator('button:has-text("Got it")').click()
       log('Onboarding: Knowledge Packs slide')
       // Wait for slide animation to settle, then hold so the viewer sees the pack card
       await wait(400)
-      await wait(2000)
+      await wait(3500)
     },
   },
 
-  // SCENE 4: Impact Stats (0:20–0:30)
+  // SCENE 4: Impact Stats (0:29–0:43)
   // Finish onboarding: Knowledge Packs visible at start → Connect slide → auto-connects → "Get Started"
   {
     id: 'stats',
-    startSec: 20,
-    endSec: 30,
+    startSec: 29,
+    endSec: 43,
     leftFrame: 'stats',
     rightAction: async ({ phone, log }) => {
       // Dwell on Knowledge Packs slide so the viewer can read the pack card
-      await wait(3500)
+      await wait(5500)
       // Click "Connect" bottom nav button → Connect slide (slide 4)
       // Use .first() to be explicit — the nav button is the primary "Connect" on this slide
       await phone.waitForSelector('button:has-text("Connect")', { timeout: 3_000 })
@@ -180,7 +180,7 @@ const SCENES: Scene[] = [
         )
         log('FieldStation found! Holding for viewer...')
         // Let the viewer read the connected state for a beat
-        await wait(1500)
+        await wait(2000)
         log('Clicking Get Started to complete onboarding...')
         // The only "Get Started" visible on slide 4 is inside the connected-state content area
         await phone.waitForSelector('button:has-text("Get Started")', { timeout: 3_000 })
@@ -194,67 +194,76 @@ const SCENES: Scene[] = [
     },
   },
 
-  // SCENE 5: Architecture (0:30–0:40)
+  // SCENE 5: Architecture (0:43–0:56)
   // HomePage — pack loaded, system status visible
   {
     id: 'architecture',
-    startSec: 30,
-    endSec: 40,
+    startSec: 43,
+    endSec: 56,
     leftFrame: 'architecture',
     rightAction: async ({ phone, log }) => {
       // Should now be on HomePage after onboarding complete
       log('HomePage — showing loaded pack and system status')
-      await wait(2000)
+      await wait(5000)
     },
   },
 
-  // SCENE 6: Online Phase — Mission Chat (0:40–0:55)
+  // SCENE 6: Online Phase — Mission Chat (0:56–1:09)
   {
     id: 'mission-chat',
-    startSec: 40,
-    endSec: 55,
+    startSec: 56,
+    endSec: 69,
     leftFrame: 'online-phase',
     rightAction: async ({ phone, log }) => {
       await phone.goto('http://localhost:5173/mission')
-      await wait(1500)
+      await wait(800)
 
-      // Message 1: Describe the mission
+      // Message 1: Describe the mission.
+      // 35ms typing (faster than default 45ms) trims ~1s inside the 13s budget.
       log('Typing mission description...')
       const missionTextarea = 'textarea[placeholder="Describe your mission..."]'
       await typeSlowly(
         phone,
         missionTextarea,
         "I'm deploying to the Casamance region of Senegal to help smallholder farmers with cassava disease and drought",
+        35,
       )
       await wait(400)
       await phone.click('button[aria-label="Send message"]')
       log('Sent mission message 1, waiting for response...')
-      await waitForMissionResponse(phone, 'Welcome')
+      // Wait until a later phrase in the reply so the viewer sees meaningful text,
+      // not just the first token. Reply streams at 60 chars/sec → ~4.6s for the full
+      // 275-char text. Cap at 5s so 'main focus' (near the end) is guaranteed to land.
+      await waitForMissionResponse(phone, 'main focus', 5_000)
 
       // Message 2: Specify crops → triggers mission_card
+      // Faster typing (25ms) to reclaim ~1s inside the 13s window.
       log('Typing crops message...')
       await typeSlowly(
         phone,
         missionTextarea,
         'Working with cassava and rice farmers',
+        25,
       )
-      await wait(400)
+      await wait(300)
       await phone.click('button[aria-label="Send message"]')
       log('Sent mission message 2, waiting for response + Dispatch button...')
-      // Wait for the Dispatch Agents button to render (appears on the mission card)
-      await phone.waitForSelector('button:has-text("Dispatch Agents")', { timeout: 20_000 })
-      await wait(1000)
+      // Wait for the Dispatch Agents button to render (appears on the mission card).
+      // Cap at 1.5s — demo_replay emits mission_card almost immediately; the 13s
+      // budget leaves no room if the waitForMissionResponse above hit its 5s ceiling.
+      await phone.waitForSelector('button:has-text("Dispatch Agents")', { timeout: 1_500 })
+      await wait(300)
       log('Clicking Dispatch Agents...')
       await phone.locator('button:has-text("Dispatch Agents")').click()
       log('Dispatched — navigating to progress page')
     },
   },
 
-  // SCENE 7: Agent Progress (0:55–1:15)
+  // SCENE 7: Agent Progress (1:09–1:27)
   {
     id: 'agent-progress',
-    startSec: 55,
-    endSec: 75,
+    startSec: 69,
+    endSec: 87,
     leftFrame: 'progress',
     rightAction: async ({ phone, log }) => {
       log('Waiting for pipeline completion...')
@@ -263,7 +272,7 @@ const SCENES: Scene[] = [
           () => document.body.innerText.includes('Knowledge Pack Ready') ||
                 document.body.innerText.includes('Build complete'),
           null,
-          { timeout: 28_000 }
+          { timeout: 17_500 }
         )
         log('Pipeline complete!')
       } catch {
@@ -272,11 +281,11 @@ const SCENES: Scene[] = [
     },
   },
 
-  // SCENE 8: Transition — NO WIFI / NO DATA / NO CLOUD (1:15–1:25)
+  // SCENE 8: Transition — NO WIFI / NO DATA / NO CLOUD (1:27–1:37)
   {
     id: 'transition',
-    startSec: 75,
-    endSec: 85,
+    startSec: 87,
+    endSec: 97,
     leftFrame: 'transition',
     rightAction: async ({ phone }) => {
       await phone.goto('http://localhost:5173/')
@@ -284,11 +293,11 @@ const SCENES: Scene[] = [
     },
   },
 
-  // SCENE 9: Field Session — first offline interaction (1:25–1:40)
+  // SCENE 9: Field Session — first offline interaction (1:37–1:52)
   {
     id: 'field-session',
-    startSec: 85,
-    endSec: 100,
+    startSec: 97,
+    endSec: 112,
     leftFrame: 'field-session',
     rightAction: async ({ phone, log }) => {
       await phone.goto('http://localhost:5173/field')
@@ -305,17 +314,18 @@ const SCENES: Scene[] = [
       await wait(300)
       await phone.click('button[aria-label="Send message"]')
       log('Sent planting question, waiting for response...')
-      await waitForResponseDone(phone, 50_000)
+      // Cap at 10s — 15s window minus typing (~2s) + wait + buffer
+      await waitForResponseDone(phone, 10_000)
       log('Planting response complete')
     },
   },
 
-  // SCENE 10: Hero Shot — plant photo → diagnosis (1:40–2:05)
+  // SCENE 10: Hero Shot — plant photo → diagnosis (1:52–2:20)
   // THE key moment.
   {
     id: 'hero-shot',
-    startSec: 100,
-    endSec: 125,
+    startSec: 112,
+    endSec: 140,
     leftFrame: 'pipeline',
     rightAction: async ({ phone, log }) => {
       // Type the question first, then attach photo
@@ -336,7 +346,8 @@ const SCENES: Scene[] = [
       log('Sending photo for diagnosis...')
       await phone.click('button[aria-label="Send message"]')
       log('Photo sent, waiting for diagnosis to stream...')
-      await waitForResponseDone(phone, 75_000)
+      // Cap at 18s so the diagnosis finishes before the View-Full-Diagnosis dwell.
+      await waitForResponseDone(phone, 18_000)
       log('Diagnosis complete! Letting viewer read the answer...')
 
       // Dwell on the raw chat answer so viewers can read it before we navigate
@@ -355,11 +366,11 @@ const SCENES: Scene[] = [
     },
   },
 
-  // SCENE 11: Grounded AI — follow-up question (2:05–2:20)
+  // SCENE 11: Grounded AI — follow-up question (2:20–2:34)
   {
     id: 'grounded',
-    startSec: 125,
-    endSec: 140,
+    startSec: 140,
+    endSec: 154,
     leftFrame: 'grounded',
     rightAction: async ({ phone, log }) => {
       // Navigate back to field chat from diagnosis page
@@ -383,16 +394,17 @@ const SCENES: Scene[] = [
       await wait(300)
       await phone.click('button[aria-label="Send message"]')
       log('Sent neem follow-up, waiting for response...')
-      await waitForResponseDone(phone, 55_000)
+      // Cap at 9s — 14s window minus back-nav + typing + buffer
+      await waitForResponseDone(phone, 9_000)
       log('Neem response complete')
     },
   },
 
-  // SCENE 12: Platform Vision — pack list (2:20–2:35)
+  // SCENE 12: Platform Vision — pack list (2:34–2:52)
   {
     id: 'platform',
-    startSec: 140,
-    endSec: 155,
+    startSec: 154,
+    endSec: 172,
     leftFrame: 'platform',
     rightAction: async ({ phone, log }) => {
       log('Navigating to pack list...')
@@ -401,11 +413,11 @@ const SCENES: Scene[] = [
     },
   },
 
-  // SCENE 13: Closing (2:35–2:50)
+  // SCENE 13: Closing (2:52–3:00)
   {
     id: 'closing',
-    startSec: 155,
-    endSec: 170,
+    startSec: 172,
+    endSec: 180,
     leftFrame: 'closing',
     rightAction: async () => {},
   },
@@ -413,18 +425,22 @@ const SCENES: Scene[] = [
 
 // ─── Dry-run mode ────────────────────────────────────────────────────────────
 
+// Total recording duration is derived from the last scene's endSec.
+// Single source of truth — changing SCENES updates everything downstream.
+const TOTAL_SEC = SCENES[SCENES.length - 1].endSec
+const TOTAL_MS = TOTAL_SEC * 1000
+const fmtMMSS = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`
+
 function printTimeline() {
   console.log('\n  FieldPack AI — Demo Recording Timeline\n')
   console.log(`  ${'Scene'.padEnd(20)} ${'Time'.padEnd(12)} ${'Left Frame'.padEnd(17)} Duration`)
   console.log('  ' + '─'.repeat(70))
   for (const s of SCENES) {
-    const start = `${Math.floor(s.startSec / 60)}:${String(s.startSec % 60).padStart(2, '0')}`
-    const end = `${Math.floor(s.endSec / 60)}:${String(s.endSec % 60).padStart(2, '0')}`
     const dur = s.endSec - s.startSec
     const frame = s.leftFrame ?? '(full-screen)'
-    console.log(`  ${s.id.padEnd(20)} ${(start + '–' + end).padEnd(12)} ${frame.padEnd(17)} ${dur}s`)
+    console.log(`  ${s.id.padEnd(20)} ${(fmtMMSS(s.startSec) + '–' + fmtMMSS(s.endSec)).padEnd(12)} ${frame.padEnd(17)} ${dur}s`)
   }
-  console.log('\n  Total: 2:50 (170 seconds)\n')
+  console.log(`\n  Total: ${fmtMMSS(TOTAL_SEC)} (${TOTAL_SEC} seconds)\n`)
 }
 
 // ─── Main ────────────────────────────────────────────────────────────────────
@@ -557,27 +573,39 @@ async function main() {
       }, scene.leftFrame)
     }
 
-    // Right panel: execute action on the phone iframe
+    // Right panel: execute action on the phone iframe — track overrun for sync diagnostics
+    const sceneActionStart = Date.now()
+    const sceneWindowMs = (scene.endSec - scene.startSec) * 1000
     try {
       await scene.rightAction({ page, phone: phoneFrame, log })
     } catch (err) {
       log(`  ✗ Error in scene ${scene.id}: ${err instanceof Error ? err.message : err}`)
     }
+    const actionDurMs = Date.now() - sceneActionStart
+    if (actionDurMs > sceneWindowMs) {
+      log(`  ⚠ OVERRUN: ${scene.id} action took ${actionDurMs}ms (window ${sceneWindowMs}ms) — narration may desync`)
+    }
   }
 
-  // Wait until 2:50
+  // Wait until TOTAL_SEC
   const totalElapsed = Date.now() - recordingStart
-  if (totalElapsed < 170_000) {
-    log(`Holding for ${Math.ceil((170_000 - totalElapsed) / 1000)}s until 2:50...`)
-    await wait(170_000 - totalElapsed)
+  if (totalElapsed < TOTAL_MS) {
+    log(`Holding for ${Math.ceil((TOTAL_MS - totalElapsed) / 1000)}s until ${fmtMMSS(TOTAL_SEC)}...`)
+    await wait(TOTAL_MS - totalElapsed)
   }
 
-  log('Recording complete! (2:50)')
+  log(`Recording complete! (${fmtMMSS(TOTAL_SEC)})`)
 
   // Write timestamp log
   const logPath = path.resolve(__dirname, 'timestamps.json')
   fs.writeFileSync(logPath, JSON.stringify(timestamps, null, 2))
   log(`Timestamps written to ${logPath}`)
+
+  // Emit total duration as a sidecar — bash scripts read this to size audio tracks.
+  // Keeps TOTAL synchronized across record.ts / build_audio.sh / mix_music.sh.
+  const metaPath = path.resolve(__dirname, 'timestamps_meta.json')
+  fs.writeFileSync(metaPath, JSON.stringify({ totalSec: TOTAL_SEC }, null, 2))
+  log(`Meta written to ${metaPath} (totalSec=${TOTAL_SEC})`)
 
   // Validation: every scene in SCENES must be in timestamps.json
   const recordedIds = new Set(timestamps.map(t => t.scene))
