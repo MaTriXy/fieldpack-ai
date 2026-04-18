@@ -7,6 +7,8 @@
 <!-- Cover image: relative path works on GitHub, raw URL works on Kaggle -->
 ![FieldPack AI Cover](https://raw.githubusercontent.com/orkohol/fieldpack-ai/master/docs/images/kaggle-cover.png)
 
+**▶ Watch the 3-minute demo video:** [https://youtu.be/y9FSAkYpFII](https://youtu.be/y9FSAkYpFII)
+
 ---
 
 ## The Problem

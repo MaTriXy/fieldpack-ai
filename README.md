@@ -21,7 +21,7 @@
 
 **FieldPack AI** is an offline-first AI system for humanitarian field workers. Powerful cloud models (Gemma 4 31B/26B) curate domain-specific knowledge before deployment. A lightweight edge model (Gemma 4 E2B, 5.1B params via Ollama) serves that knowledge in the field — no internet required.
 
-**Demo video:** [YouTube link coming soon]
+**Demo video:** [https://youtu.be/y9FSAkYpFII](https://youtu.be/y9FSAkYpFII) (3 min)
 
 <p align="center">
   <img src="frontend/qa-screenshots/01-home.png" alt="Home screen" width="200">
@@ -32,6 +32,27 @@
   &nbsp;
   <img src="frontend/qa-screenshots/08-agent-progress.png" alt="Live pipeline agents" width="200">
 </p>
+
+## For Judges — 60-Second Setup
+
+One command. Real Ollama, real Gemma 4 E2B, real agentic RAG pipeline. No Python, no Node, no manual dependency install.
+
+```bash
+git clone https://github.com/orkohol/fieldpack-ai.git
+cd fieldpack-ai
+docker-compose up
+# Open http://localhost:5173
+```
+
+**What to try** (matches the [demo video](https://youtu.be/y9FSAkYpFII)):
+
+1. **Hero shot** — open the app → **Field Chat** → upload a cassava leaf photo (or use the built-in sample) → watch a grounded, source-cited diagnosis stream in, fully offline.
+2. **Agentic RAG** — ask a follow-up question. Observe classification, retrieval, rerank, and generation stages in the pipeline panel.
+3. **Knowledge Pack** — browse the Casamance Agriculture pack (5 crops, 15 diseases, verified sources).
+
+**First run:** `ollama-init` pulls Gemma 4 E2B (~5 GB, ~5 min) — subsequent runs start in seconds. **Requirements:** Docker Desktop, ~8 GB RAM, ~10 GB disk. Full Docker details, GPU passthrough, and troubleshooting: see [Run in Docker](#run-the-real-app-in-docker-for-reviewers) below.
+
+---
 
 ## The Problem
 
