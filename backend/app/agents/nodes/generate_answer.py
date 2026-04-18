@@ -13,7 +13,7 @@ field_assistant.py — this node returns the full answer synchronously.
 
 from datetime import datetime, timezone
 
-from langchain_core.messages import HumanMessage, SystemMessage
+from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 
 from app.agents.models import ScoredResult, extract_text
 from app.agents.state import FieldAssistantState, trim_conversation_history
@@ -31,7 +31,8 @@ LANGUAGE_INSTRUCTIONS = {
     "pt": "IMPORTANT: Respond entirely in Portuguese (Portugues).",
 }
 
-GENERATE_SYSTEM_PROMPT = """Agricultural field assistant. Answer using ONLY the provided context.
+GENERATE_SYSTEM_PROMPT = """You are FieldPack AI, an agricultural field assistant{region_suffix}. Answer using ONLY the provided context.
+- Give practical, actionable advice for smallholder farmers
 - Be concise: 3-8 sentences for simple questions, longer for treatment plans
 - Be specific and actionable, reference locally available materials
 - Use bullet points for treatment steps
@@ -136,16 +137,18 @@ async def generate_answer(state: FieldAssistantState) -> dict:
     if search_exhausted:
         context_text = SEARCH_EXHAUSTED_CONTEXT
 
+    # Compute region once so all three prompt paths can use it
+    region = _get_pack_region()
+    region_suffix = f" for {region}" if region else ""
+
     # Pick system prompt: RAG when we have context, conversational for chat,
     # and a knowledge-aware fallback when search was attempted but found nothing
     if is_conversational:
-        region = _get_pack_region()
-        region_suffix = f" for {region}" if region else ""
         base_prompt = CONVERSATIONAL_SYSTEM_PROMPT.format(region_suffix=region_suffix)
     elif search_exhausted:
         base_prompt = SEARCH_EXHAUSTED_SYSTEM_PROMPT
     else:
-        base_prompt = GENERATE_SYSTEM_PROMPT
+        base_prompt = GENERATE_SYSTEM_PROMPT.format(region_suffix=region_suffix)
     system_prompt = (
         lang_instruction + "\n\n" + base_prompt
         if lang_instruction
@@ -181,12 +184,37 @@ async def generate_answer(state: FieldAssistantState) -> dict:
         user_prompt_parts = [f"Context:\n{context_text}"]
 
         image_description = state.get("image_description")
-        if image_description:
+        if image_description and not search_exhausted:
+            # Few-shot example: teaches the model the expected diagnosis format
+            # without biasing toward any specific crop/disease. Only injected on
+            # the photo path to avoid burning tokens on non-image queries.
+            messages.extend([
+                HumanMessage(content=(
+                    "Context:\n[Source 1]\nBacterial Blight: Angular water-soaked spots on leaves, "
+                    "turning brown. Treat with copper-based spray (50g per 15L water). "
+                    "Remove infected leaves. Avoid overhead irrigation.\n\n"
+                    "Image analysis of the farmer's photo: Angular brown spots with yellow halos "
+                    "on leaf surface. Symptoms: angular spots, browning, water-soaked lesions.\n\n"
+                    "Question: What disease is this?"
+                )),
+                AIMessage(content=(
+                    "**Bacterial Blight**\n\n"
+                    "The angular brown spots with yellow halos match bacterial blight symptoms.\n\n"
+                    "**Treatment:**\n"
+                    "- Apply copper-based spray (50g per 15L water)\n"
+                    "- Remove and destroy infected leaves\n"
+                    "- Avoid overhead irrigation to prevent spread\n\n"
+                    "**Precaution:** Wear gloves when handling copper spray."
+                )),
+            ])
+
             user_prompt_parts.append(
                 f"\nImage analysis of the farmer's photo: {image_description}"
-                "\nIMPORTANT: Compare the visual symptoms above against ALL diseases in the context. "
-                "Choose the disease whose symptoms best match what was observed in the photo, "
-                "even if it is not the top-ranked source. State your diagnosis confidently, then provide treatment steps."
+                "\nIMPORTANT: Compare the visual symptoms above against ALL diseases in the context."
+                "\n1. State the disease name that best matches the observed symptoms"
+                "\n2. Briefly explain why the symptoms match"
+                "\n3. Give treatment steps as bullet points"
+                "\n4. Include safety precautions"
             )
 
         if history_text:
@@ -195,7 +223,7 @@ async def generate_answer(state: FieldAssistantState) -> dict:
         user_prompt_parts.append(f"Question: {user_message}")
         messages.append(HumanMessage(content="\n".join(user_prompt_parts)))
 
-    temperature = 0.1 if is_conversational else 0.4
+    temperature = 0.1
     # 256 for search_exhausted: deliberate cap to limit hallucination length
     # when the model has no real context to ground on
     max_tokens = 128 if is_conversational else 256 if search_exhausted else 512

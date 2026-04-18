@@ -76,6 +76,10 @@ test*.log
 e2b_test1.json
 t1.json
 
+# Quality test scratch scripts & per-run results
+backend/quality_test*.py
+backend/quality_test_results*.json
+
 # Review & video-frame screenshots (root level)
 review_*.png
 review_frames/

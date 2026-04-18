@@ -65,10 +65,15 @@ def _build_where_clause(
     dropped = []
     for key, value in conditions.items():
         if isinstance(value, dict):
-            # Operator condition: {"$gte": "medium"}
+            # Operator condition: {"$gte": "medium"} or {"$in": [1, 2, 3]}
             for op_key, op_value in value.items():
-                sql_op = _OPERATORS.get(op_key)
-                if sql_op and key in valid_columns:
+                if op_key == "$in" and isinstance(op_value, list) and key in valid_columns:
+                    if op_value:
+                        placeholders = ", ".join("?" for _ in op_value)
+                        clauses.append(f"{key} IN ({placeholders})")
+                        params.extend(op_value)
+                    # Empty list → no matches possible, skip clause
+                elif (sql_op := _OPERATORS.get(op_key)) and key in valid_columns:
                     if sql_op == "LIKE":
                         clauses.append(f"{key} {sql_op} ? ESCAPE '\\'")
                     else:

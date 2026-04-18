@@ -122,17 +122,21 @@ def _apply_crop_boost(
     crop: str,
 ) -> list[ScoredResult]:
     """Boost results whose metadata or source ID matches the detected crop.
+    Penalize results that explicitly name a different crop.
 
     Checks metadata["crop"] (chroma tags) and source string (e.g. "rice_blast_005").
     """
     crop_lower = crop.lower()
     CROP_BOOST = 0.12
+    CROP_MISMATCH_PENALTY = 0.15
 
     for result in scored:
         meta_crop = ((result.metadata or {}).get("crop") or "").lower()
         source_lower = (result.source or "").lower()
         if meta_crop == crop_lower or source_lower.startswith(crop_lower + "_"):
             result.relevance_score = min(1.0, result.relevance_score + CROP_BOOST)
+        elif meta_crop and meta_crop != crop_lower:
+            result.relevance_score = max(0.0, result.relevance_score - CROP_MISMATCH_PENALTY)
 
     return scored
 

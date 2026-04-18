@@ -243,6 +243,22 @@ def classify_and_extract(state: FieldAssistantState) -> dict:
             "has_image_description": image_description is not None,
         })
 
+    # Heuristic fallback: if LLM missed the crop but user said it, extract it
+    if not result.crop:
+        try:
+            from app.knowledge_pack.loader import get_active_pack
+            pack = get_active_pack()
+            if pack and pack.manifest and pack.manifest.crops:
+                msg_lower = user_message.lower()
+                for crop_name in pack.manifest.crops:
+                    if crop_name.lower() in msg_lower:
+                        result.crop = crop_name
+                        log.log_step(Step.CLASSIFY, "crop_heuristic_rescue",
+                                     details={"crop": crop_name, "source": "user_message"})
+                        break
+        except Exception:
+            pass
+
     # Ask-back: image present but crop unknown — ask the user
     if image_path and image_description and not result.crop:
         log.log_step(Step.CLASSIFY, "ask_crop", details={

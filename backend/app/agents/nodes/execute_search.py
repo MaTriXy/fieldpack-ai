@@ -128,6 +128,24 @@ def _resolve_crop_id(crop_name: str) -> int | None:
     return row[0] if row else None
 
 
+def _resolve_disease_ids_for_crop(crop_id: int) -> list[int]:
+    """Look up disease_ids linked to a crop via crop_diseases. Returns [] if none."""
+    from app.knowledge_pack.loader import get_active_pack
+
+    pack = get_active_pack()
+    if pack is None:
+        return []
+    cursor = pack.sqlite_conn.execute(
+        "SELECT disease_id FROM crop_diseases WHERE crop_id = ?",
+        (crop_id,),
+    )
+    return [row[0] for row in cursor.fetchall()]
+
+
+# Tables that need two-hop crop filtering via disease_id
+_CROP_VIA_DISEASE_TABLES = {"treatments"}
+
+
 def _run_structured_searches(
     tables: list[str],
     filters: dict,
@@ -146,6 +164,12 @@ def _run_structured_searches(
         if crop_name:
             if table in _CROP_ID_TABLES and crop_id is not None:
                 conditions["crop_id"] = crop_id
+            elif table in _CROP_VIA_DISEASE_TABLES and crop_id is not None:
+                disease_ids = _resolve_disease_ids_for_crop(crop_id)
+                if disease_ids:
+                    conditions["disease_id"] = {"$in": disease_ids}
+                else:
+                    continue  # no diseases for this crop → skip
             elif table not in _CROP_ID_TABLES:
                 conditions["name"] = {"$like": f"%{crop_name}%"}
 
@@ -154,6 +178,10 @@ def _run_structured_searches(
             conditions=conditions if conditions else None,
             limit=top_k,
         )
+        # Inject crop metadata for tables that lack a crop column
+        if table in _CROP_VIA_DISEASE_TABLES and crop_name:
+            for r in results:
+                r.metadata["crop"] = crop_name
         all_results.extend(results)
 
     return all_results
