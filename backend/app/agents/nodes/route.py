@@ -1,11 +1,14 @@
 """Node 2: ROUTE (Python only, no LLM call).
 
-Deterministic routing: maps classified intent to search engines,
-ChromaDB collections, and SQLite tables. Builds metadata filters
-from extracted crop/disease info.
+Deterministic routing: casts a wide net across all retrieval engines,
+collections, and tables for every search-bearing intent. Rerank is the
+single source of truth for relevance — the router's job is to avoid
+classifier errors hiding data the user actually needs.
 
-Routes are narrow by default — the retry loop broadens on failure.
-NOTE: If recall is low in Phase 7 testing, broaden default routes.
+Metadata filters are built from high-signal classifier output (crop,
+disease_name). Softer signals (season, growth_stage, topic_subtype) are
+deliberately NOT converted into hard filters — they'd exclude useful
+chunks when the classifier guesses wrong.
 """
 
 from app.agents.models import (
@@ -19,86 +22,48 @@ from app.logger import Step, pipeline_logger as log
 
 
 # ============================================================
-# Routing rules: intent → engines, collections, tables
+# Broad default route — used for every intent that needs search.
 # ============================================================
 
-ROUTING_RULES: dict[IntentType, dict] = {
-    IntentType.DIAGNOSE_DISEASE: {
-        "engines": [SearchEngineType.CHROMA_EMBEDDING, SearchEngineType.SQLITE_FTS],
-        "collections": ["disease_knowledge"],
-        "tables": ["diseases", "crop_diseases", "pests"],
-    },
-    IntentType.GET_TREATMENT: {
-        "engines": [SearchEngineType.CHROMA_EMBEDDING, SearchEngineType.SQLITE_STRUCTURED],
-        "collections": ["treatment_guides"],
-        "tables": ["treatments"],
-    },
-    IntentType.FARMING_ADVICE: {
-        "engines": [
-            SearchEngineType.CHROMA_EMBEDDING,
-            SearchEngineType.SQLITE_STRUCTURED,
-            SearchEngineType.SQLITE_FTS,
-        ],
-        "collections": ["farming_practices", "regional_context"],
-        "tables": [
-            "crops", "climate", "varieties", "fertilization_schedule",
-            "planting_calendar", "storage_guidelines", "soil_requirements",
-        ],
-    },
-    IntentType.IDENTIFY_IMAGE: {
-        "engines": [SearchEngineType.CHROMA_EMBEDDING, SearchEngineType.SQLITE_FTS],
-        "collections": ["disease_knowledge", "treatment_guides"],
-        "tables": ["diseases", "treatments", "pests"],
-    },
-    IntentType.LOG_OBSERVATION: {
-        "engines": [],
-        "collections": [],
-        "tables": [],
-    },
-    IntentType.GENERAL_QUESTION: {
-        "engines": [SearchEngineType.CHROMA_EMBEDDING],
-        "collections": [
-            "disease_knowledge", "treatment_guides",
-            "farming_practices", "regional_context",
-        ],
-        "tables": [],
-    },
-    IntentType.FOLLOW_UP: {
-        # Shouldn't normally reach here — classify resolves follow-ups.
-        # Fallback: use general_question route.
-        "engines": [SearchEngineType.CHROMA_EMBEDDING],
-        "collections": [
-            "disease_knowledge", "treatment_guides",
-            "farming_practices", "regional_context",
-        ],
-        "tables": [],
-    },
+ALL_ENGINES = [
+    SearchEngineType.CHROMA_EMBEDDING,
+    SearchEngineType.SQLITE_FTS,
+    SearchEngineType.SQLITE_STRUCTURED,
+]
+
+ALL_COLLECTIONS = [
+    "disease_knowledge",
+    "treatment_guides",
+    "farming_practices",
+    "regional_context",
+]
+
+ALL_TABLES = [
+    "diseases", "crop_diseases", "treatments", "pests",
+    "crops", "varieties", "climate",
+    "fertilization_schedule", "planting_calendar",
+    "storage_guidelines", "soil_requirements",
+]
+
+BROAD_ROUTE = {
+    "engines": ALL_ENGINES,
+    "collections": ALL_COLLECTIONS,
+    "tables": ALL_TABLES,
 }
 
-# Full expansion for retry #2: all engines, all collections, key tables
-EXPANDED_ROUTE = {
-    "engines": [
-        SearchEngineType.CHROMA_EMBEDDING,
-        SearchEngineType.SQLITE_FTS,
-        SearchEngineType.SQLITE_STRUCTURED,
-    ],
-    "collections": [
-        "disease_knowledge", "treatment_guides",
-        "farming_practices", "regional_context",
-    ],
-    "tables": [
-        "diseases", "treatments", "crops", "climate", "pests",
-        "varieties", "fertilization_schedule", "planting_calendar",
-        "storage_guidelines", "soil_requirements",
-    ],
-}
+# Intents that skip retrieval entirely. Everything else gets the broad route.
+NO_SEARCH_INTENTS = frozenset({IntentType.LOG_OBSERVATION})
+
+# Kept as EXPANDED_ROUTE alias for expand_route back-compat — same set.
+EXPANDED_ROUTE = BROAD_ROUTE
 
 
 def _build_metadata_filters(classify_result: ClassifyExtractOutput) -> dict:
     """Build ChromaDB metadata filters from classify output.
 
-    Filters are conservative — only add filters we're confident about.
-    Over-filtering is worse than under-filtering (re-rank handles noise).
+    Only high-signal identity fields (crop, disease_name) become hard
+    filters. Softer signals are left to the reranker — a wrong
+    topic_subtype filter is worse than no filter.
     """
     filters = {}
 
@@ -108,52 +73,47 @@ def _build_metadata_filters(classify_result: ClassifyExtractOutput) -> dict:
     if classify_result.disease_name:
         filters["disease_name"] = classify_result.disease_name
 
-    if classify_result.season:
-        filters["season"] = classify_result.season.value
-
-    if classify_result.growth_stage:
-        filters["growth_stage"] = classify_result.growth_stage.value
-
-    if classify_result.topic_subtype:
-        filters["practice_type"] = classify_result.topic_subtype.value
-
     return filters
 
 
 def route_intent(state: FieldAssistantState) -> dict:
-    """Route the classified intent to search engines and collections.
+    """Route to retrieval: broad net for every search intent.
 
-    Pure Python — no LLM call. Reads classify_result from state,
-    applies deterministic rules, builds metadata filters.
-
-    For follow_up intent that wasn't resolved by classify,
-    falls back to general_question routing.
+    Classifier output is used for metadata filters only, not to narrow
+    which tables/collections get searched. This keeps the pipeline
+    robust to classifier errors on unseen phrasings.
 
     Returns dict with: route.
     """
     classify_result = state.get("classify_result")
+
     if classify_result is None:
         log.log_step(Step.ROUTE, "route_no_classify", level="ERROR",
                      details={"error": "No classify_result in state"})
-        # Fallback: general question route
         return {
             "route": SearchRoute(
-                engines=[SearchEngineType.CHROMA_EMBEDDING],
-                collections=["disease_knowledge", "treatment_guides",
-                              "farming_practices", "regional_context"],
+                engines=list(ALL_ENGINES),
+                collections=list(ALL_COLLECTIONS),
+                tables=list(ALL_TABLES),
             ),
         }
 
     intent = classify_result.intent
-    rules = ROUTING_RULES.get(intent, ROUTING_RULES[IntentType.GENERAL_QUESTION])
 
-    # Build metadata filters
+    if intent in NO_SEARCH_INTENTS:
+        route = SearchRoute(engines=[], collections=[], tables=[])
+        log.log_route(
+            intent=intent.value,
+            engines=[], collections=[], tables=[], filters={},
+        )
+        return {"route": route}
+
     metadata_filters = _build_metadata_filters(classify_result)
 
     route = SearchRoute(
-        engines=list(rules["engines"]),
-        collections=list(rules["collections"]),
-        tables=list(rules["tables"]),
+        engines=list(ALL_ENGINES),
+        collections=list(ALL_COLLECTIONS),
+        tables=list(ALL_TABLES),
         metadata_filters=metadata_filters,
     )
 
@@ -171,30 +131,32 @@ def route_intent(state: FieldAssistantState) -> dict:
 def expand_route(current_route: SearchRoute) -> SearchRoute:
     """Expand a route for retry attempt #2.
 
-    Adds all engines, all collections, and key tables.
-    Used when is_sufficient=False after first retry.
+    With the broad default route, the main lever on retry is dropping
+    metadata filters — the initial query may have over-constrained on
+    crop/disease_name. Engines/collections/tables are already maximal.
     """
     new_engines = list(dict.fromkeys(
-        list(current_route.engines) + EXPANDED_ROUTE["engines"]
+        list(current_route.engines) + ALL_ENGINES
     ))
     new_collections = list(dict.fromkeys(
-        current_route.collections + EXPANDED_ROUTE["collections"]
+        current_route.collections + ALL_COLLECTIONS
     ))
     new_tables = list(dict.fromkeys(
-        current_route.tables + EXPANDED_ROUTE["tables"]
+        current_route.tables + ALL_TABLES
     ))
 
     expanded = SearchRoute(
         engines=new_engines,
         collections=new_collections,
         tables=new_tables,
-        metadata_filters=current_route.metadata_filters,
+        metadata_filters={},
     )
 
     log.log_step(Step.ROUTE, "route_expanded", details={
         "engines": [e.value for e in expanded.engines],
         "collections": expanded.collections,
         "tables": expanded.tables,
+        "dropped_filters": list(current_route.metadata_filters.keys()),
     })
 
     return expanded

@@ -31,15 +31,16 @@ LANGUAGE_INSTRUCTIONS = {
     "pt": "IMPORTANT: Respond entirely in Portuguese (Portugues).",
 }
 
-GENERATE_SYSTEM_PROMPT = """You are FieldPack AI, an agricultural field assistant{region_suffix}. Answer using ONLY the provided context.
+GENERATE_SYSTEM_PROMPT = """You are FieldPack AI, an agricultural field assistant{region_suffix}. Answer using the provided context.
 - Give practical, actionable advice for smallholder farmers
 - Be concise: 3-8 sentences for simple questions, longer for treatment plans
 - Be specific and actionable, reference locally available materials
 - Use bullet points for treatment steps
 - Include safety precautions for treatments
-- Answer from whatever relevant information is in the context, even if it only partially addresses the question
-- Only say "I don't have information on this topic" if NONE of the sources relate to the question at all
-- Never invent disease names, treatments, or statistics not in context."""
+- When a source describes a specific crop but the farmer asks generally, still share what the source says and name the crop it applies to
+- If the context has partial information, answer with what is there rather than refusing
+- Synthesize across multiple sources to give the best answer the material supports
+- Never invent disease names, treatments, dosages, or statistics that are not in the context"""
 
 CONVERSATIONAL_SYSTEM_PROMPT = "You are FieldPack AI, an agricultural field assistant{region_suffix}. You help farmers with crop diseases, treatments, and farming. Reply briefly and helpfully."
 
@@ -184,6 +185,35 @@ async def generate_answer(state: FieldAssistantState) -> dict:
         user_prompt_parts = [f"Context:\n{context_text}"]
 
         image_description = state.get("image_description")
+        # Text-only path: demonstrate cross-crop synthesis with a neutral
+        # example so the small Q4 model doesn't over-literally refuse when
+        # the farmer asks generally and the context names specific crops.
+        # The example uses content NOT in the Casamance pack (cucurbit
+        # powdery mildew) to avoid priming toward any live test query.
+        if not image_description and not search_exhausted:
+            messages.extend([
+                HumanMessage(content=(
+                    "Context:\n[Source 1]\nPowdery Mildew of Cucurbits (fungal, affects cucumber, melon, squash). "
+                    "Symptoms: white powdery patches on upper leaf surface, spreading to cover the whole leaf. "
+                    "Leaves eventually yellow and drop. Treatment: milk spray (1 part milk to 9 parts water) "
+                    "weekly; remove severely affected leaves; improve air circulation between plants.\n\n"
+                    "---\n\n[Source 2]\nRoot-Knot Nematode (soil pest, affects tomato, okra, many vegetables). "
+                    "Symptoms: stunted growth, wilting during the day even when soil is moist, swollen galls on "
+                    "roots. Prevention: rotate with cereals; plant marigolds between rows; solarize soil before "
+                    "planting.\n\n"
+                    "Question: My plants are growing poorly and wilting even after watering."
+                )),
+                AIMessage(content=(
+                    "Based on the sources, your symptoms match **Root-Knot Nematode** damage:\n\n"
+                    "- Stunted growth and wilting despite moist soil are the classic signs\n"
+                    "- Check the roots: swollen galls confirm the diagnosis\n\n"
+                    "**Prevention going forward:**\n"
+                    "- Rotate the affected bed with cereals next season\n"
+                    "- Plant marigolds between rows as a natural suppressant\n"
+                    "- Solarize the soil before replanting"
+                )),
+            ])
+
         if image_description and not search_exhausted:
             # Few-shot example: teaches the model the expected diagnosis format
             # without biasing toward any specific crop/disease. Only injected on

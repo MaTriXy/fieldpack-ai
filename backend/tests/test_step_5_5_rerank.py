@@ -179,14 +179,14 @@ class TestNormalizeScores:
             SearchResult(content="c", source="s", score=0.0, result_type=ResultType.FTS),
         ]
         scored = _normalize_scores(results)
-        assert scored[0].relevance_score == 0.8  # capped at FTS_SCORE_CAP
-        assert scored[1].relevance_score == 0.8  # 3.0 still above cap
+        assert scored[0].relevance_score == 0.5  # capped at FTS_SCORE_CAP
+        assert scored[1].relevance_score == 0.5  # 3.0 still above cap
         assert scored[2].relevance_score == 0.3  # floored to 0.3
 
     def test_structured_gets_neutral_score(self):
         results = _make_search_results(2, result_type=ResultType.STRUCTURED)
         scored = _normalize_scores(results)
-        assert all(s.relevance_score == 0.65 for s in scored)
+        assert all(s.relevance_score == 0.42 for s in scored)
 
     def test_mixed_engines(self):
         results = [
@@ -196,8 +196,8 @@ class TestNormalizeScores:
         ]
         scored = _normalize_scores(results)
         assert scored[0].relevance_score == 0.9    # chroma pass-through
-        assert scored[1].relevance_score == 0.8    # fts capped at FTS_SCORE_CAP
-        assert scored[2].relevance_score == 0.65   # structured neutral
+        assert scored[1].relevance_score == 0.5    # fts capped at FTS_SCORE_CAP
+        assert scored[2].relevance_score == 0.42   # structured neutral
 
 
 # ============================================================
@@ -326,10 +326,12 @@ class TestRerankResults:
         assert result["is_sufficient"] is True
 
     def test_no_llm_on_retry_when_heuristic_sufficient(self):
-        """Attempt 1 + heuristic sufficient → no LLM needed."""
+        """Attempt 1 + heuristic sufficient + legacy flag off → no LLM needed."""
         state = self._make_state(result_count=5, attempts=1, base_score=0.8)
 
-        with patch("app.agents.nodes.rerank.get_field_llm") as mock_llm:
+        with patch("app.agents.nodes.rerank.settings") as mock_settings, \
+             patch("app.agents.nodes.rerank.get_field_llm") as mock_llm:
+            mock_settings.llm_rerank_on_retry = False
             result = rerank_results(state)
             mock_llm.assert_not_called()
 

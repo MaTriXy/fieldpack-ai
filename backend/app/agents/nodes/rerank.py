@@ -9,7 +9,7 @@ Two-tier reranking strategy:
 Scores by engine:
   - Chroma: cosine similarity already 0-1, use as-is
   - FTS: BM25 scores normalized to 0-1 within batch
-  - Structured: flat 0.7 (neutral), boosted to 0.85 on exact name match
+  - Structured: flat 0.55 (neutral); often spurious, kept for context
 """
 
 import json
@@ -31,6 +31,54 @@ SUFFICIENT_MIN_COUNT = 2
 MAX_RESULTS_FOR_RERANK = 5
 MAX_WORDS_PER_RESULT = 200
 
+# Chroma quota: BM25-normalized FTS scores always produce a winner at 1.0
+# regardless of absolute match quality, which pushes semantic (Chroma) hits
+# out of the top-N slice entirely. Reserve a floor of Chroma slots so weak
+# FTS batches don't monopolize the context window.
+CHROMA_QUOTA = 2
+CHROMA_QUOTA_MIN_SCORE = 0.35
+
+
+def _select_rerank_candidates(
+    results: list[SearchResult],
+    limit: int,
+) -> list[SearchResult]:
+    """Pick top-N candidates with a Chroma-result quota.
+
+    Reserves up to CHROMA_QUOTA slots for Chroma hits above
+    CHROMA_QUOTA_MIN_SCORE. Remaining slots fill by global score order,
+    preserving stable ordering for non-Chroma ties.
+    """
+    if not results:
+        return []
+
+    chroma_candidates = [
+        r for r in results
+        if r.result_type == ResultType.CHROMA and r.score >= CHROMA_QUOTA_MIN_SCORE
+    ]
+    if not chroma_candidates:
+        return results[:limit]
+
+    # Take top Chroma hits up to the quota, then fill remaining slots
+    # from the globally-sorted list, skipping anything already picked.
+    picked_ids: set[str] = set()
+    selected: list[SearchResult] = []
+
+    quota = min(CHROMA_QUOTA, len(chroma_candidates), limit)
+    for r in chroma_candidates[:quota]:
+        selected.append(r)
+        picked_ids.add(r.source)
+
+    for r in results:
+        if len(selected) >= limit:
+            break
+        if r.source in picked_ids:
+            continue
+        selected.append(r)
+        picked_ids.add(r.source)
+
+    return selected
+
 
 # ============================================================
 # Tier 1: Heuristic rerank (fast path)
@@ -40,13 +88,17 @@ def _normalize_scores(results: list[SearchResult]) -> list[ScoredResult]:
     """Normalize scores across engine types to a common 0-1 scale.
 
     BM25 scores arrive already normalized to [0,1] by execute_search.
-    FTS/structured results are capped at 0.8 because they lack the rich
-    parent-chunk prose that ChromaDB results provide — this prevents
-    thin tabular content from outranking detailed narrative chunks.
+    FTS/structured results are capped below typical Chroma semantic-match
+    scores because they lack the rich parent-chunk prose that ChromaDB
+    results provide, AND because FTS batch-normalization always produces a
+    top score of 1.0 even when the underlying keyword match is weak (a
+    generic word like "yellow" or "plant" always has a "best" hit).
+    Capping them low lets moderately-strong Chroma hits (0.5-0.65) surface
+    above keyword noise while keeping tabular rows as supporting context.
     """
     # FTS scores already normalized 0-1 by execute_search._normalize_bm25_scores
-    FTS_SCORE_CAP = 0.8
-    STRUCTURED_SCORE = 0.65
+    FTS_SCORE_CAP = 0.5
+    STRUCTURED_SCORE = 0.42
 
     scored = []
     for r in results:
@@ -348,7 +400,7 @@ def rerank_results(state: FieldAssistantState) -> dict:
             "retrieval_attempts": attempts + 1,
         }
 
-    top_results = search_results[:MAX_RESULTS_FOR_RERANK]
+    top_results = _select_rerank_candidates(search_results, MAX_RESULTS_FOR_RERANK)
 
     # Tier 1: heuristic (always runs first)
     image_description = state.get("image_description")
