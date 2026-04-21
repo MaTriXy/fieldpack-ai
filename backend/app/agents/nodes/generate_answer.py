@@ -11,6 +11,7 @@ Token streaming is handled by LangGraph's astream_events in
 field_assistant.py — this node returns the full answer synchronously.
 """
 
+import re
 from datetime import datetime, timezone
 
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
@@ -259,6 +260,8 @@ async def generate_answer(state: FieldAssistantState) -> dict:
     max_tokens = 128 if is_conversational else 256 if search_exhausted else 512
     fmt = None
 
+    is_fallback = False
+
     with log.timed(Step.GENERATE, "llm_call") as t:
         try:
             llm = get_field_llm(temperature=temperature, num_predict=max_tokens, format=fmt)
@@ -267,7 +270,7 @@ async def generate_answer(state: FieldAssistantState) -> dict:
             chunks = []
             async for chunk in llm.astream(messages):
                 chunks.append(chunk)
-            answer = "".join(extract_text(c) for c in chunks).lstrip("?!.,;: \n")
+            answer = re.sub(r"^[?!.,;:]\s*", "", "".join(extract_text(c) for c in chunks))
             if not answer.strip():
                 import logging
                 logging.getLogger(__name__).warning(
@@ -277,6 +280,7 @@ async def generate_answer(state: FieldAssistantState) -> dict:
                     "I wasn't able to generate a complete answer. "
                     "Please try rephrasing your question."
                 )
+                is_fallback = True
         except Exception as e:
             import logging
             logging.getLogger(__name__).exception("generate_answer LLM call failed")
@@ -287,6 +291,7 @@ async def generate_answer(state: FieldAssistantState) -> dict:
                 "I encountered an error generating an answer. "
                 "Please try again or rephrase your question."
             )
+            is_fallback = True
 
         t.set(details={
             "context_sources": len(ranked_results),
@@ -295,7 +300,15 @@ async def generate_answer(state: FieldAssistantState) -> dict:
             "answer_length": len(answer),
         })
 
-    # Update conversation history with this exchange
+    # On fallback/error paths, don't poison conversation history with the error
+    # string — the next classify call would see it as few-shot context and drift.
+    if is_fallback:
+        return {
+            "final_answer": answer,
+            "conversation_history": list(history),
+        }
+
+    # Happy path: append this exchange so future turns have full context
     updated_history = list(history) + [
         {"role": "user", "content": user_message,
          "timestamp": datetime.now(timezone.utc).isoformat()},

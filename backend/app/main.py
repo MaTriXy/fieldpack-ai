@@ -58,8 +58,9 @@ app = FastAPI(
 )
 
 # CORS: FieldPack runs on a closed LAN (laptop hotspot + phone).
-# Origins are restricted to localhost dev + Capacitor APK.
-# No wildcard "*" — only known client origins are allowed.
+# Origins are restricted to localhost dev + Capacitor APK + private LAN ranges.
+# allow_origin_regex covers judges opening the frontend from a phone browser
+# (not the APK) at http://<laptop-ip>:5173 — matches RFC-1918 subnets only.
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
@@ -68,6 +69,13 @@ app.add_middleware(
         "http://localhost",
         "capacitor://localhost",
     ],
+    allow_origin_regex=(
+        r"^https?://"
+        r"(192\.168\.\d{1,3}\.\d{1,3}"
+        r"|10\.\d{1,3}\.\d{1,3}\.\d{1,3}"
+        r"|172\.(1[6-9]|2[0-9]|3[01])\.\d{1,3}\.\d{1,3})"
+        r"(:\d+)?$"
+    ),
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE"],
     allow_headers=["Content-Type", "Upgrade", "Connection"],

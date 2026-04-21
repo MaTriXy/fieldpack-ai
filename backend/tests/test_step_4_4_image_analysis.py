@@ -232,15 +232,12 @@ class TestAnalyzePlantImage:
         with pytest.raises(ValueError, match="Unsupported image format"):
             analyze_plant_image(text_file)
 
-    def test_ollama_error_returns_graceful_result(self, sample_image):
+    def test_ollama_error_raises(self, sample_image):
         with patch("app.tools.image_analysis.httpx.post",
                    side_effect=Exception("Connection refused")), \
              patch("app.tools.image_analysis.get_resolved_provider", return_value="local"):
-            result = analyze_plant_image(sample_image)
-
-        assert "error" in result
-        assert result["confidence"] == "low"
-        assert "failed" in result["visual_description"].lower()
+            with pytest.raises(RuntimeError, match="Image analysis failed"):
+                analyze_plant_image(sample_image)
 
     def test_with_crop_hint_in_result(self, sample_image):
         mock_resp = MagicMock()

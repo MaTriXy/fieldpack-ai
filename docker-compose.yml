@@ -39,12 +39,13 @@ services:
       # Single-request, single-model — saves RAM on edge-class hardware.
       - OLLAMA_NUM_PARALLEL=1
       - OLLAMA_MAX_LOADED_MODELS=1
-      # --- GPU troubleshooting ---
-      # GPU offloading is auto-detected by default (fast on Nvidia/AMD discrete).
-      # If the model produces nonsense/garbled output, you likely have an Intel
-      # integrated GPU that Ollama is trying to partially use. Uncomment this
-      # line and restart with: docker-compose restart ollama
-      # - OLLAMA_NUM_GPU=0
+      # --- GPU configuration ---
+      # Default: CPU-only (safe on all hardware, including Intel integrated GPUs).
+      # Intel iGPUs cause partial layer offload that produces garbled/nonsense output
+      # from Gemma E2B — leave OLLAMA_NUM_GPU=0 unless you have a discrete Nvidia or
+      # AMD GPU. If you have Nvidia/AMD discrete: comment out OLLAMA_NUM_GPU=0 below
+      # AND uncomment the `deploy:` block further down for GPU passthrough.
+      - OLLAMA_NUM_GPU=0
     healthcheck:
       # Use the ollama CLI — guaranteed present since it's the image entrypoint.
       # Passes once the model is listed. Warming the model happens in
@@ -104,7 +105,7 @@ services:
         # --hidethinking suppresses chain-of-thought noise from this small-
         # model warmup (we disable thinking at the API layer for real calls).
         echo "Warming model (1-token generate, long keepalive)..."
-        ollama run gemma4:e2b-it-q4_K_M --keepalive 999999h --hidethinking "ok" >/dev/null 2>&1 || true
+        ollama run gemma4:e2b-it-q4_K_M --keepalive 999999h --hidethinking "ok" >/dev/null 2>&1
         echo "Model warm and pinned."
     restart: "no"
 

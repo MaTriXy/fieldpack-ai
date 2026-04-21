@@ -271,15 +271,7 @@ def analyze_plant_image(
         except Exception as e:
             log.log_step(Step.IMAGE_ANALYSIS, "vision_error", level="ERROR",
                          details={"error": str(e), "provider": resolved})
-            return {
-                "visual_description": f"Image analysis failed: {e}",
-                "suspected_symptoms": [],
-                "affected_parts": [],
-                "severity_estimate": "unknown",
-                "crop_guess": crop_hint or "unknown",
-                "confidence": "low",
-                "error": str(e),
-            }
+            raise RuntimeError(f"Image analysis failed: {e}") from e
 
         # Parse response
         analysis = _parse_analysis_response(result_text)
@@ -334,7 +326,7 @@ def analyze_plant_image_tool(
 
     try:
         analysis = analyze_plant_image(image_path, hint)
-    except (FileNotFoundError, ValueError, OSError) as e:
+    except Exception as e:
         return f"Error: {e}"
 
     parts = [f"Visual description: {analysis['visual_description']}"]

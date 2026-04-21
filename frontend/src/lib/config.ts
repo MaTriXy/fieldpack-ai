@@ -189,13 +189,21 @@ export async function autoScanForServer(): Promise<string | null> {
   }
 
   // 3. Smart subnet scan: detect own IP, scan the /24
+  // Worst case: 254 IPs / 30 per batch x 2 s timeout = ~18 s.
+  // Progress is logged per batch so devtools shows activity.
   const localIp = await getLocalIp()
   console.log('[scan] local IP:', localIp)
   if (localIp) {
     const candidates = subnetCandidates(localIp, 8000)
-    console.log('[scan] scanning', candidates.length, 'subnet candidates in batches')
     const BATCH_SIZE = 30
+    const totalBatches = Math.ceil(candidates.length / BATCH_SIZE)
+    console.log(
+      '[scan] scanning', candidates.length, 'subnet candidates in',
+      totalBatches, 'batches — this can take up to 20 seconds on first launch'
+    )
     for (let i = 0; i < candidates.length; i += BATCH_SIZE) {
+      const batchNum = Math.floor(i / BATCH_SIZE) + 1
+      console.log(`[scan] Scanning local network — batch ${batchNum} of ${totalBatches}`)
       const batch = candidates.slice(i, i + BATCH_SIZE)
       try {
         const found = await Promise.any(

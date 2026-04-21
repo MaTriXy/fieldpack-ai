@@ -500,6 +500,8 @@ async def run_field_assistant_stream(
         llm_meta_by_run: dict[str, dict] = {}
 
         in_generate = False
+        tokens_streamed = 0
+        generate_was_called = False
 
         async for event in graph.astream_events(initial_state, version="v2"):
             kind = event.get("event", "")
@@ -508,6 +510,8 @@ async def run_field_assistant_stream(
             # Node start → status event + record start time
             if kind == "on_chain_start" and name in _NODE_STATUS_MAP:
                 in_generate = (name == "generate_answer")
+                if in_generate:
+                    generate_was_called = True
                 node_timings[name] = time.perf_counter()
                 step, detail = _NODE_STATUS_MAP[name]
                 tcl = log.to_tool_calls_log()
@@ -595,6 +599,7 @@ async def run_field_assistant_stream(
                 if chunk and hasattr(chunk, "content") and chunk.content:
                     token_text = extract_text(chunk)
                     if token_text:
+                        tokens_streamed += 1
                         yield {"type": "token", "content": token_text}
 
         # Build summary from final state
@@ -622,7 +627,18 @@ async def run_field_assistant_stream(
             if sources:
                 yield {"type": "sources", "sources": sources}
 
-            if final_state.get("final_answer"):
+            final_answer = final_state.get("final_answer", "")
+
+            # Belt-and-suspenders: if the LLM returned empty and generate_answer
+            # substituted a fallback string, no on_chat_model_stream events fired.
+            # Synthesize a single token event so the frontend always has text to
+            # render progressively rather than seeing a silent bubble pop on done.
+            # Guard on generate_was_called so observation-path answers (which
+            # never hit generate_answer) don't get a spurious synthetic token.
+            if generate_was_called and tokens_streamed == 0 and final_answer:
+                yield {"type": "token", "content": final_answer}
+
+            if final_answer:
                 yield {"type": "answer_done"}
 
             log.pipeline_end(success=True)

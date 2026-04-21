@@ -51,13 +51,22 @@ class ChatResponse(BaseModel):
 
 
 def _validate_image_path(image_path: str | None) -> str | None:
-    """Validate image_path is within allowed directories."""
+    """Validate image_path is within allowed directories.
+
+    Uses posix-normalised resolved strings for comparison so that mixed
+    forward/back-slash paths round-tripped from Windows clients compare equal.
+    """
     if image_path is None:
         return None
     p = Path(image_path).resolve()
-    uploads_root = settings.uploads_path.resolve()
-    packs_root = settings.packs_path.resolve()
-    if not (p.is_relative_to(uploads_root) or p.is_relative_to(packs_root)):
+    p_str = p.as_posix()
+    uploads_root_str = settings.uploads_path.resolve().as_posix() + "/"
+    packs_root_str = settings.packs_path.resolve().as_posix() + "/"
+    if not (p_str.startswith(uploads_root_str) or p_str.startswith(packs_root_str)):
+        _logger.warning(
+            "Image path rejected: p=%s uploads_root=%s packs_root=%s",
+            p_str, uploads_root_str, packs_root_str,
+        )
         raise HTTPException(status_code=400, detail="Invalid image path")
     if not p.is_file():
         raise HTTPException(status_code=400, detail="Image file not found")

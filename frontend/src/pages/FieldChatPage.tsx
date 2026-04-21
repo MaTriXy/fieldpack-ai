@@ -233,6 +233,7 @@ export default function FieldChatPage() {
   const lastImagePathRef = useRef<string | null>(null)
   const reconnectAttempts = useRef(0)
   const MAX_RECONNECT_ATTEMPTS = 5
+  const tokensReceivedThisMessage = useRef(0)
   const navigate = useNavigate()
   const location = useLocation()
 
@@ -325,6 +326,7 @@ export default function FieldChatPage() {
           break
 
         case 'token':
+          tokensReceivedThisMessage.current += 1
           setStreamingContent((prev) => {
             const raw = data.content
             const token = typeof raw === 'string'
@@ -334,7 +336,7 @@ export default function FieldChatPage() {
                 : String(raw ?? '')
             if (!token) return prev ?? ''
             // Strip leading punctuation echoed by the LLM on first token
-            if (!prev) return token.replace(/^[?!.,;:\s]+/, '')
+            if (!prev) return token.replace(/^[?!.,;:]\s*/, '')
             return prev + token
           })
           break
@@ -359,7 +361,10 @@ export default function FieldChatPage() {
           const finalAnswer = (data.final_answer as string) || ''
           const observationStats = data.observation_stats as Record<string, unknown> | null
 
-          // Build the assistant message
+          // Build the assistant message.
+          // When no tokens were streamed (tokensReceivedThisMessage === 0) but the backend
+          // sent a non-empty final_answer (synthesized fallback path), finalAnswer already
+          // populates content below — so the bubble renders correctly instead of the generic error.
           let content = finalAnswer
           if (!content && observationStats) {
             content = `Observation saved. (${(observationStats as Record<string, unknown>).count || 1} total observations logged)`
@@ -669,7 +674,11 @@ export default function FieldChatPage() {
   const handleSend = async () => {
     if ((!input.trim() && !pendingImage) || isStreaming) return
 
-    const messageText = input.trim() || (pendingImage ? 'What disease does this plant have?' : '')
+    // Capture compose state before clearing — needed to restore on upload failure
+    const originalInput = input.trim()
+    const originalPendingImage = pendingImage
+
+    const messageText = originalInput || (pendingImage ? 'What disease does this plant have?' : '')
     const userMsg: Message = {
       id: crypto.randomUUID(),
       role: 'user',
@@ -710,6 +719,7 @@ export default function FieldChatPage() {
     setStreamingContent('')
     setCurrentStep(null)
     clearInsights()
+    tokensReceivedThisMessage.current = 0
 
     let imagePath: string | null = null
     if (pendingImage) {
@@ -719,6 +729,10 @@ export default function FieldChatPage() {
       } catch {
         setWsError('Failed to upload image. Check server connection.')
         setMessages((prev) => prev.filter((m) => m.id !== userMsg.id))
+        // Restore compose state so the user can retry without retyping
+        setInput(originalInput)
+        setPendingImage(originalPendingImage)
+        if (textareaRef.current) textareaRef.current.style.height = 'auto'
         isStreamingRef.current = false
         setIsStreaming(false)
         return
@@ -776,6 +790,7 @@ export default function FieldChatPage() {
       conversation_history: pipelineHistory.current,
       conversation_summary: pipelineSummary.current,
       session_id: conversationId,
+      language: getLanguage(),
     }))
 
     clearChatMessageQueue()
@@ -1284,20 +1299,27 @@ export default function FieldChatPage() {
           </div>
           )))}
 
-        {/* Streaming bubble — shows live tokens as they arrive */}
+        {/* Streaming bubble — outer container stays mounted for the full duration of isStreaming
+            so React never remounts it during step transitions in the retry loop.
+            Only the inner step label (inside ThinkingBubble) changes, and its key triggers
+            a fresh animate-fadeIn on each step change instead of an abrupt text snap. */}
         {isStreaming && (
           <div className="flex justify-start gap-2">
             <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center shrink-0 mt-1">
               <Leaf size={14} className="text-primary" />
             </div>
-            <div className="max-w-[80%] bg-card rounded-xl rounded-bl-sm px-4 py-3 text-sm shadow-sm animate-fadeIn">
+            <div className="max-w-[80%] bg-card rounded-xl rounded-bl-sm px-4 py-3 text-sm shadow-sm">
               {streamingContent ? (
                 <div className="leading-relaxed">
                   <MarkdownContent content={streamingContent} />
                   <span className="inline-block w-0.5 h-4 bg-primary ml-0.5 animate-blink align-text-bottom" />
                 </div>
               ) : (
-                <ThinkingBubble step={currentStep} mode={pipelineMode} insights={pipelineInsights} />
+                // key on the wrapper fades in ThinkingBubble content on step transitions
+                // without remounting the outer card or the Leaf avatar above
+                <div key={currentStep ?? 'idle'} className="animate-fadeIn">
+                  <ThinkingBubble step={currentStep} mode={pipelineMode} insights={pipelineInsights} />
+                </div>
               )}
             </div>
           </div>
@@ -1399,7 +1421,7 @@ export default function FieldChatPage() {
                       {
                         id: Date.now().toString(),
                         role: 'assistant',
-                        content: streamingContent,
+                        content: streamingContent + '\n\n_(Generation stopped by user)_',
                         sources: sources || undefined,
                       },
                     ])

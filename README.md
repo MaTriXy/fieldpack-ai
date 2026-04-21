@@ -35,9 +35,11 @@
   <img src="docs/images/phone-hero/05-knowledge-packs.png" alt="Knowledge Packs — swappable offline field guides" width="180">
 </p>
 
-## For Judges — 60-Second Setup
+## For Judges — One-Command Setup (first run ~5 min)
 
 One command. Real Ollama, real Gemma 4 E2B, real agentic RAG pipeline. No Python, no Node, no manual dependency install.
+
+**First run requires internet** (~5 GB model pull, ~5 min). After that, the app runs fully offline. Subsequent runs start in seconds — the model is persisted in a Docker volume.
 
 ```bash
 git clone https://github.com/orkohol/fieldpack-ai.git
@@ -52,7 +54,7 @@ docker-compose up
 2. **Agentic RAG** — ask a follow-up question. Observe classification, retrieval, rerank, and generation stages in the pipeline panel.
 3. **Knowledge Pack** — browse the Casamance Agriculture pack (5 crops, 15 diseases, verified sources).
 
-**First run:** `ollama-init` pulls Gemma 4 E2B (~5 GB, ~5 min) — subsequent runs start in seconds. **Requirements:** Docker Desktop, ~8 GB RAM, ~10 GB disk. Full Docker details, GPU passthrough, and troubleshooting: see [Run in Docker](#run-the-real-app-in-docker-for-reviewers) below.
+**Requirements:** Docker Desktop, ~8 GB RAM, ~10 GB disk. Full Docker details, GPU passthrough, and troubleshooting: see [Run in Docker](#run-the-real-app-in-docker-recommended) below.
 
 ---
 
@@ -66,7 +68,7 @@ This is how FieldPack is designed to be used: the **laptop is the AI server**, t
 docker-compose up
 ```
 
-Same as the 60-second setup above. Leave it running.
+Same as the one-command setup above. Leave it running.
 
 ### Step 2 — Phone: download the APK
 
@@ -141,7 +143,58 @@ The Field Assistant doesn't follow a fixed retrieval chain. It's a LangGraph sta
 
 ## Quick Start
 
-### Demo Mode (no GPU/Ollama required)
+### Run the real app in Docker (recommended)
+
+One command, real Ollama, real Gemma 4 E2B, real RAG — no manual setup.
+
+**First run requires internet** (~5 GB model pull, ~5 min). After that, the app runs fully offline.
+
+```bash
+git clone https://github.com/orkohol/fieldpack-ai.git
+cd fieldpack-ai
+docker-compose up
+# Open http://localhost:5173
+```
+
+**First run:** the `ollama-init` container pulls Gemma 4 E2B (~5 GB, ~5 min). The `app` container waits for the model to be ready before serving requests, so the first page load may take a few minutes. Subsequent runs start in seconds — the model persists in a Docker volume.
+
+**Requirements:** Docker Desktop (or Docker Engine + Compose), ~8 GB RAM available to the containers, ~10 GB free disk.
+
+**Do not copy `backend/.env.example` to `.env`** when running in Docker. Compose provides all required environment variables directly (with `DEMO_MODE=false`). Copying the example file is only for native (non-Docker) runs.
+
+**GPU acceleration:** CPU-only by default (safe on all hardware, including Intel integrated GPUs — partial Intel iGPU offload produces garbled output). If you have an Nvidia GPU with `nvidia-container-toolkit` installed, comment out `OLLAMA_NUM_GPU=0` and uncomment the `deploy:` block in `docker-compose.yml` for passthrough.
+
+**Troubleshooting — garbled / nonsense output:** Likely means Ollama is partially offloading to an Intel integrated GPU. The default `OLLAMA_NUM_GPU=0` in `docker-compose.yml` prevents this. If you disabled it, re-enable it and run `docker-compose restart ollama`.
+
+**Troubleshooting — model pull fails:** If the `ollama-init` container exits with "pull model manifest: file does not exist", the Gemma 4 E2B tag in the public Ollama registry has changed. Run `curl https://ollama.com/library/gemma4/tags` or check the library page to find the current tag, then update `OLLAMA_MODEL` in `docker-compose.yml` and the pull command inside `ollama-init`.
+
+### Alternative: native install
+
+For contributors or judges who prefer a local Python/Node setup.
+
+#### Full Mode (Ollama + Gemma 4 E2B)
+
+```bash
+# Install Ollama: https://ollama.com/download
+ollama pull gemma4:e2b-it-q4_K_M
+ollama serve
+
+# Set in backend/.env:
+#   DEMO_MODE=false
+#   FIELD_LLM_PROVIDER=ollama-local
+#   OLLAMA_BASE_URL=http://localhost:11434
+
+# Start backend (from repo root)
+cd backend && PYTHONPATH=. uvicorn app.main:app --reload --host 0.0.0.0 --port 8000 &
+cd ..
+
+# Start frontend (from repo root)
+cd frontend && npm run dev
+```
+
+#### Demo Mode (no GPU/Ollama required)
+
+Runs with canned responses — useful for UI exploration without a local GPU. This is not the polished code path for this submission; the Docker flow above is what has been tested end-to-end.
 
 ```bash
 git clone https://github.com/orkohol/fieldpack-ai.git
@@ -166,50 +219,7 @@ cd frontend && npm run dev
 # Open http://localhost:5173
 ```
 
-### Full Mode (Ollama + Gemma 4 E2B)
-
-```bash
-# Install Ollama: https://ollama.com/download
-ollama pull gemma4:e2b-it-q4_K_M
-ollama serve
-
-# Set in backend/.env:
-#   DEMO_MODE=false
-#   FIELD_LLM_PROVIDER=ollama-local
-#   OLLAMA_BASE_URL=http://localhost:11434
-
-# Start backend (from repo root)
-cd backend && PYTHONPATH=. uvicorn app.main:app --reload --host 0.0.0.0 --port 8000 &
-cd ..
-
-# Start frontend (from repo root)
-cd frontend && npm run dev
-```
-
 See [`backend/.env.example`](backend/.env.example) for all configuration options.
-
-### Run the real app in Docker (for reviewers)
-
-One command, real Ollama, real Gemma 4 E2B, real RAG — no manual setup.
-
-```bash
-git clone https://github.com/orkohol/fieldpack-ai.git
-cd fieldpack-ai
-docker-compose up
-# Open http://localhost:5173
-```
-
-**First run:** the `ollama-init` container pulls Gemma 4 E2B (~5 GB, ~5 min). The `app` container waits for the model to be ready before serving requests, so the first page load may take a few minutes. Subsequent runs start in seconds — the model persists in a Docker volume.
-
-**Requirements:** Docker Desktop (or Docker Engine + Compose), ~8 GB RAM available to the containers, ~10 GB free disk.
-
-**Do not copy `backend/.env.example` to `.env`** when running in Docker. Compose provides all required environment variables directly (with `DEMO_MODE=false`). Copying the example file is only for native (non-Docker) runs.
-
-**GPU acceleration:** Off by default (works on any machine, CPU-only). If you have an Nvidia GPU with `nvidia-container-toolkit` installed, uncomment the `deploy:` block in `docker-compose.yml` for passthrough — answers come back noticeably faster (typically several × speedup on discrete GPUs).
-
-**Troubleshooting — garbled / nonsense output:** Likely means Ollama is partially offloading to an Intel integrated GPU, which splits Gemma E2B layers across precision boundaries. Fix: uncomment `OLLAMA_NUM_GPU=0` in `docker-compose.yml` and run `docker-compose restart ollama`. Answers come back correct (CPU-only, slower).
-
-**Troubleshooting — model pull fails:** If the `ollama-init` container exits with "pull model manifest: file does not exist", the Gemma 4 E2B tag in the public Ollama registry has changed. Run `curl https://ollama.com/library/gemma4/tags` or check the library page to find the current tag, then update `OLLAMA_MODEL` in `docker-compose.yml` and the pull command inside `ollama-init`.
 
 ## Tech Stack
 
