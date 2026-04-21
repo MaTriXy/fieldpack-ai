@@ -4,7 +4,7 @@ import { apiUrl } from '../lib/config'
 // Back-off schedule (seconds): 15 → 30 → 60 → 300 (cap)
 const BACKOFF_STEPS = [15000, 30000, 60000, 300000]
 
-export function useBackendReachable(intervalMs: number = 15000): {
+export function useBackendReachable(): {
   reachable: boolean
   checking: boolean
 } {
