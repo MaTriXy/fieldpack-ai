@@ -160,6 +160,8 @@ docker-compose up
 
 **Requirements:** Docker Desktop (or Docker Engine + Compose), ~8 GB RAM available to the containers, ~10 GB free disk.
 
+**Rebuilding the image requires internet.** The Dockerfile pre-downloads the embedding model (~90 MB from huggingface.co) at build time so the first chat request doesn't hang. `docker-compose up` (no `--build`) works offline once you've built once.
+
 **Do not copy `backend/.env.example` to `.env`** when running in Docker. Compose provides all required environment variables directly (with `DEMO_MODE=false`). Copying the example file is only for native (non-Docker) runs.
 
 **GPU acceleration:** CPU-only by default (safe on all hardware, including Intel integrated GPUs — partial Intel iGPU offload produces garbled output). If you have an Nvidia GPU with `nvidia-container-toolkit` installed, comment out `OLLAMA_NUM_GPU=0` and uncomment the `deploy:` block in `docker-compose.yml` for passthrough.
@@ -191,6 +193,8 @@ cd ..
 # Start frontend (from repo root)
 cd frontend && npm run dev
 ```
+
+If `ollama pull` fails with "file does not exist", the Gemma 4 E2B tag has changed — see the Docker troubleshooting note above for how to find the current tag.
 
 #### Demo Mode (no GPU/Ollama required)
 
