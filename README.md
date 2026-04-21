@@ -39,7 +39,7 @@
 
 One command. Real Ollama, real Gemma 4 E2B, real agentic RAG pipeline. No Python, no Node, no manual dependency install.
 
-**First run requires internet** (~5 GB model pull, ~5 min). After that, the app runs fully offline. Subsequent runs start in seconds — the model is persisted in a Docker volume.
+**First run requires internet** (~7 GB model pull, ~5-10 min depending on bandwidth). After that, the app runs fully offline. Subsequent runs start in seconds — the model is persisted in a Docker volume.
 
 ```bash
 git clone https://github.com/orkohol/fieldpack-ai.git
@@ -147,7 +147,7 @@ The Field Assistant doesn't follow a fixed retrieval chain. It's a LangGraph sta
 
 One command, real Ollama, real Gemma 4 E2B, real RAG — no manual setup.
 
-**First run requires internet** (~5 GB model pull, ~5 min). After that, the app runs fully offline.
+**First run requires internet** (~7 GB model pull, ~5-10 min depending on bandwidth). After that, the app runs fully offline.
 
 ```bash
 git clone https://github.com/orkohol/fieldpack-ai.git
@@ -156,7 +156,7 @@ docker-compose up
 # Open http://localhost:5173
 ```
 
-**First run:** the `ollama-init` container pulls Gemma 4 E2B (~5 GB, ~5 min). The `app` container waits for the model to be ready before serving requests, so the first page load may take a few minutes. Subsequent runs start in seconds — the model persists in a Docker volume.
+**First run:** the `ollama-init` container pulls Gemma 4 E2B (~7 GB, ~5-10 min depending on bandwidth). The `app` container waits for the model to be ready before serving requests, so the first page load may take a few minutes. Subsequent runs start in seconds — the model persists in a Docker volume.
 
 **Requirements:** Docker Desktop (or Docker Engine + Compose), ~8 GB RAM available to the containers, ~10 GB free disk.
 
@@ -169,6 +169,8 @@ docker-compose up
 **Troubleshooting — garbled / nonsense output:** Likely means Ollama is partially offloading to an Intel integrated GPU. The default `OLLAMA_NUM_GPU=0` in `docker-compose.yml` prevents this. If you disabled it, re-enable it and run `docker-compose restart ollama`.
 
 **Troubleshooting — model pull fails:** If the `ollama-init` container exits with "pull model manifest: file does not exist", the Gemma 4 E2B tag in the public Ollama registry has changed. Run `curl https://ollama.com/library/gemma4/tags` or check the library page to find the current tag, then update `OLLAMA_MODEL` in `docker-compose.yml` and the pull command inside `ollama-init`.
+
+**More issues:** see [`docs/TROUBLESHOOTING.md`](docs/TROUBLESHOOTING.md) for APK LAN discovery, WebSocket quirks, HNSW warm-up, and other gotchas.
 
 ### Alternative: native install
 
