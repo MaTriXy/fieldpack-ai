@@ -1,10 +1,11 @@
 """SQLite FTS5 keyword search tool.
 
 Full-text search with BM25 ranking, query sanitization,
-and a 3-tier fuzzy matching cascade: exact → ED1 typo variants → LIKE fallback.
+and a 3-tier fuzzy matching cascade: exact -> ED1 typo variants -> LIKE fallback.
 
-Query sanitization: strip non-alnum, skip words <3 chars,
+Query sanitization: strip non-alnum, skip single-char tokens,
 build OR with prefix matching (word1* OR word2*), cap at 8 words.
+2-char tokens survive unless they are in _STOP_WORDS.
 """
 
 import re
@@ -23,8 +24,15 @@ from app.tools.row_to_nl import row_to_nl
 # FTS5 special characters that must be stripped from user input
 _FTS5_SPECIAL = set('"*()+-^:{}~')
 
-# Common stop words to skip in FTS queries
+# Common stop words to skip in FTS queries.
+# Includes 2-char English noise words so that the length gate lowering to >=2
+# does not let meaningless tokens through.
 _STOP_WORDS = {
+    # 2-char noise words (articles, prepositions, pronouns, conversational)
+    "it", "is", "in", "to", "of", "on", "at", "or", "an", "as",
+    "by", "be", "he", "we", "me", "my", "up", "do", "go", "no",
+    "so", "if", "us", "am", "hi", "oh", "ah", "ya", "ok",
+    # 3-char and longer stop words
     "the", "and", "for", "are", "but", "not", "you", "all",
     "can", "had", "her", "was", "one", "our", "out", "has",
     "its", "let", "may", "who", "how", "what", "when", "why",
@@ -43,7 +51,7 @@ def _sanitize_fts_query(query: str) -> str:
     Steps:
       1. Strip FTS5 special characters
       2. Lowercase, tokenize on whitespace
-      3. Remove words < 3 chars and stop words
+      3. Drop single-char tokens and any token in _STOP_WORDS
       4. Keep top 8 words (longest first for best signal)
       5. Join with OR + prefix matching: word1* OR word2*
 
@@ -59,7 +67,7 @@ def _sanitize_fts_query(query: str) -> str:
 
     # Tokenize, filter
     words = cleaned.split()
-    words = [w for w in words if len(w) >= 3 and w not in _STOP_WORDS]
+    words = [w for w in words if len(w) >= 2 and w not in _STOP_WORDS]
 
     if not words:
         return ""
@@ -322,9 +330,14 @@ def fuzzy_fts_search(
         # Tier 2: ED1 typo variants
         tier_used = "ed1"
         raw_query = re.sub(r"\s+", " ", query).strip().lower()
-        words = [w for w in raw_query.split() if len(w) >= 3 and w not in _STOP_WORDS]
+        words = [w for w in raw_query.split() if len(w) >= 2 and w not in _STOP_WORDS]
 
         for i, word in enumerate(words):
+            # Skip typo-variant generation for 2-char words: single-letter
+            # insertions alone produce ~78 variants, each triggering an FTS
+            # query. Short tokens stay in the query but we do not fuzz them.
+            if len(word) < 3:
+                continue
             variants = _generate_typo_variants(word)
             for variant in variants:
                 # Replace word with variant and try

@@ -1,5 +1,9 @@
 # FieldPack AI - Quick Start (PowerShell)
 
+> **Preferred method:** See the main [README.md](../README.md) for the Docker one-command setup (`docker-compose up`). This quickstart is maintained for developers who prefer a native Python/Node/Ollama environment.
+
+---
+
 All commands below are for **PowerShell on Windows**.
 Run each section in its own terminal window.
 
@@ -38,6 +42,7 @@ If you get a "port already in use" error, it's already running -- skip this step
 
 ```powershell
 cd C:\fieldpack-ai\backend
+$env:PYTHONPATH = "."
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
