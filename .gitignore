@@ -24,9 +24,10 @@ venv/
 Thumbs.db
 .DS_Store
 
-# Knowledge Packs (large, generated artifacts)
-packs/*/chroma_db/
-packs/*/knowledge.db
+# Knowledge Packs
+# NOTE: chroma_db/ and knowledge.db are now TRACKED — a fresh clone
+# must be able to run the hero demo without regenerating the pack.
+# Only the .fieldpack archive format and empty images/ dir stay ignored.
 packs/*/images/
 *.fieldpack
 
