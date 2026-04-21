@@ -1,7 +1,8 @@
-"""Tests for Step 4.4: Image analysis tool (E4B vision).
+"""Tests for Step 4.4: Image analysis tool (E2B vision).
 
 Unit tests for image processing and prompt building run without Ollama.
-Integration tests requiring Ollama are marked @pytest.mark.integration.
+Integration tests requiring a running Ollama instance are marked
+@pytest.mark.live and are deselected by default.
 """
 
 import base64
@@ -250,9 +251,9 @@ class TestAnalyzePlantImage:
 
         assert result["crop_guess"] == "rice"
 
-    @pytest.mark.integration
+    @pytest.mark.live
     def test_real_ollama(self, sample_image):
-        """Requires running Ollama with E4B model."""
+        """Requires running Ollama with the configured E2B vision model."""
         result = analyze_plant_image(sample_image, crop_hint="cassava")
         assert "visual_description" in result
         assert isinstance(result["suspected_symptoms"], list)

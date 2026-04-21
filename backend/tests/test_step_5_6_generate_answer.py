@@ -257,3 +257,82 @@ class TestGenerateAnswer:
         all_text = " ".join(m.content for m in captured)
         assert "CMD" in all_text
         assert "Conversation history" in all_text
+
+
+# ============================================================
+# Unit: search_exhausted branch selection
+# ============================================================
+
+class TestSearchExhaustedBranch:
+    """Guard the three-way split in generate_answer.
+
+    The flag `search_exhausted = needs_search and not context_text and retrieval_attempts >= 1`
+    decides which system prompt the LLM gets:
+      - RAG prompt (has context)
+      - CONVERSATIONAL prompt (no search attempted)
+      - SEARCH_EXHAUSTED prompt (search attempted, nothing found)
+    Regressing the threshold to >= 2, or dropping `needs_search`, would silently
+    route empty-retry calls through the conversational prompt and produce
+    invented answers.
+    """
+
+    def _state(self, **overrides):
+        base = {
+            "user_message": "My cassava has yellow leaves",
+            "ranked_results": [],
+            "conversation_history": [],
+            "needs_search": True,
+            "retrieval_attempts": 0,
+        }
+        base.update(overrides)
+        return base
+
+    def test_no_search_attempted_uses_conversational_prompt(self):
+        # needs_search=False, empty context → conversational chat
+        state = self._state(needs_search=False, retrieval_attempts=0)
+        with patch("app.agents.nodes.generate_answer.get_field_llm") as mock_llm:
+            captured = _patch_llm_capture_astream(mock_llm, "Hi there")
+            _run_async(generate_answer(state))
+
+        system_prompt = captured[0].content
+        assert "Reply briefly and helpfully" in system_prompt
+        assert "knowledge base was searched" not in system_prompt
+
+    def test_empty_after_retry_uses_search_exhausted_prompt(self):
+        # needs_search=True, empty context, retrieval_attempts=1 → search_exhausted
+        state = self._state(needs_search=True, retrieval_attempts=1)
+        with patch("app.agents.nodes.generate_answer.get_field_llm") as mock_llm:
+            captured = _patch_llm_capture_astream(mock_llm, "I don't have info")
+            _run_async(generate_answer(state))
+
+        system_prompt = captured[0].content
+        assert "knowledge base was searched" in system_prompt
+        user_msg_text = " ".join(m.content for m in captured)
+        assert "No relevant information was found" in user_msg_text
+
+    def test_empty_before_any_attempt_stays_conversational(self):
+        # retrieval_attempts=0 must NOT trigger search_exhausted, even with needs_search=True.
+        # This is the case where we reach generate_answer before any search has run
+        # (should not happen via the graph, but protects against state-shape bugs).
+        state = self._state(needs_search=True, retrieval_attempts=0)
+        with patch("app.agents.nodes.generate_answer.get_field_llm") as mock_llm:
+            captured = _patch_llm_capture_astream(mock_llm, "response")
+            _run_async(generate_answer(state))
+
+        system_prompt = captured[0].content
+        assert "knowledge base was searched" not in system_prompt
+
+    def test_has_context_uses_rag_prompt_regardless_of_attempts(self):
+        # Sufficient results found → RAG grounding path wins even with retrieval_attempts>=1
+        state = self._state(
+            needs_search=True,
+            retrieval_attempts=2,
+            ranked_results=_make_ranked_results(2),
+        )
+        with patch("app.agents.nodes.generate_answer.get_field_llm") as mock_llm:
+            captured = _patch_llm_capture_astream(mock_llm, "Grounded answer")
+            _run_async(generate_answer(state))
+
+        system_prompt = captured[0].content
+        assert "never invent" in system_prompt.lower()
+        assert "knowledge base was searched" not in system_prompt

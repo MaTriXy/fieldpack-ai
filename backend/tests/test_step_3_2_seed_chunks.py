@@ -168,3 +168,31 @@ class TestTotalCounts:
         total = sum(len(chunks) for chunks in all_chunks.values())
         # ~60 disease + ~62 treatment + ~8 farming + ~6 regional = ~136
         assert total >= 100, f"Only {total} total chunks — expected 100+"
+
+
+class TestMetadataCaseNormalization:
+    """`crop` metadata must be lowercase so ChromaDB `$eq` filters in
+    route_intent match. A future seed author writing `"Cassava"` would
+    silently break filtered search before this guard.
+    """
+
+    def test_all_crop_metadata_is_lowercase(self, all_chunks):
+        mixed = []
+        for name, chunks in all_chunks.items():
+            for chunk in chunks:
+                crop = chunk.get("metadata", {}).get("crop")
+                if isinstance(crop, str) and crop != crop.lower():
+                    mixed.append((name, chunk["id"], crop))
+        assert not mixed, f"Found {len(mixed)} non-lowercase crop values: {mixed[:5]}"
+
+    def test_normalizer_fixes_mixed_case_input(self):
+        from app.knowledge_pack.seed_chunks import _normalize_metadata_case
+        chunks = [
+            {"id": "a", "content": "...", "metadata": {"crop": "Cassava", "chunk_type": "child"}},
+            {"id": "b", "content": "...", "metadata": {"crop": "RICE", "chunk_type": "parent"}},
+            {"id": "c", "content": "...", "metadata": {"chunk_type": "child"}},  # no crop
+        ]
+        _normalize_metadata_case(chunks)
+        assert chunks[0]["metadata"]["crop"] == "cassava"
+        assert chunks[1]["metadata"]["crop"] == "rice"
+        assert "crop" not in chunks[2]["metadata"]

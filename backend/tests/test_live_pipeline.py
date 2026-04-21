@@ -35,6 +35,11 @@ import pytest
 
 from app.config import settings
 
+# All tests in this module hit live external services (HTTP sources, Google AI
+# Studio, Tavily, Ollama) and are deselected from the default `pytest tests/`
+# run. Invoke explicitly with `-m live` to execute them.
+pytestmark = pytest.mark.live
+
 # ---------------------------------------------------------------------------
 # Checkpoint helpers
 # ---------------------------------------------------------------------------

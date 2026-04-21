@@ -48,6 +48,57 @@ def _should_override_to_observation(user_message: str, llm_intent: IntentType) -
 
 
 # ============================================================
+# Ask-back follow-up detection
+# ============================================================
+
+# Sentinel phrase used in the ask-back message (see `ask_msg` below). Presence
+# in the last assistant turn indicates the current user reply is a crop-name
+# follow-up, so we can skip the LLM classify and jump straight to search.
+ASK_BACK_SENTINEL = "I can see signs of disease in your photo"
+
+# Cap on how long a "short follow-up reply" can be — one-word crop replies
+# ("cassava", "it's rice") should short-circuit; a full new question
+# ("actually forget the photo, how do I fertilize maize") should not.
+_ASK_BACK_MAX_REPLY_CHARS = 60
+
+
+def _resolve_ask_back_reply(user_message: str, history: list[dict]) -> str | None:
+    """Detect a short crop-name reply following an ask-back.
+
+    Returns the matched crop name (from the active pack manifest) or None.
+    """
+    if not history or not user_message:
+        return None
+    last_assistant = next(
+        (m for m in reversed(history) if m.get("role") == "assistant"),
+        None,
+    )
+    if not last_assistant or ASK_BACK_SENTINEL not in last_assistant.get("content", ""):
+        return None
+    if len(user_message) > _ASK_BACK_MAX_REPLY_CHARS:
+        return None
+    try:
+        from app.knowledge_pack.loader import get_active_pack
+        pack = get_active_pack()
+    except Exception:
+        return None
+    if not pack or not pack.manifest or not pack.manifest.crops:
+        return None
+    msg_lower = user_message.lower()
+    # Scan longest crop name first so "upland_rice" wins over "rice" when both
+    # are in the pack. Match on word boundaries so "rice" doesn't match inside
+    # "pricey" and underscored crop names like "upland_rice" match either the
+    # exact token or a space-separated form ("upland rice").
+    for crop_name in sorted(pack.manifest.crops, key=len, reverse=True):
+        crop_lower = crop_name.lower()
+        variants = {crop_lower, crop_lower.replace("_", " "), crop_lower.replace("_", "")}
+        for variant in variants:
+            if re.search(rf"\b{re.escape(variant)}\b", msg_lower):
+                return crop_name
+    return None
+
+
+# ============================================================
 # System prompt + few-shot examples
 # ============================================================
 
@@ -185,6 +236,29 @@ def classify_and_extract(state: FieldAssistantState) -> dict:
         "has_image": image_path is not None,
     })
 
+    # Ask-back short-circuit: if the prior assistant turn asked for a crop name
+    # and this user reply resolves to a pack crop, skip the LLM classify and
+    # hand the downstream pipeline an intent-ready result. Avoids re-paying
+    # ~2s of LLM latency just to re-infer what history already tells us.
+    resolved_crop = _resolve_ask_back_reply(user_message, history)
+    if resolved_crop:
+        log.log_step(Step.CLASSIFY, "ask_back_resolved", details={
+            "crop": resolved_crop,
+            "reply_preview": user_message[:80],
+        })
+        result = ClassifyExtractOutput(
+            intent=IntentType.DIAGNOSE_DISEASE,
+            crop=resolved_crop,
+            keywords=[resolved_crop, "disease", "symptoms"],
+            needs_image=False,
+            confidence=0.8,
+        )
+        return {
+            "classify_result": result,
+            "image_description": None,
+            "needs_search": True,
+        }
+
     # Image analysis (if photo provided)
     image_description = None
     if image_path:
@@ -266,7 +340,7 @@ def classify_and_extract(state: FieldAssistantState) -> dict:
         from datetime import datetime, timezone
         from app.agents.state import trim_conversation_history
         ask_msg = (
-            "I can see signs of disease in your photo, but I'm not sure which crop this is. "
+            f"{ASK_BACK_SENTINEL}, but I'm not sure which crop this is. "
             "Could you tell me the crop name? For example: cassava, rice, maize, groundnut, or tomato."
         )
         updated_history = list(history) + [

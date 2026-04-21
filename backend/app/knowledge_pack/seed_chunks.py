@@ -1232,6 +1232,29 @@ def _get_regional_context_chunks() -> list[dict]:
     return contexts
 
 
+_CASE_NORMALIZED_METADATA_KEYS = ("crop",)
+
+
+def _normalize_metadata_case(chunks: list[dict]) -> list[dict]:
+    """Lowercase case-sensitive filter keys on chunk metadata.
+
+    ChromaDB's `$eq` filter is case-sensitive. The route layer lowercases
+    values like `crop` before filtering, so the ingest side must match.
+    Doing the normalization here (not at each call site) means a future seed
+    author who writes `"Cassava"` instead of `"cassava"` cannot silently
+    break filtered search.
+    """
+    for chunk in chunks:
+        md = chunk.get("metadata")
+        if not md:
+            continue
+        for key in _CASE_NORMALIZED_METADATA_KEYS:
+            val = md.get(key)
+            if isinstance(val, str):
+                md[key] = val.lower()
+    return chunks
+
+
 def get_all_chunks() -> dict[str, list[dict]]:
     """Return all chunks organized by collection name.
 
@@ -1242,8 +1265,8 @@ def get_all_chunks() -> dict[str, list[dict]]:
     disease_chunks = _get_disease_chunks()
 
     return {
-        "disease_knowledge": disease_chunks["disease_knowledge"],
-        "treatment_guides": disease_chunks["treatment_guides"],
-        "farming_practices": _get_farming_practice_chunks(),
-        "regional_context": _get_regional_context_chunks(),
+        "disease_knowledge": _normalize_metadata_case(disease_chunks["disease_knowledge"]),
+        "treatment_guides": _normalize_metadata_case(disease_chunks["treatment_guides"]),
+        "farming_practices": _normalize_metadata_case(_get_farming_practice_chunks()),
+        "regional_context": _normalize_metadata_case(_get_regional_context_chunks()),
     }

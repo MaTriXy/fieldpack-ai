@@ -277,3 +277,152 @@ class TestClassifyAndExtract:
 
         # Follow-up resolved to actual intent
         assert result["classify_result"].intent == IntentType.GET_TREATMENT
+
+
+# ============================================================
+# Unit: ask-back short-circuit
+# ============================================================
+
+class _FakeManifest:
+    def __init__(self, crops):
+        self.crops = crops
+
+
+class _FakePack:
+    def __init__(self, crops):
+        self.manifest = _FakeManifest(crops)
+
+
+class TestAskBackShortCircuit:
+    """The prior assistant turn asked for a crop — current reply should
+    skip the LLM classify when it resolves to a pack crop.
+    """
+
+    from app.agents.nodes.classify_extract import ASK_BACK_SENTINEL as _SENTINEL
+
+    def _state(self, message, history):
+        return {
+            "user_message": message,
+            "image_path": None,
+            "conversation_history": history,
+        }
+
+    def _ask_back_history(self):
+        return [
+            {"role": "user", "content": "what's wrong with my plant"},
+            {"role": "assistant",
+             "content": f"{self._SENTINEL}, but I'm not sure which crop this is. "
+                        "Could you tell me the crop name?"},
+        ]
+
+    def test_short_crop_reply_skips_llm(self):
+        pack = _FakePack(["cassava", "rice", "maize"])
+        with patch("app.agents.nodes.classify_extract.get_field_llm") as mock_llm, \
+             patch("app.knowledge_pack.loader.get_active_pack", return_value=pack):
+            result = classify_and_extract(self._state("cassava", self._ask_back_history()))
+
+        # LLM must not have been consulted
+        mock_llm.assert_not_called()
+        assert result["classify_result"].crop == "cassava"
+        assert result["classify_result"].intent == IntentType.DIAGNOSE_DISEASE
+        assert result["image_description"] is None
+
+    def test_phrased_crop_reply_also_resolves(self):
+        pack = _FakePack(["cassava", "rice"])
+        with patch("app.agents.nodes.classify_extract.get_field_llm") as mock_llm, \
+             patch("app.knowledge_pack.loader.get_active_pack", return_value=pack):
+            result = classify_and_extract(
+                self._state("it's rice", self._ask_back_history()),
+            )
+
+        mock_llm.assert_not_called()
+        assert result["classify_result"].crop == "rice"
+
+    def test_long_reply_does_not_short_circuit(self):
+        # A long reply is a new question, not a crop follow-up — LLM must run.
+        pack = _FakePack(["cassava"])
+        long_msg = (
+            "Actually forget the photo, I have a different question about "
+            "how to fertilize my cassava field in the dry season"
+        )
+        mock_response = MagicMock()
+        mock_response.content = json.dumps({
+            "intent": "farming_advice", "crop": "cassava",
+            "keywords": ["fertilize", "cassava"], "confidence": 0.7,
+        })
+        with patch("app.agents.nodes.classify_extract.get_field_llm") as mock_llm, \
+             patch("app.knowledge_pack.loader.get_active_pack", return_value=pack):
+            mock_llm.return_value.invoke.return_value = mock_response
+            classify_and_extract(self._state(long_msg, self._ask_back_history()))
+
+        mock_llm.assert_called_once()
+
+    def test_unknown_crop_reply_falls_through_to_llm(self):
+        # User replies with a crop not in the pack — can't short-circuit, LLM runs.
+        pack = _FakePack(["cassava", "rice"])
+        mock_response = MagicMock()
+        mock_response.content = json.dumps({
+            "intent": "diagnose_disease", "crop": None,
+            "keywords": ["potato"], "confidence": 0.4,
+        })
+        with patch("app.agents.nodes.classify_extract.get_field_llm") as mock_llm, \
+             patch("app.knowledge_pack.loader.get_active_pack", return_value=pack):
+            mock_llm.return_value.invoke.return_value = mock_response
+            classify_and_extract(self._state("potato", self._ask_back_history()))
+
+        mock_llm.assert_called_once()
+
+    def test_no_ask_back_in_history_does_not_short_circuit(self):
+        # Plain first-turn user message, same content — should NOT skip LLM.
+        pack = _FakePack(["cassava"])
+        mock_response = MagicMock()
+        mock_response.content = json.dumps({
+            "intent": "general_question", "crop": "cassava",
+            "keywords": ["cassava"], "confidence": 0.5,
+        })
+        with patch("app.agents.nodes.classify_extract.get_field_llm") as mock_llm, \
+             patch("app.knowledge_pack.loader.get_active_pack", return_value=pack):
+            mock_llm.return_value.invoke.return_value = mock_response
+            classify_and_extract(self._state("cassava", history=[]))
+
+        mock_llm.assert_called_once()
+
+    def test_longest_crop_wins_when_both_are_substrings(self):
+        # Pack has both "rice" and "upland_rice"; reply "upland rice" must
+        # resolve to the specific variety, not the generic one.
+        pack = _FakePack(["rice", "upland_rice"])
+        with patch("app.agents.nodes.classify_extract.get_field_llm") as mock_llm, \
+             patch("app.knowledge_pack.loader.get_active_pack", return_value=pack):
+            result = classify_and_extract(
+                self._state("upland rice", self._ask_back_history()),
+            )
+
+        mock_llm.assert_not_called()
+        assert result["classify_result"].crop == "upland_rice"
+
+    def test_word_boundary_prevents_spurious_substring_hit(self):
+        # "pricey" contains the substring "rice" but shouldn't match the crop.
+        pack = _FakePack(["rice"])
+        mock_response = MagicMock()
+        mock_response.content = json.dumps({
+            "intent": "general_question", "crop": None,
+            "keywords": [], "confidence": 0.3,
+        })
+        with patch("app.agents.nodes.classify_extract.get_field_llm") as mock_llm, \
+             patch("app.knowledge_pack.loader.get_active_pack", return_value=pack):
+            mock_llm.return_value.invoke.return_value = mock_response
+            classify_and_extract(self._state("pricey", self._ask_back_history()))
+
+        # No short-circuit — LLM must run (and return no crop).
+        mock_llm.assert_called_once()
+
+    def test_short_circuit_returns_needs_search_true(self):
+        # Explicit flag so downstream routing doesn't rely on a missing-key default.
+        pack = _FakePack(["cassava"])
+        with patch("app.agents.nodes.classify_extract.get_field_llm"), \
+             patch("app.knowledge_pack.loader.get_active_pack", return_value=pack):
+            result = classify_and_extract(
+                self._state("cassava", self._ask_back_history()),
+            )
+
+        assert result.get("needs_search") is True
