@@ -277,12 +277,13 @@ fieldpack-ai/
 │       └── SOURCES.md           # Data provenance
 ├── notebooks/
 │   └── colab_ollama_gpu.ipynb   # Colab GPU tunnel for remote Ollama
-├── docs/
-│   ├── images/                  # Architecture diagrams, cover image
-│   ├── PHILOSOPHY.md            # Project strategy & competition analysis
+├── docs/                        # See docs/README.md for the full index
+│   ├── PHILOSOPHY.md            # Project strategy & design philosophy
 │   ├── TECH_FRAMEWORK.md        # Full architecture documentation
-│   ├── VIDEO_SCRIPT.md          # 3-minute video production bible
-│   └── KAGGLE_WRITEUP.md        # Competition writeup
+│   ├── TROUBLESHOOTING.md       # Common setup / runtime issues
+│   ├── DEVELOPER_NOTES.md       # Dev environment, APK build, gotchas
+│   ├── KAGGLE_WRITEUP.md        # Competition writeup
+│   └── images/                  # Architecture diagrams, cover image
 └── video-frames/                # React app for video frame generation
 ```
 

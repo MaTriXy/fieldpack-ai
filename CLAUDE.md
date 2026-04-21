@@ -15,7 +15,7 @@ Two phases, one system:
 
 The demo pack is `packs/casamance_agriculture/` (5 crops, ~15 diseases, southern Senegal context).
 
-**Design docs:** `docs/PHILOSOPHY.md` (why) and `docs/TECH_FRAMEWORK.md` (how). `docs/TROUBLESHOOTING.md` covers the most common setup pain points.
+**Which doc when:** see [`docs/README.md`](docs/README.md) for the full map. Quick pointers: `docs/PHILOSOPHY.md` (why), `docs/TECH_FRAMEWORK.md` (how), `docs/DEVELOPER_NOTES.md` (day-to-day dev), `docs/TROUBLESHOOTING.md` (when something breaks).
 
 ---
 
@@ -74,73 +74,25 @@ Never commit keys. `.env` only. Google AI Studio's Gemma 4 access is free tier; 
 
 ---
 
-## 4. Repo Layout (what lives where)
+## 4. Repo Layout (high level)
 
-```
-fieldpack-ai/
-├── backend/
-│   ├── app/
-│   │   ├── main.py                  # FastAPI entry; wires routers, CORS, startup
-│   │   ├── config.py                # pydantic-settings; reads .env
-│   │   ├── agents/                  # Phase 2: offline Field Assistant (LangGraph)
-│   │   │   ├── field_assistant.py   # Graph build + WebSocket streaming
-│   │   │   ├── state.py             # TypedDict-style agent state
-│   │   │   └── nodes/               # classify_extract, route, needs_search,
-│   │   │                            #   craft_query, execute_search, rerank,
-│   │   │                            #   expand_route, generate_answer, log_observation
-│   │   ├── agent_farm/              # Phase 1: online knowledge curation
-│   │   │   ├── phases/              # source gathering, extraction, packaging
-│   │   │   ├── sources/             # PDF, HTML, CGIAR, climate parsers
-│   │   │   └── tools/               # web search (Tavily), web fetch
-│   │   ├── knowledge_pack/          # Pack schema, builder, loader, manifest
-│   │   ├── models/                  # LLM providers: offline_llm.py, online LLMs
-│   │   ├── routers/                 # chat, conversations, mission, pack,
-│   │   │                            #   observations, upload, health
-│   │   └── tools/                   # RAG tools: chroma search, sqlite query,
-│   │                                #   FTS, image analysis, observation log
-│   ├── tests/                       # 581+ tests (pytest); e2e/ and fixtures/ subdirs
-│   ├── modelfiles/                  # Ollama Modelfile overrides
-│   ├── scripts/                     # one-off utilities (pack ops, smoke tests)
-│   ├── quality_test_*.py            # End-to-end quality harnesses
-│   └── .env.example                 # Copy to .env (native runs only)
-├── frontend/
-│   ├── src/
-│   │   ├── App.tsx, main.tsx        # Router + mount
-│   │   ├── pages/                   # HomePage, FieldChatPage, DiagnosisCardPage,
-│   │   │                            #   ObservationsPage, MissionChatPage,
-│   │   │                            #   KnowledgeExplorerPage, PackListPage,
-│   │   │                            #   PackInfoPage, SettingsPage,
-│   │   │                            #   OnboardingPage, AgentProgressPage,
-│   │   │                            #   PipelineDebugPage
-│   │   ├── components/              # Reusable UI (cards, pipeline panel, etc.)
-│   │   ├── hooks/                   # useBackendReachable, swipe, Android back
-│   │   └── lib/                     # config.ts (URL resolution + LAN scan),
-│   │                                #   API client, offline queue
-│   └── android/                     # Capacitor Android project (APK source)
-├── packs/
-│   └── casamance_agriculture/       # Demo Knowledge Pack
-│       ├── knowledge.db             # Structured: diseases, treatments, crops
-│       ├── chroma_db/               # Vector embeddings (HNSW)
-│       ├── images/                  # Reference crop photos
-│       ├── manifest.json            # Pack metadata
-│       └── SOURCES.md               # Data provenance
-├── notebooks/
-│   └── colab_ollama_gpu.ipynb       # Optional Colab T4 tunnel for remote Ollama
-├── docs/
-│   ├── PHILOSOPHY.md                # Strategy, competition analysis
-│   ├── TECH_FRAMEWORK.md            # Full architecture, decisions, rationale
-│   ├── DEVELOPER_NOTES.md           # Environment tips, APK build, gotchas
-│   ├── TROUBLESHOOTING.md           # One-stop setup issue guide
-│   ├── QUICKSTART_POWERSHELL.md     # Windows PowerShell variant
-│   ├── SUBMISSION_PLAYBOOK.md       # Hackathon submission steps
-│   ├── KAGGLE_WRITEUP.md            # Competition writeup
-│   └── VIDEO_SCRIPT.md              # 3-min demo video script
-├── dist-apk/                        # Shipped APK (gitignored, built manually)
-├── docker-compose.yml               # One-command setup (Ollama + app)
-├── Dockerfile                       # Backend + frontend build
-├── jdk-21.0.10+7/                   # Local JDK for APK builds
-└── CLAUDE.md                        # This file
-```
+- `backend/app/agents/` — Phase 2 offline Field Assistant (LangGraph). Nodes in `nodes/`, graph in `field_assistant.py`, state in `state.py`.
+- `backend/app/agent_farm/` — Phase 1 online knowledge curation. Sub-phases, source parsers (PDF/HTML/CGIAR/climate), Tavily web search.
+- `backend/app/knowledge_pack/` — pack schema, builder, loader, manifest.
+- `backend/app/models/` — LLM providers (`offline_llm.py` for Ollama, online for Google AI Studio).
+- `backend/app/routers/` — FastAPI endpoints (chat, conversations, mission, pack, observations, upload, health).
+- `backend/app/tools/` — RAG tools (Chroma search, SQLite, FTS, image analysis, observation log).
+- `backend/tests/` — 581+ pytest tests. `e2e/` and `fixtures/` subdirs.
+- `frontend/src/pages/` — React pages (Field Chat, Diagnosis, Observations, Mission, Knowledge Explorer, Pack List/Info, Settings, Onboarding, Pipeline Debug).
+- `frontend/src/lib/config.ts` — URL resolution + LAN scan (see §7).
+- `frontend/android/` — Capacitor Android project; APK source.
+- `packs/casamance_agriculture/` — demo Knowledge Pack (`knowledge.db`, `chroma_db/`, `images/`, `manifest.json`, `SOURCES.md`).
+- `docs/` — see `docs/README.md` for the full index.
+- `dist-apk/` — built APK (gitignored).
+- `notebooks/colab_ollama_gpu.ipynb` — optional Colab T4 tunnel.
+- `jdk-21.0.10+7/` — local JDK for APK builds.
+
+Use `Glob` / `ls` to dive deeper; a full tree goes stale fast.
 
 ---
 
@@ -170,20 +122,9 @@ Key behaviors and why they exist:
 
 ## 6. Stack Summary
 
-| Layer | Technology | Notes |
-|---|---|---|
-| Backend | FastAPI + uvicorn | Async, WebSocket streaming |
-| Orchestration | LangGraph | State machine for agentic RAG |
-| Vector store | ChromaDB (persistent) | Always `PersistentClient(path=...)`, never in-memory for pack data |
-| Structured DB | SQLite + FTS | Per-pack `knowledge.db` |
-| Embeddings | sentence-transformers all-MiniLM-L6-v2 | Offline, ~90 MB, pre-downloaded in Docker build |
-| Edge LLM | Gemma 4 E2B Q4_K_M via Ollama | 5.1B params, ~8 GB RAM, runs on CPU |
-| Cloud LLMs | Gemma 4 31B + 26B via AI Studio | Free tier, used for Phase 1 |
-| Frontend | React 19 + Vite 8 + Tailwind v4 + TS | Tailwind v4 `oklch()` → Android 12+ / Chrome 111+ |
-| Mobile | Capacitor 8 | Thin client, JDK 21 to build |
-| Config | pydantic-settings + `.env` | Never hardcode keys |
+FastAPI + LangGraph + ChromaDB (persistent) + SQLite/FTS + sentence-transformers (all-MiniLM-L6-v2) + Gemma 4 E2B Q4_K_M via Ollama. Frontend: React 19 + Vite 8 + Tailwind v4 + Capacitor 8. Cloud LLMs (Phase 1 only): Gemma 4 31B/26B via Google AI Studio free tier. Full stack table in README; decision rationale in `docs/TECH_FRAMEWORK.md`.
 
-Python 3.10+. Type hints on public functions. Async where possible. Error handling at boundaries only (API calls, file I/O, Ollama) — not internal logic.
+**Code style:** Python 3.10+, type hints on public functions, async where possible, error handling at boundaries only (API calls, file I/O, Ollama) — not internal logic. Config via pydantic-settings + `.env`; never hardcode keys. ChromaDB: always `PersistentClient(path=...)`, never in-memory for pack data.
 
 ---
 
@@ -243,8 +184,4 @@ All of these have bitten us before. See `docs/TROUBLESHOOTING.md` for full conte
 
 ## 10. Where to go next
 
-- **Getting started from zero** → README §"For Judges — One-Command Setup" or §2 of this file.
-- **Understanding decisions** → `docs/PHILOSOPHY.md` (strategy) and `docs/TECH_FRAMEWORK.md` (full architecture + rationale).
-- **Day-to-day dev reference** → `docs/DEVELOPER_NOTES.md`.
-- **Something broken** → `docs/TROUBLESHOOTING.md` then §8 of this file.
-- **Submitting / shipping** → `docs/SUBMISSION_PLAYBOOK.md`, `docs/SHIP_PUNCH_LIST.md`, `docs/FINAL_SHIP_AUDIT.md`.
+See [`docs/README.md`](docs/README.md) — it's the map from "what I'm trying to do" to "which doc to open." Start there.
