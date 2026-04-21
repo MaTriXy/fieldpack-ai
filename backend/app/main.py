@@ -1,4 +1,5 @@
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -43,6 +44,14 @@ async def lifespan(app: FastAPI):
     settings.packs_path
     settings.uploads_path
     if settings.demo_mode:
+        script_path = (Path(__file__).resolve().parent.parent / settings.demo_script_path).resolve()
+        if not script_path.exists():
+            log.log_step(
+                Step.PACK_LOAD,
+                "demo_script_missing",
+                level="WARNING",
+                details={"demo": True, "script_path": str(script_path)},
+            )
         log.log_step(Step.PACK_LOAD, "demo_mode", details={"demo": True})
     else:
         _auto_load_first_pack()
@@ -77,7 +86,7 @@ app.add_middleware(
         r"(:\d+)?$"
     ),
     allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["Content-Type", "Upgrade", "Connection"],
 )
 

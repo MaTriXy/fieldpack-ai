@@ -150,7 +150,11 @@ services:
       dockerfile: Dockerfile
     container_name: fieldpack-frontend
     depends_on:
-      - app
+      app:
+        # Wait for the backend to be healthy before serving the frontend.
+        # Without this, nginx can serve the SPA while /api returns 502 for the
+        # first user to load the page during a cold start.
+        condition: service_healthy
     ports:
       - "5173:5173"
     restart: unless-stopped

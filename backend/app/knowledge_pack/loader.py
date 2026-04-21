@@ -149,7 +149,24 @@ class KnowledgePack:
         if self._sqlite_conn:
             self._sqlite_conn.close()
             self._sqlite_conn = None
-        self._chroma_client = None
+        if self._chroma_client is not None:
+            # ChromaDB caches a System per (tenant, database, persist_directory)
+            # in SharedSystemClient. Without clearing, repeated load/unload of
+            # packs at different paths (tests, pack hot-reload) leaves stale
+            # System references that keep Rust-side file handles open on the
+            # old HNSW files, causing "Nothing found on disk" errors when the
+            # next pack's query tries to read its own fresh HNSW index.
+            from chromadb.api.shared_system_client import SharedSystemClient
+            try:
+                SharedSystemClient.clear_system_cache()
+            except Exception:
+                pass
+            self._chroma_client = None
+            # Force Python GC so any lingering client refs are released, then
+            # give the Rust runtime a moment to drop file handles on Windows
+            # (where mmap'd HNSW files stay locked longer than on POSIX).
+            import gc
+            gc.collect()
         self._embedding_fn = None
 
     def __enter__(self):
