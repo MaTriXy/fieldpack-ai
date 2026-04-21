@@ -29,9 +29,9 @@
 | 3 | Vector store (offline) | **ChromaDB (persistent mode)** | FAISS | Metadata filtering on entities. SQLite backend = portable. Embedded mode = no server. |
 | 4 | Structured DB | **SQLite** | — | Universal, single file, runs everywhere. |
 | 5 | Embedding model | **Google text-embedding (online) + all-MiniLM-L6-v2 (offline)** | Gemma E2B hidden states | Pre-compute high-quality embeddings online. Ship tiny model for runtime queries offline. |
-| 6 | Edge inference runtime | **Ollama** | llama.cpp server | One-line install, REST API, easy demo. Ships Gemma 4 E4B GGUF. |
+| 6 | Edge inference runtime | **Ollama** | llama.cpp server | One-line install, REST API, easy demo. Ships Gemma 4 E2B GGUF. |
 | 7 | App UI | **Google Stitch → React/Tailwind export** | Gradio | Wow-factor UI. Google product optics. Professional look beats "demo widget." |
-| 8 | Image processing | **Gemma E4B native vision (primary)** | CLIP + similarity hybrid | E4B handles images natively. Simpler pipeline. Fallback to hybrid if quality is insufficient. |
+| 8 | Image processing | **Gemma E2B native vision (primary)** | CLIP + similarity hybrid | E2B handles images natively. Simpler pipeline. Fallback to hybrid if quality is insufficient. |
 | 9 | Knowledge Pack format | **SQLite + ChromaDB + images folder, zipped** | Single SQLite with BLOBs | Clean, inspectable, judge-friendly structure. Human-readable manifest. |
 | 10 | Development environment | **Local dev, Google AI Studio API for cloud calls** | Pure Kaggle notebooks | Best developer experience. No GPU needed — all LLM calls are API-based or Ollama CPU. |
 
@@ -158,7 +158,7 @@ This entire directory is portable. Copy it → load it on another machine → it
 
 **What**: One-line install local LLM server. REST API compatible with OpenAI format.
 
-**Model**: Gemma 4 E4B IT (instruction-tuned), GGUF quantized.
+**Model**: Gemma 4 E2B IT (instruction-tuned), GGUF quantized.
 
 **Hardware Requirements**:
 | Quantization | RAM Needed | Speed (CPU) | Quality |
@@ -168,7 +168,7 @@ This entire directory is portable. Copy it → load it on another machine → it
 
 **Recommendation**: Start with Q8 if your machine has 16GB+ RAM. Drop to Q4 if memory is tight.
 
-**Multimodal**: Ollama supports Gemma 4 E4B's vision capabilities. Image input works through the REST API.
+**Multimodal**: Ollama supports Gemma 4 E2B's vision capabilities. Image input works through the REST API.
 
 **LangGraph Integration**: LangGraph connects to Ollama via `ChatOllama` class. Same graph definition works for both online (AI Studio) and offline (Ollama) — we just swap the LLM provider.
 
@@ -209,22 +209,22 @@ Stitch → React/Tailwind Export → Developer Integration → FastAPI Backend �
 - [Stitch Complete Guide 2026](https://www.nxcode.io/resources/news/google-stitch-complete-guide-vibe-design-2026)
 - [Stitch Review](https://www.index.dev/blog/google-stitch-ai-review-for-ui-designers)
 
-### 2.8 Image Processing — Gemma E4B Vision First
+### 2.8 Image Processing — Gemma E2B Vision First
 
-**Primary approach**: Feed plant photos directly to Gemma E4B. The model's native multimodal understanding handles image analysis. Combined with RAG context (disease descriptions, visual markers from the DB), it should identify common crop diseases.
+**Primary approach**: Feed plant photos directly to Gemma E2B. The model's native multimodal understanding handles image analysis. Combined with RAG context (disease descriptions, visual markers from the DB), it should identify common crop diseases.
 
-**Why E4B vision first**:
+**Why E2B vision first**:
 - No extra model to ship (simpler Knowledge Pack)
-- E4B scores 44.2% on MMMU Pro (vision benchmark) — sufficient for plant disease matching when combined with strong RAG context
-- The function calling flow: E4B sees image → calls `search_diseases(visual_description="leaf curl, yellow mosaic pattern")` → gets candidate diseases from DB → cross-references → provides diagnosis
+- E2B handles native multimodal input — sufficient for plant disease matching when combined with strong RAG context
+- The function calling flow: E2B sees image → calls `search_diseases(visual_description="leaf curl, yellow mosaic pattern")` → gets candidate diseases from DB → cross-references → provides diagnosis
 
-**Fallback (if E4B vision is insufficient)**:
+**Fallback (if E2B vision is insufficient)**:
 - Add CLIP model (~300MB) for image embedding
 - Pre-compute CLIP embeddings for all reference disease images during Phase 1
-- At runtime: CLIP embeds the user's photo → cosine similarity against reference embeddings → top matches feed into E4B as context
+- At runtime: CLIP embeds the user's photo → cosine similarity against reference embeddings → top matches feed into E2B as context
 - This is more accurate but adds complexity and model size
 
-**Decision**: Start with E4B vision only. Test with real plant disease images. Switch to hybrid only if identification quality is unacceptable.
+**Decision**: Start with E2B vision only. Test with real plant disease images. Switch to hybrid only if identification quality is unacceptable.
 
 ### 2.9 Knowledge Pack Format
 
@@ -298,8 +298,8 @@ fieldpack_casamance_agriculture_v1/
 - Windows 10 (confirmed from your system)
 - Python 3.10+ (for LangGraph, ChromaDB, FastAPI)
 - Node.js 18+ (for React frontend from Stitch)
-- Ollama (for local Gemma E4B inference)
-- 16GB+ RAM (for Ollama running E4B-Q8)
+- Ollama (for local Gemma E2B inference)
+- 8GB+ RAM (for Ollama running E2B Q4_K_M)
 - No GPU required
 
 **How Each Component Runs Locally**:
@@ -308,7 +308,7 @@ fieldpack_casamance_agriculture_v1/
 |-----------|-------------|-------------|
 | LangGraph agents (Phase 1) | Python process, calls Google AI Studio API over internet | — |
 | LangGraph agents (Phase 2) | Python process, calls Ollama over localhost | — |
-| Ollama (E4B) | Background service | `http://localhost:11434` |
+| Ollama (E2B) | Background service | `http://localhost:11434` |
 | ChromaDB | Embedded in Python process (no separate service) | — |
 | SQLite | Embedded in Python process | — |
 | FastAPI backend | Python uvicorn server | `http://localhost:8000` |
@@ -374,7 +374,7 @@ fieldpack_casamance_agriculture_v1/
 │  │  │                                                │       │       │
 │  │  │  ┌──────────┐   Conditional    ┌──────────┐   │       │       │
 │  │  │  │  Gemma   │     Edges        │  Tool    │   │       │       │
-│  │  │  │  E4B     │◄──────────────▶ │  Calls   │   │       │       │
+│  │  │  │  E2B     │◄──────────────▶ │  Calls   │   │       │       │
 │  │  │  │ (Ollama) │                  │          │   │       │       │
 │  │  │  └──────────┘                  │ ┌──────┐ │   │       │       │
 │  │  │                                │ │Chroma│ │   │       │       │
@@ -504,7 +504,7 @@ The Knowledge Compiler (31B) receives all raw findings and:
 1. **Deduplicates**: Multiple agents may find the same information
 2. **Validates**: Cross-references facts across sources, flags contradictions
 3. **Structures**: Creates SQLite table entries from unstructured findings
-4. **Enriches**: Generates visual marker descriptions for diseases (helps E4B identify from photos)
+4. **Enriches**: Generates visual marker descriptions for diseases (helps E2B identify from photos)
 5. **Chunks**: Splits long texts into retrieval-optimized chunks (300-500 tokens each)
 6. **Embeds**: Generates embeddings for all chunks using MiniLM
 7. **Indexes**: Loads embeddings + metadata into ChromaDB collections
@@ -521,13 +521,13 @@ This is the core innovation. See [Section 7](#7-the-agentic-rag-design--the-core
 ### Ollama Integration
 
 ```python
-# The E4B model runs locally via Ollama
+# The E2B model runs locally via Ollama
 # LangGraph connects via ChatOllama
 
 from langchain_ollama import ChatOllama
 
 llm = ChatOllama(
-    model="gemma4-e4b:q8",
+    model="gemma4-e2b:q4_K_M",
     base_url="http://localhost:11434",
     temperature=0.3,
     # Enable multimodal
@@ -538,7 +538,7 @@ llm = ChatOllama(
 ### Tool Definitions for Offline Agent
 
 ```python
-# Tools the E4B agent can call via native function calling
+# Tools the E2B agent can call via native function calling
 offline_tools = [
     {
         "name": "search_knowledge",
@@ -624,7 +624,7 @@ offline_tools = [
         "embedding_model": "all-MiniLM-L6-v2",
         "embedding_dimensions": 384
     },
-    "recommended_edge_model": "gemma-4-e4b-it",
+    "recommended_edge_model": "gemma-4-e2b-it",
     "created_at": "2026-04-15T10:00:00Z",
     "sources": ["FAO", "IITA", "PlantVillage", "Senegalese Ministry of Agriculture"],
     "license": "CC-BY-SA-4.0"
@@ -928,7 +928,7 @@ backend/
 │   │   └── schema.py              # Pack validation / manifest
 │   ├── models/
 │   │   ├── online_llm.py          # Google AI Studio (31B/26B)
-│   │   └── offline_llm.py         # Ollama (E4B)
+│   │   └── offline_llm.py         # Ollama (E2B)
 │   └── config.py                  # Configuration
 ├── requirements.txt
 └── .env
@@ -967,8 +967,8 @@ pip install chromadb sentence-transformers
 pip install fastapi uvicorn websockets
 pip install python-dotenv httpx beautifulsoup4
 
-# 3. Pull Gemma 4 E4B for offline use
-ollama pull gemma4-e4b:q8    # or q4 if RAM is tight
+# 3. Pull Gemma 4 E2B for offline use
+ollama pull gemma4-e2b:q4_K_M    # ~5GB, ~8GB RAM
 
 # 4. Frontend (after Stitch export)
 cd frontend
@@ -989,8 +989,8 @@ uvicorn app.main:app --reload --port 8000
 ### Testing the Full Loop
 
 ```bash
-# Test 1: Verify Ollama is running with Gemma E4B
-curl http://localhost:11434/api/generate -d '{"model":"gemma4-e4b:q8","prompt":"Hello"}'
+# Test 1: Verify Ollama is running with Gemma E2B
+curl http://localhost:11434/api/generate -d '{"model":"gemma4-e2b:q4_K_M","prompt":"Hello"}'
 
 # Test 2: Verify Google AI Studio connection
 python -c "from langchain_google_genai import ChatGoogleGenerativeAI; print('OK')"
@@ -1069,10 +1069,10 @@ fieldpack-ai/
 
 | Risk | Impact | Probability | Fallback |
 |------|--------|------------|----------|
-| E4B plant identification too weak | High | Medium | Add CLIP model for image embedding + similarity search |
+| E2B plant identification too weak | High | Medium | Add CLIP model for image embedding + similarity search |
 | Google AI Studio rate limits hit during Phase 1 | Medium | Low | Batch requests, add delays, or use Kaggle notebooks for heavy lifting |
 | ChromaDB persistent store too large (>500MB) | Low | Low | Reduce chunk count, compress embeddings, limit reference images |
-| Ollama E4B too slow on CPU for demo | Medium | Medium | Use Q4 quantization, pre-warm the model, keep demo questions focused |
+| Ollama E2B too slow on CPU for demo | Medium | Medium | Use Q4 quantization, pre-warm the model, keep demo questions focused |
 | Stitch React export needs heavy rework | Medium | Medium | Fall back to Gradio for MVP, Stitch for video screenshots only |
 | LangGraph + Ollama function calling breaks | High | Low | Implement manual tool call parsing (regex on Gemma output) |
 | MiniLM embeddings incompatible with online embeddings | Medium | Medium | Use MiniLM for both online and offline (guaranteed compatibility) |
@@ -1096,5 +1096,5 @@ fieldpack-ai/
 ### Gemma 4 Technical
 - [Gemma 4 Function Calling Guide](https://ai.google.dev/gemma/docs/capabilities/text/function-calling-gemma4)
 - [Gemma 4 Hardware Requirements](https://avenchat.com/blog/gemma-4-hardware-requirements)
-- [Gemma 4 E4B GGUF (Unsloth)](https://huggingface.co/unsloth/gemma-4-E4B-it-GGUF)
+- [Gemma 4 E2B GGUF (Unsloth)](https://huggingface.co/unsloth/gemma-4-E2B-it-GGUF)
 - [HuggingFace: Welcome Gemma 4](https://huggingface.co/blog/gemma4)

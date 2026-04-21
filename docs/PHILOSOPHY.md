@@ -161,11 +161,11 @@ The system responds with intelligence:
 
 The user downloads the Knowledge Pack. It is a single portable file — a few hundred megabytes containing everything they need.
 
-### Phase 2: Offline — "Field Assistant" (Edge, Gemma 4 E4B)
+### Phase 2: Offline — "Field Assistant" (Edge, Gemma 4 E2B)
 
 The user is now in the field. No internet. They open the app.
 
-The **Field Assistant Agent** (E4B, running locally on their device) has access to the Knowledge Pack through native function calling:
+The **Field Assistant Agent** (E2B, running locally on their device) has access to the Knowledge Pack through native function calling:
 
 - `search_knowledge(query)` — semantic search through the vector store
 - `identify_plant(image)` — analyze a photo using vision + reference image matching
@@ -219,8 +219,8 @@ Most teams will use one model. We use all four tiers, each for what it's best at
 |-------|-------------------|----------------|
 | 31B Dense | Mission Planner + Knowledge Compiler | Highest reasoning quality for planning and validation |
 | 26B MoE | Parallel Research Agents | Best quality-per-compute ratio for parallelized work |
-| E4B | Field Assistant (offline) | Multimodal (text + image), fits on laptop/tablet, strong enough for agentic RAG |
-| E2B | Potential lightweight fallback for phones | Smallest footprint, still multimodal |
+| E2B | Field Assistant (offline) | Smallest multimodal footprint (2.3B active params, ~8 GB RAM), fits on laptop for hotspot thin-client demo |
+| E4B | Potential upgrade path for higher-quality vision | Same architecture, more capacity when hardware allows |
 
 Judges will notice this. It shows we understood the model family as a system, not just picked the biggest one.
 
@@ -358,7 +358,7 @@ Based on analysis of previous Kaggle Gemma hackathons and Kaggle community hacka
 
 **How we score**: Maximum. This project could NOT be built with any other model family. It specifically requires:
 - **Large models with agentic capabilities** (31B/26B for knowledge gathering via function calling)
-- **Edge models with multimodal support** (E4B for offline image analysis)
+- **Edge models with multimodal support** (E2B for offline image analysis)
 - **The full model family working as a system** (cloud → edge pipeline)
 - **Native function calling** (the edge agent uses tool calls to query the local database)
 - **Apache 2.0 licensing** (the Knowledge Pack concept requires full redistribution rights)
@@ -369,7 +369,7 @@ No other open model family offers this combination. We are building something th
 
 **What judges ask**: *"Can I run this myself?"*
 
-**How we score**: High. The entire pipeline runs in Kaggle notebooks (online phase) and on any machine with enough RAM for E4B (offline phase). Dependencies are standard Python libraries. The Knowledge Pack format is documented. The Kaggle notebook is public and annotated.
+**How we score**: High. The entire pipeline runs in Kaggle notebooks (online phase) and on any machine with enough RAM for E2B (offline phase). Dependencies are standard Python libraries. The Knowledge Pack format is documented. The Kaggle notebook is public and annotated.
 
 ---
 
@@ -486,7 +486,7 @@ We are not just submitting code. We are submitting a narrative. Amina. Casamance
 
 ### 11.6 We Use the Full Model Family — On Purpose
 
-Our architecture must justify using multiple Gemma 4 model sizes. If we find ourselves only using one model, we are missing the point. The 31B/26B plan and research. The E4B serves in the field. This is the natural use of the model family, and judges will recognize it.
+Our architecture must justify using multiple Gemma 4 model sizes. If we find ourselves only using one model, we are missing the point. The 31B/26B plan and research. The E2B serves in the field. This is the natural use of the model family, and judges will recognize it.
 
 ### 11.7 Respect the Time Constraint
 

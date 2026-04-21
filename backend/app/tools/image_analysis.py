@@ -1,6 +1,6 @@
 """Image analysis tool for plant disease identification.
 
-Uses Gemma E4B vision to extract visual symptoms from plant photos.
+Uses Gemma E2B vision to extract visual symptoms from plant photos.
 The tool describes what it sees — it does NOT diagnose. Diagnosis happens
 when the pipeline cross-references symptoms against the knowledge base.
 
@@ -214,9 +214,9 @@ def analyze_plant_image(
     image_path: str | Path,
     crop_hint: str | None = None,
 ) -> dict:
-    """Analyze a plant image for disease symptoms using E4B vision.
+    """Analyze a plant image for disease symptoms using E2B vision.
 
-    Resizes the image, sends it to E4B with a structured prompt,
+    Resizes the image, sends it to E2B with a structured prompt,
     and returns parsed symptom analysis. Does NOT diagnose — only
     describes what is visible for downstream matching.
 

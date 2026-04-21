@@ -4,7 +4,7 @@
 langgraph>=0.4.0
 langchain-core>=0.3.0
 langchain-google-genai>=2.1.0      # Google AI Studio (Gemma 4 31B/26B)
-langchain-ollama>=0.3.0            # Ollama (Gemma 4 E4B offline)
+langchain-ollama>=0.3.0            # Ollama (Gemma 4 E2B offline)
 langchain-community>=0.3.0         # Community integrations (ChromaDB, etc.)
 
 # === Vector DB & Embeddings ===

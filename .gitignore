@@ -108,7 +108,26 @@ docs/images/*.html
 demo/timestamps.json
 demo/narration/*.mp3
 demo/video/
+demo/capture_journey.ts
 ffmpeg/
+
+# Local binaries (never commit — install locally)
+/tools/
+
+# One-off capture/screenshot scripts (not product code)
+scripts/capture_*.py
+
+# Intermediate image renders and scratch work (keep only final deliverables)
+docs/images/_work/
+docs/images/**/_work/
+docs/images/**/kaggle/
+docs/images/media-gallery/
+docs/images/kaggle-cover-render.png
+docs/images/kaggle-cover-thumb-2x.png
+docs/images/kraggle.png
+
+# Draft Kaggle description (keep only the .txt that was actually submitted)
+docs/KAGGLE_NOTEBOOK_DESCRIPTION.md
 
 # Video-frames build artifacts
 video-frames/dist/

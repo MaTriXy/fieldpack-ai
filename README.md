@@ -11,7 +11,7 @@
     <a href="https://www.kaggle.com/competitions/gemma-4-good-hackathon"><img src="https://img.shields.io/badge/Kaggle-Gemma%204%20Good%20Hackathon-20BEFF?logo=kaggle" alt="Kaggle"></a>
     <a href="https://ai.google.dev/gemma"><img src="https://img.shields.io/badge/Built%20with-Gemma%204-4285F4?logo=google" alt="Gemma 4"></a>
     <a href="https://ollama.com"><img src="https://img.shields.io/badge/Powered%20by-Ollama-000000?logo=ollama" alt="Ollama"></a>
-    <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-green" alt="MIT License"></a>
+    <a href="LICENSE"><img src="https://img.shields.io/badge/License-Apache_2.0-green" alt="Apache 2.0 License"></a>
   </p>
 </p>
 
@@ -24,13 +24,15 @@
 **Demo video:** [https://youtu.be/y9FSAkYpFII](https://youtu.be/y9FSAkYpFII) (3 min)
 
 <p align="center">
-  <img src="frontend/qa-screenshots/01-home.png" alt="Home screen" width="200">
+  <img src="docs/images/phone-hero/01-home-main-page.png" alt="Home — offline AI, model ready, laptop connected" width="180">
   &nbsp;
-  <img src="frontend/qa-screenshots/03-mission-chat.png" alt="Mission planning" width="200">
+  <img src="docs/images/phone-hero/02-mission-brief.png" alt="Mission Brief — Gemma 4 31B orchestrator compiles a sourced plan" width="180">
   &nbsp;
-  <img src="frontend/qa-screenshots/03-field-chat.png" alt="Plant diagnosis — 92% confidence" width="200">
+  <img src="docs/images/phone-hero/03-offline-field-answer.png" alt="Offline RAG answer — TME 419 variety, ISRA nurseries, 5 sources cited" width="180">
   &nbsp;
-  <img src="frontend/qa-screenshots/08-agent-progress.png" alt="Live pipeline agents" width="200">
+  <img src="docs/images/phone-hero/04-diagnosis-result.png" alt="Cassava Mosaic Disease — 92% confidence, symptoms matched, treatment plan" width="180">
+  &nbsp;
+  <img src="docs/images/phone-hero/05-knowledge-packs.png" alt="Knowledge Packs — swappable offline field guides" width="180">
 </p>
 
 ## For Judges — 60-Second Setup
@@ -290,7 +292,7 @@ This project is an entry in the [Kaggle Gemma 4 Good Hackathon](https://www.kagg
 
 ## License
 
-FieldPack AI source code is released under the [MIT License](LICENSE).
+FieldPack AI source code is released under the [Apache License 2.0](LICENSE).
 
 ### Third-party licenses
 
@@ -299,6 +301,6 @@ This project uses **Gemma** models provided by Google. Gemma is subject to the
 [Gemma Prohibited Use Policy](https://ai.google.dev/gemma/prohibited_use_policy).
 Any use, reproduction, or distribution of this project — or derivative works
 that incorporate Gemma or its outputs — must comply with those terms in
-addition to the MIT License covering FieldPack AI's own source code.
+addition to the Apache License 2.0 covering FieldPack AI's own source code.
 
 See [`NOTICE`](NOTICE) for the full attribution and pass-through notice.

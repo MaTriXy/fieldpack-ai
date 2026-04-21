@@ -1,0 +1,101 @@
+# 🌍 Offline Expert Knowledge for Humanitarian Field Workers
+
+A farmer in the **Casamance region of Senegal** hands an agronomist a cassava cutting with curled, yellowing leaves. The nearest reliable internet is hours away by unpaved road. The agronomist opens an app on her phone and photographs the plant. Within seconds her screen fills with the answer: *Cassava Mosaic Disease, moderate severity. Use the resistant variety TME 419, available at the extension service in Ziguinchor. Intercrop with maize. Apply neem oil to deter whiteflies.*
+
+**No signal. No cell tower. No cloud. Just the right answer, in the right place, at the right moment.**
+
+---
+
+## 📦 What it Does
+
+**FieldPack AI** is an offline AI system that gives humanitarian field workers expert-level knowledge about the specific mission they are on — **without any internet connection**.
+
+The name reflects the mission: a field pack is what an aid worker carries into the field. FieldPack AI is the **knowledge they carry with them** when there is no signal and no cloud. Before the mission, powerful cloud AI agents research the deployment region and compile a portable **Knowledge Pack** tailored to the user's work. Once they are in the field, everything runs locally on their laptop — no internet required, ever.
+
+---
+
+## 🏭 Two Agent Farms, One System
+
+FieldPack AI is built on a simple but powerful idea: **big AI researches, small AI serves.**
+
+🧠 **The Curation Farm (online, one-time per mission)**
+When a worker prepares for a deployment, a farm of large Gemma 4 cloud agents goes to work on their behalf. They read, cross-reference, and verify source material from crop disease databases, public health protocols, climate data, and regional treatment guidelines. They deduplicate. They validate. They package everything into a single portable **Knowledge Pack** that fits on a laptop.
+
+📡 **The Field Farm (offline, runs every day in the field)**
+Once in the field, a smaller Gemma 4 edge model runs entirely on the worker's laptop. It doesn't rely on general training to answer questions — it navigates the curated Knowledge Pack the cloud farm prepared. The phone becomes a camera and a screen; the laptop does all the thinking; the two connect over a local WiFi hotspot with no router required.
+
+This is the architecture Google designed the Gemma 4 family for. Most projects pick one model. **FieldPack AI uses the whole family — each model doing what it is best at.**
+
+---
+
+## 🌱 The Showcased Mission: Casamance, Senegal
+
+The first Knowledge Pack shipped with FieldPack AI is **smallholder agriculture in the Casamance region of Senegal**:
+
+- 🌾 **5 crops** — cassava, rice, millet, peanuts, maize
+- 🦠 **15 diseases** with full treatment protocols
+- 📚 **190 curated entries** — resistant varieties, locally available inputs, climate windows, extension service contacts
+
+Every answer the field model gives is grounded in real, regional, verifiable knowledge. The agronomist is not asking an AI what it thinks. She is asking a carefully researched brief for the specific place she is standing in.
+
+---
+
+## 🌐 Built for Casamance. Made for Everywhere.
+
+The Casamance pack is not the product — it is the **demo of the platform**. The same Curation Farm can build a pack for any mission, any region, any domain on Earth. Users can describe a new mission in natural language and the cloud agents will go research, compile, and deliver a new pack.
+
+| 🧳 Knowledge Pack | 👤 User | 🎯 Mission |
+|---|---|---|
+| Casamance Agriculture | Humanitarian agronomist | Crop disease, drought, resistant varieties |
+| Disaster Medical Triage | First responder after earthquake | Injury assessment, triage, drug dosing |
+| Rural Literacy Education | Teacher in off-grid school | Lesson plans, adaptive reading exercises |
+| Wildlife Conservation | Field researcher in rainforest | Species ID, habitat, anti-poaching |
+| Post-Conflict Infrastructure | Engineer assessing damage | Structural safety, repair prioritization |
+
+**We built one. We show five. We imply infinite.**
+
+---
+
+## 🔑 Key Features
+
+- 🗺️ **Mission Briefing** — Describe your deployment in natural language and the Curation Farm builds a tailored Knowledge Pack before you leave
+- 🧳 **Pack Library** — Download a pre-built pack (Casamance ships today) or commission a new one for any region, any domain
+- 📴 **Offline Operation** — Once the pack is on your laptop, the system works with **zero internet connectivity**
+- 📸 **Photo-to-Diagnosis** — Photograph a diseased plant from your phone; the app returns a diagnosis and treatment plan in seconds
+- 🌍 **Local-First Answers** — Every treatment references what is **actually available in the deployment region**, not generic advice from a global model
+- 📖 **Cited Sources** — Every answer links back to the source documents a worker can verify before acting
+- ⚡ **Streaming Responses** — Answers appear word by word as they are generated, so the worker never stares at a blank screen
+- 📱 **Thin-Client Phone App** — The phone is a camera and a screen; the laptop does all the AI. They talk over a local **WiFi hotspot** — no router, no SIM card, no cloud
+- 🔒 **Privacy by Design** — No images, no queries, no user data ever leaves the device
+
+---
+
+## 💡 Why This Matters
+
+There are **3.7 billion people** on Earth for whom *"just Google it"* is not an option. Among them:
+
+- Humanitarian workers deployed to crisis zones
+- Agricultural extension officers in rural Sub-Saharan Africa
+- Community health workers in remote villages
+- Disaster responders after infrastructure collapse
+- Teachers in schools without connectivity
+
+These are the people who most need expert knowledge to do their jobs. Today they either carry printed reference materials that were outdated the moment they were printed, rely on memory, or go without — and the people they serve pay the price.
+
+Offline AI already exists. You can run a model on a phone. But a general-purpose model with no domain knowledge is like **deploying a doctor to a malaria zone with a medical degree and no information about malaria**. The intelligence is there. The knowledge is not.
+
+> **The value of offline AI is not the model. It is the knowledge the model carries.**
+
+FieldPack AI closes that gap. One architecture. Infinite missions. Zero internet required.
+
+---
+
+## 📝 Note
+
+FieldPack AI is **not a replacement** for trained humanitarian workers or established aid organizations. It is a tool that augments what they already know with region-specific, mission-specific knowledge that would otherwise require internet access they do not have.
+
+---
+
+🎥 **Demo video:** https://youtu.be/y9FSAkYpFII
+💻 **Repo:** github.com/orkohol/fieldpack-ai
+🌍 **Track:** Global Resilience
