@@ -70,13 +70,19 @@ classify → route → needs_search
 ### APK and Frontend/Backend Contract
 Rebuild the APK when frontend/backend contract changes. The shipped APK bakes in the frontend bundle — API changes that alter request/response shape, WebSocket event names, or URL paths require a rebuild.
 
-Current release: `dist-apk/fieldpack-ai-v1.0.0-debug.apk`, SHA256 `831984eb9fa29bd585ddef60c409e87bdce01e4a24d038f26f68932ec6f525df` (2026-04-18)
+Current release: `dist-apk/fieldpack-ai-v1.0.0-debug.apk`, SHA256 `a33adef13ef37412582d5cea9115e255fbf31156c620e9dd9c011759b683348f` (2026-04-23)
 
 ### Distribution
 While repo is private, APK is uploaded to Drive + VirusTotal. When repo flips public, use GitHub Release (`/releases/latest`) for cleaner URLs and reduced friction.
 
 ### LAN Discovery
 App auto-scans on launch via `config.ts:autoScanForServer()` — probes saved URL → hotspot IPs (Windows `192.168.137.1`, Android `192.168.43.1`) → /24 subnet scan via WebRTC-detected local IP. Hardcoded priority list in `priorityIps` — add new hotspot patterns there when testing on different networks.
+
+Worst-case budget: WebRTC IP detection up to 5 s + subnet scan (254 IPs in batches of 30 × 2 s) ≈ **23 s on cold start**. Successful connections take <2 s once the laptop's URL is cached in localStorage.
+
+`autoScanForServer(onProgress?)` accepts an optional progress callback used by the `useServerConnection` hook to surface live text in the top-bar "Scanning…" pill (e.g. "Searching your network — batch 3 of 9…"). Emitted strings cover all four scan phases: saved-URL reconnect, priority IPs, WebRTC detection, and the batched subnet sweep.
+
+`getServerUrl()` returns `''` (empty string) in native mode when nothing is saved — it used to return a hardcoded `http://192.168.1.100:8000` default. All URL builders (`getApiBase`, `getWsUrl`, etc.) treat empty as "no server," so stray fetches during the scan window fail same-origin rather than dialing a ghost IP. The three manual-entry forms (Settings, ServerSettings, OnboardingPage `ConnectSlide`) still carry their own placeholder strings — note `OnboardingPage` uses `192.168.137.1:8000` (Windows hotspot, realistic) while the other two use `192.168.1.100:8000` (unused).
 
 ### Network and Configuration
 - **Firewall**: Windows Defender may prompt on first `docker-compose up` that serves on `:8000` — grant network access or the phone can't reach the laptop

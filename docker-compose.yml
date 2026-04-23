@@ -24,7 +24,6 @@ services:
     # Bumping is fine but re-test with the --keepalive flag and the
     # model tag format, which have both changed across Ollama releases.
     image: ollama/ollama:0.21.0
-    container_name: fieldpack-ollama
     ports:
       - "11434:11434"
     volumes:
@@ -77,7 +76,6 @@ services:
   # ---------------------------------------------------------------------------
   ollama-init:
     image: ollama/ollama:0.21.0
-    container_name: fieldpack-ollama-init
     depends_on:
       - ollama
     volumes:
@@ -116,7 +114,6 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: fieldpack-app
     depends_on:
       ollama:
         # Wait for the Ollama server to be reachable and the model to be listed.
@@ -148,7 +145,6 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-    container_name: fieldpack-frontend
     depends_on:
       app:
         # Wait for the backend to be healthy before serving the frontend.

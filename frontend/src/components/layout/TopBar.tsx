@@ -21,20 +21,26 @@ interface TopBarProps {
 function ConnectionPill({
   status,
   serverInfo,
+  scanProgress,
   onRetry,
 }: {
   status: ConnectionStatus
   serverInfo: ServerInfo | null
+  scanProgress: string | null
   onRetry: () => void
 }) {
   const [popoverOpen, setPopoverOpen] = useState(false)
   const pillRef = useRef<HTMLButtonElement>(null)
 
   if (status === 'scanning') {
+    const label = scanProgress ?? 'Scanning…'
     return (
-      <div className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-white/10">
+      <div
+        className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-white/10 max-w-[200px]"
+        title={label}
+      >
         <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-dotPulse shrink-0" />
-        <span className="text-white/80 leading-none" style={{ fontSize: '11px' }}>Scanning...</span>
+        <span className="text-white/80 leading-none truncate" style={{ fontSize: '11px' }}>{label}</span>
       </div>
     )
   }
@@ -175,6 +181,7 @@ export default function TopBar({
           <ConnectionPill
             status={connection.status}
             serverInfo={connection.serverInfo}
+            scanProgress={connection.scanProgress}
             onRetry={connection.retry}
           />
         )}

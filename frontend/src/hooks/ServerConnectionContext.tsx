@@ -4,6 +4,7 @@ import { useServerConnection, type ServerConnectionState } from './useServerConn
 const ServerConnectionCtx = createContext<ServerConnectionState>({
   status: 'connected',
   serverInfo: null,
+  scanProgress: null,
   retry: () => {},
 })
 

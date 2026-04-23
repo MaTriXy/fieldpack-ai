@@ -13,6 +13,7 @@ export type ConnectionStatus = 'scanning' | 'connected' | 'disconnected'
 export interface ServerConnectionState {
   status: ConnectionStatus
   serverInfo: ServerInfo | null
+  scanProgress: string | null
   retry: () => void
 }
 
@@ -41,6 +42,7 @@ const native = isNative()
 export function useServerConnection(): ServerConnectionState {
   const [status, setStatus] = useState<ConnectionStatus>(native ? 'scanning' : 'connected')
   const [serverInfo, setServerInfo] = useState<ServerInfo | null>(null)
+  const [scanProgress, setScanProgress] = useState<string | null>(null)
   const [scanTrigger, setScanTrigger] = useState(0)
   const pollTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -105,14 +107,18 @@ export function useServerConnection(): ServerConnectionState {
       console.log('[conn] scan starting')
       setStatus('scanning')
       setServerInfo(null)
+      setScanProgress('Starting scan…')
       stopPolling()
 
-      const found = await autoScanForServer()
+      const found = await autoScanForServer((msg) => {
+        if (!cancelled) setScanProgress(msg)
+      })
       console.log('[conn] scan result:', found)
       if (cancelled) return
 
       if (!found) {
         console.log('[conn] no server found, disconnected')
+        setScanProgress(null)
         setStatus('disconnected')
         // Auto-retry after delay
         retryTimerRef.current = setTimeout(() => {
@@ -130,11 +136,13 @@ export function useServerConnection(): ServerConnectionState {
         const data = (await res.json()) as Record<string, unknown>
         if (cancelled) return
         setServerInfo(parseHealth(data))
+        setScanProgress(null)
         setStatus('connected')
         startPolling()
       } catch {
         clearTimeout(tmr)
         if (!cancelled) {
+          setScanProgress(null)
           setStatus('disconnected')
           retryTimerRef.current = setTimeout(() => {
             if (!cancelled) setScanTrigger((n) => n + 1)
@@ -155,5 +163,5 @@ export function useServerConnection(): ServerConnectionState {
     if (native) setScanTrigger((n) => n + 1)
   }, [])
 
-  return { status, serverInfo, retry }
+  return { status, serverInfo, scanProgress, retry }
 }

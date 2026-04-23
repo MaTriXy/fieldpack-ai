@@ -6,7 +6,6 @@
  */
 
 const STORAGE_KEY = 'fieldpack_server_url'
-const DEFAULT_SERVER = 'http://192.168.1.100:8000'
 
 /** True when running inside a Capacitor native shell (APK). */
 export function isNative(): boolean {
@@ -14,10 +13,10 @@ export function isNative(): boolean {
   return !!(window as unknown as Record<string, unknown>).Capacitor
 }
 
-/** Get the saved server URL, or the default. */
+/** Get the saved server URL, or empty string if none saved yet. */
 export function getServerUrl(): string {
   if (!isNative()) return '' // browser dev mode uses relative paths + proxy
-  return localStorage.getItem(STORAGE_KEY) || DEFAULT_SERVER
+  return localStorage.getItem(STORAGE_KEY) || ''
 }
 
 /** Save a new server URL. */
@@ -98,7 +97,7 @@ async function getLocalIp(): Promise<string | null> {
     await pc.setLocalDescription(offer)
 
     return await new Promise<string | null>((resolve) => {
-      const timeout = setTimeout(() => { pc.close(); resolve(null) }, 2000)
+      const timeout = setTimeout(() => { pc.close(); resolve(null) }, 5000)
       pc.onicecandidate = (e) => {
         if (!e.candidate) return
         // ICE candidate line contains the local IP, e.g. "... 192.168.0.42 ..."
@@ -147,7 +146,9 @@ function subnetCandidates(localIp: string, port: number): string[] {
  * server — but FieldPack is designed for isolated field deployments, not
  * public WiFi. TLS certificate pinning would mitigate this if needed.
  */
-export async function autoScanForServer(): Promise<string | null> {
+export async function autoScanForServer(
+  onProgress?: (msg: string) => void,
+): Promise<string | null> {
   if (!isNative()) return null
   console.log('[scan] starting, native=true')
 
@@ -157,6 +158,7 @@ export async function autoScanForServer(): Promise<string | null> {
   const saved = localStorage.getItem(STORAGE_KEY)
   if (saved) {
     console.log('[scan] probing saved URL:', saved)
+    onProgress?.('Reconnecting to saved server…')
     try {
       const result = await probeHealth(saved, TIMEOUT)
       console.log('[scan] saved URL alive:', result)
@@ -177,6 +179,7 @@ export async function autoScanForServer(): Promise<string | null> {
   ]
 
   console.log('[scan] probing priority IPs...')
+  onProgress?.('Checking common hotspot addresses…')
   try {
     const found = await Promise.any(
       priorityIps.map((url) => probeHealth(url, 1500))
@@ -191,6 +194,7 @@ export async function autoScanForServer(): Promise<string | null> {
   // 3. Smart subnet scan: detect own IP, scan the /24
   // Worst case: 254 IPs / 30 per batch x 2 s timeout = ~18 s.
   // Progress is logged per batch so devtools shows activity.
+  onProgress?.('Detecting this device’s network…')
   const localIp = await getLocalIp()
   console.log('[scan] local IP:', localIp)
   if (localIp) {
@@ -204,6 +208,7 @@ export async function autoScanForServer(): Promise<string | null> {
     for (let i = 0; i < candidates.length; i += BATCH_SIZE) {
       const batchNum = Math.floor(i / BATCH_SIZE) + 1
       console.log(`[scan] Scanning local network — batch ${batchNum} of ${totalBatches}`)
+      onProgress?.(`Searching your network — batch ${batchNum} of ${totalBatches}…`)
       const batch = candidates.slice(i, i + BATCH_SIZE)
       try {
         const found = await Promise.any(

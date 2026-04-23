@@ -56,6 +56,8 @@ docker-compose up
 
 **Requirements:** Docker Desktop, ~8 GB RAM, ~10 GB disk. Full Docker details, GPU passthrough, and troubleshooting: see [Run in Docker](#run-the-real-app-in-docker-recommended) below.
 
+> **API keys?** Not needed for the demo. The shipped Casamance pack and all offline chat/diagnosis run with zero keys. You only need keys if you want to **build your own Knowledge Pack** (Phase 1) — see [API keys (Phase 1 only)](#api-keys-phase-1-only) below.
+
 ---
 
 ## Run on Your Phone (the Real Demo)
@@ -104,7 +106,11 @@ Three options, pick whichever is easiest:
 
 ### Step 4 — Phone: connect to the laptop backend
 
-The app **auto-scans** on launch. If it finds the backend, you'll see the home screen with "Connected." If not:
+The app **auto-scans** on launch. If it finds the backend, you'll see the home screen with "Connected."
+
+> **First launch may take up to 25 seconds to discover the laptop.** The app scans your WiFi subnet on first launch — you'll see live progress text in the top-right pill (e.g. "Searching your network — batch 3 of 9…"). If the scan doesn't find the server, close and relaunch the app — subsequent launches connect instantly because the laptop's URL is cached.
+
+If the scan doesn't find it:
 
 1. Find the laptop's IP address:
    - **Windows:** open PowerShell → `ipconfig` → look for `IPv4 Address` under your active adapter (e.g. `192.168.1.42`)
@@ -117,6 +123,7 @@ The app **auto-scans** on launch. If it finds the backend, you'll see the home s
 Open **Field Chat** on the phone → tap the camera icon → take a photo of a cassava leaf (or any plant) → watch the diagnosis stream in, live, over your local network — the phone has no internet, and neither does the laptop during inference.
 
 **If it doesn't work:**
+- Still on "Scanning…" after several seconds → look at the top-right pill; it shows live progress ("Checking common hotspot addresses…", "Searching your network — batch N of M…"). If text is still changing, the scan is still running — wait up to 25 s before retrying
 - Phone says "Cannot reach server" → firewall blocking port 8000 on the laptop
 - App loads but WebSocket fails → Capacitor `cleartext` permission (already enabled in the shipped APK) or an HTTPS-only WiFi captive portal blocking LAN traffic
 - All endpoints timeout → phone and laptop aren't actually on the same subnet — double-check with `ping <laptop-ip>` from a terminal app on the phone
@@ -172,6 +179,23 @@ docker-compose up
 
 **More issues:** see [`docs/TROUBLESHOOTING.md`](docs/TROUBLESHOOTING.md) for APK LAN discovery, WebSocket quirks, HNSW warm-up, and other gotchas.
 
+### API keys (Phase 1 only)
+
+**Offline serving (Phase 2) needs no keys.** The Docker demo above, the shipped Casamance pack, the phone APK, and all offline RAG run without any API credentials.
+
+Keys are **only** required if you want to **curate a new Knowledge Pack** yourself (Phase 1 — the cloud-side research pipeline that produces a pack). Two keys are involved:
+
+| Key | Where to get it | Needed for |
+|---|---|---|
+| `GOOGLE_AI_STUDIO_API_KEY` | [aistudio.google.com/apikey](https://aistudio.google.com/apikey) | Gemma 4 31B/26B — the curation LLM |
+| `TAVILY_API_KEY` | [tavily.com](https://tavily.com) | Web search for gap-filling sources |
+
+**Both free tiers are enough to build a pack end-to-end.** Google AI Studio gives Gemma 4 free (15k tokens/min, 30 req/min, 14.4k req/day) and Tavily gives 1,000 free searches/month. A full pack build fits comfortably inside both.
+
+**Paid tier on Google AI Studio makes Phase 1 a lot faster** — the free-tier rate limits throttle the source-extraction loop, so a pack that takes ~an hour on free tier can run in minutes on paid. This affects **Phase 1 only**; the field-serving path is unchanged.
+
+Set keys in `backend/.env` (copy from `backend/.env.example`). **Native runs only** — do not create `.env` for Docker; Compose injects env directly, so add the two lines to `docker-compose.yml` under the `app` service's `environment:` block instead.
+
 ### Alternative: native install
 
 For contributors or judges who prefer a local Python/Node setup.
@@ -187,6 +211,9 @@ ollama serve
 #   DEMO_MODE=false
 #   FIELD_LLM_PROVIDER=ollama-local
 #   OLLAMA_BASE_URL=http://localhost:11434
+# Phase 1 only (building your own Knowledge Pack — skip if you're just running the demo):
+#   GOOGLE_AI_STUDIO_API_KEY=...   # free tier works; paid is much faster
+#   TAVILY_API_KEY=...             # free tier: 1k searches/month
 
 # Start backend (from repo root)
 cd backend && PYTHONPATH=. uvicorn app.main:app --reload --host 0.0.0.0 --port 8000 &

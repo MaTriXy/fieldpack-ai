@@ -53,6 +53,8 @@ Or browse the [ollama.com/library/gemma4](https://ollama.com/library/gemma4) pag
 
 **Symptom:** "Cannot reach server" in the Android app, or the auto-scan completes without finding anything.
 
+**First — give the scan time.** Cold-start discovery can take up to **25 seconds** on first launch: up to 5 s for WebRTC to report the phone's own IP, then up to ~18 s for the batched /24 subnet sweep. The top-right pill shows live progress text ("Checking common hotspot addresses…", "Searching your network — batch N of M…"). If the pill is still changing, the scan is still running — don't give up early. Once the laptop is found, its URL is cached in localStorage and subsequent launches connect in under 2 s.
+
 **Diagnostic order (stop at the first failing check):**
 
 1. **Same subnet?** From a terminal app on the phone, `ping <laptop-ip>`. If ping fails, the phone and laptop aren't on the same network. Cellular-hotspot pairing, enterprise WiFi with client isolation, and guest networks all cause this.
