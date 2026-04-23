@@ -78,12 +78,12 @@ Same as the one-command setup above. Leave it running.
 
 **SHA256 checksum (verify integrity):**
 ```
-a33adef13ef37412582d5cea9115e255fbf31156c620e9dd9c011759b683348f
+419f2fcd7a6ec60e4017dfa6e2aef520e7a8f54bf00cfde65db3bb56e89d91fc
 ```
 
 On Windows: `certutil -hashfile fieldpack-ai-v1.0.0-debug.apk SHA256`. On macOS/Linux: `shasum -a 256 fieldpack-ai-v1.0.0-debug.apk`.
 
-**Virus scan:** [VirusTotal report](https://www.virustotal.com/gui/file/a33adef13ef37412582d5cea9115e255fbf31156c620e9dd9c011759b683348f?nocache=1)
+**Virus scan:** [VirusTotal report](https://www.virustotal.com/gui/file/419f2fcd7a6ec60e4017dfa6e2aef520e7a8f54bf00cfde65db3bb56e89d91fc?nocache=1)
 
 > This is a **debug-signed APK**. Android will warn "Unknown developer" — expected for hackathon submissions. The SHA256 + VirusTotal link are there so you can verify integrity and safety before installing. Requires Android 12+ (Chrome WebView 111+).
 

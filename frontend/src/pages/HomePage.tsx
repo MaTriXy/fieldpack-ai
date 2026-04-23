@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react'
 import { Link, Navigate } from 'react-router-dom'
-import { Rocket, Leaf, Database, Moon, Sun, ChevronRight, WifiOff, Layers, Package, BarChart2, Wifi, Terminal, Settings, Laptop, Cpu } from 'lucide-react'
+import { Rocket, Leaf, Database, Moon, Sun, ChevronRight, WifiOff, Layers, Package, BarChart2, Wifi, Terminal, Settings, Laptop, Cpu, Globe } from 'lucide-react'
 import { apiUrl } from '../lib/config'
-import { useBackendReachable } from '../hooks/useBackendReachable'
+import { useConnection } from '../hooks/ServerConnectionContext'
 
 interface OllamaHealth {
   ollama: string
@@ -19,7 +19,7 @@ interface OllamaHealth {
 }
 
 export default function HomePage() {
-  const { reachable: backendUp } = useBackendReachable()
+  const { reachable: backendUp, laptopHasInternet } = useConnection()
   const [packStatus, setPackStatus] = useState<'none' | 'loading' | 'loaded'>('none')
   const [packName, setPackName] = useState('')
   const [packMeta, setPackMeta] = useState<{ crops: string[]; knowledgeEntries: number; sources: number }>({ crops: [], knowledgeEntries: 0, sources: 0 })
@@ -281,8 +281,8 @@ export default function HomePage() {
                     Start Field Session
                   </h2>
                   <span className="text-[10px] font-bold uppercase tracking-widest bg-secondary/25 text-secondary px-1.5 py-0.5 rounded-md border border-secondary/30 flex items-center gap-1">
-                    <WifiOff size={8} />
-                    No Internet
+                    {laptopHasInternet ? <Wifi size={8} /> : <WifiOff size={8} />}
+                    {laptopHasInternet ? 'Works Online' : 'Works Offline'}
                   </span>
                 </div>
                 <p className="text-white/80 text-sm leading-snug">
@@ -310,12 +310,20 @@ export default function HomePage() {
               <span className={`relative inline-flex rounded-full h-2.5 w-2.5 ${backendUp ? 'bg-green-500' : 'bg-amber-400'}`} />
             </span>
             <span className="text-xs font-semibold text-text flex items-center gap-1.5">
-              {backendUp ? <><Laptop size={12} /> Laptop Connected &mdash; AI Ready</> : <><WifiOff size={12} /> Phone Only &mdash; Logging Mode</>}
+              {backendUp ? (
+                <>
+                  <Laptop size={12} />
+                  Laptop Connected &middot; {laptopHasInternet ? 'Online' : 'Offline'} &middot; LLM local
+                  {laptopHasInternet && <Globe size={10} className="text-text-muted" />}
+                </>
+              ) : (
+                <><WifiOff size={12} /> Phone Only &mdash; Logging Mode</>
+              )}
             </span>
           </div>
           <p className="text-[11px] text-text-muted leading-snug mb-2.5">
             {backendUp
-              ? 'Take a photo in Field Chat to get instant diagnosis and treatment plans.'
+              ? `Take a photo in Field Chat to get instant diagnosis and treatment plans.${laptopHasInternet ? ' Inference stays on your device.' : ''}`
               : 'No laptop found. You can log observations \u2014 they\u2019ll sync when you reconnect.'}
           </p>
           {/* active pack row */}

@@ -1,6 +1,7 @@
 import httpx
 from fastapi import APIRouter
 
+from app import internet_probe
 from app.config import settings
 from app.knowledge_pack.loader import get_active_pack
 
@@ -39,6 +40,7 @@ async def health_check():
                 "memory_mb": 7322,
             },
             "pack": {"loaded": True, **get_demo_pack_info()},
+            "internet": {"online": True, "checked_at": "demo"},
         }
 
     base = settings.ollama_base_url
@@ -118,5 +120,6 @@ async def health_check():
     else:
         result["pack"] = {"loaded": False}
 
+    result["internet"] = internet_probe.get_status()
     result["status"] = "ok" if result["ollama"] == "ok" else "degraded"
     return result

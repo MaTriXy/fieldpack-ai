@@ -70,7 +70,7 @@ classify → route → needs_search
 ### APK and Frontend/Backend Contract
 Rebuild the APK when frontend/backend contract changes. The shipped APK bakes in the frontend bundle — API changes that alter request/response shape, WebSocket event names, or URL paths require a rebuild.
 
-Current release: `dist-apk/fieldpack-ai-v1.0.0-debug.apk`, SHA256 `a33adef13ef37412582d5cea9115e255fbf31156c620e9dd9c011759b683348f` (2026-04-23)
+Current release: `dist-apk/fieldpack-ai-v1.0.0-debug.apk`, SHA256 `419f2fcd7a6ec60e4017dfa6e2aef520e7a8f54bf00cfde65db3bb56e89d91fc` (2026-04-23)
 
 ### Distribution
 While repo is private, APK is uploaded to Drive + VirusTotal. When repo flips public, use GitHub Release (`/releases/latest`) for cleaner URLs and reduced friction.

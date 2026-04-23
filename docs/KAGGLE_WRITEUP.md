@@ -103,7 +103,7 @@ First run pulls Gemma 4 E2B (~5 GB, ~5 min). Requires Docker Desktop, ~8 GB RAM.
 The way FieldPack is designed to run: laptop as the AI server, phone as a thin client over local WiFi — no internet.
 
 - Laptop: `docker-compose up` (as above)
-- Phone: install [fieldpack-ai-v1.0.0-debug.apk](https://drive.google.com/file/d/1fDdvSxdMTf0a_rqwmO2idPo_R_9eCQLu/view?usp=sharing) *(9.7 MB · SHA256 `a33adef13ef37412582d5cea9115e255fbf31156c620e9dd9c011759b683348f` · [VirusTotal](https://www.virustotal.com/gui/file/a33adef13ef37412582d5cea9115e255fbf31156c620e9dd9c011759b683348f?nocache=1))*
+- Phone: install [fieldpack-ai-v1.0.0-debug.apk](https://drive.google.com/file/d/1fDdvSxdMTf0a_rqwmO2idPo_R_9eCQLu/view?usp=sharing) *(9.7 MB · SHA256 `419f2fcd7a6ec60e4017dfa6e2aef520e7a8f54bf00cfde65db3bb56e89d91fc` · [VirusTotal](https://www.virustotal.com/gui/file/419f2fcd7a6ec60e4017dfa6e2aef520e7a8f54bf00cfde65db3bb56e89d91fc?nocache=1))*
 - Connect both devices to the same WiFi (or turn on the laptop's mobile hotspot)
 - Launch the app — it auto-scans for the backend on the local network
 

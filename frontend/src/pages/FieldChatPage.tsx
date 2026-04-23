@@ -21,7 +21,7 @@ import {
 } from '../lib/api'
 import { getWsUrl, isNative } from '../lib/config'
 import { getCameraConfig, getLanguage } from '../lib/settings'
-import { useBackendReachable } from '../hooks/useBackendReachable'
+import { useConnection } from '../hooks/ServerConnectionContext'
 import {
   enqueueChatMessage,
   getQueuedChatMessages,
@@ -183,7 +183,7 @@ export default function FieldChatPage() {
   const { insights: pipelineInsights, enqueueInsight, clearInsights } = useInsightDrip()
 
   // Offline mode
-  const { reachable } = useBackendReachable()
+  const { reachable, laptopHasInternet } = useConnection()
   const [offlineMode, setOfflineMode] = useState(false)
   const [queuedMessages, setQueuedMessages] = useState<QueuedChatMessage[]>([])
   const [showSendQueueBanner, setShowSendQueueBanner] = useState(false)
@@ -289,6 +289,9 @@ export default function FieldChatPage() {
     ws.onopen = () => {
       reconnectAttempts.current = 0
       setWsError(null)
+      // Only exit offlineMode once the WS is actually open — /health answering
+      // doesn't prove WS upgrade works (captive portal / proxy can block WS).
+      setOfflineMode(false)
       if (pendingQueueBanner.current) {
         pendingQueueBanner.current = false
         setShowSendQueueBanner(true)
@@ -509,13 +512,14 @@ export default function FieldChatPage() {
     }
   }, [connectWs, packInfo])
 
-  // Reconnect when backend becomes reachable again while in offline mode
+  // When backend /health comes back while in offline mode, try to reconnect the WS.
+  // offlineMode is only cleared inside ws.onopen — not here — so the UI stays in
+  // "offline" until the WS actually upgrades (cheap HTTP ≠ WS upgrade on captive WiFi).
   useEffect(() => {
     if (reachable && !prevReachable.current && offlineMode) {
       if (queuedMessages.length > 0) {
         pendingQueueBanner.current = true
       }
-      setOfflineMode(false)
       reconnectAttempts.current = 0
       connectWs()
     }
@@ -689,9 +693,13 @@ export default function FieldChatPage() {
     setInput('')
     if (textareaRef.current) textareaRef.current.style.height = 'auto'
 
-    // ── OFFLINE PATH ── (navigator.onLine is an instant fast-path check)
+    // ── OFFLINE PATH ── WS not OPEN is the authoritative signal.
+    // `offlineMode` is a strict function of !wsReady (set true only after
+    // MAX_RECONNECT_ATTEMPTS, cleared only in ws.onopen), so checking wsReady
+    // alone avoids a stale-closure race where offlineMode's value lags onopen
+    // by one render commit.
     const wsReady = wsRef.current?.readyState === WebSocket.OPEN
-    if (offlineMode || !wsReady || (isNative() && !navigator.onLine)) {
+    if (!wsReady || (isNative() && !navigator.onLine)) {
       try {
         const queued = enqueueChatMessage({
           content: messageText,
@@ -944,7 +952,13 @@ export default function FieldChatPage() {
         subtitle="Agentic RAG · Gemma 4 E2B"
         backTo="/"
         back
-        badge={reachable ? { label: 'Online', variant: 'online' } : { label: 'Offline', variant: 'offline' }}
+        badge={
+          reachable
+            ? laptopHasInternet
+              ? { label: 'Online · LLM local', variant: 'online' }
+              : { label: 'Field Mode · LLM local', variant: 'online' }
+            : { label: 'Phone Only', variant: 'offline' }
+        }
         leftAction={
           <button
             onClick={openSidebar}

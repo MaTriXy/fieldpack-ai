@@ -13,7 +13,7 @@ import {
 } from '../lib/api'
 import MarkdownContent from '../components/MarkdownContent'
 import { getQueuedObservations, flushObservationQueue, type QueuedObservation } from '../lib/offline-queue'
-import { useBackendReachable } from '../hooks/useBackendReachable'
+import { useConnection } from '../hooks/ServerConnectionContext'
 
 export default function ObservationsPage() {
   const [observations, setObservations] = useState<Observation[]>([])
@@ -29,7 +29,9 @@ export default function ObservationsPage() {
   const [summaryLoading, setSummaryLoading] = useState(false)
   const [summaryExpanded, setSummaryExpanded] = useState(true)
 
-  const { reachable } = useBackendReachable()
+  const { reachable, laptopHasInternet } = useConnection()
+  // Init to `reachable` (not false) so mount with backend-already-up does NOT
+  // count as a transition — avoids firing queue-flush on every page mount.
   const prevReachable = useRef(reachable)
 
   // Prefill from chat diagnosis navigation
@@ -132,7 +134,19 @@ export default function ObservationsPage() {
 
   return (
     <div className="flex flex-col animate-fadeIn min-h-[calc(100dvh-4rem-env(safe-area-inset-bottom,0px))]">
-      <TopBar title="Field Journal" subtitle="Observations & field notes" back backTo="/" badge={{ label: 'Offline', variant: 'offline' }} />
+      <TopBar
+        title="Field Journal"
+        subtitle="Observations & field notes"
+        back
+        backTo="/"
+        badge={
+          reachable
+            ? laptopHasInternet
+              ? { label: 'Online · LLM local', variant: 'online' }
+              : { label: 'Field Mode · LLM local', variant: 'online' }
+            : { label: 'Phone Only', variant: 'offline' }
+        }
+      />
 
       <div className="flex-1 overflow-y-auto overscroll-none px-4 py-4 bg-surface">
         <div className="max-w-lg mx-auto space-y-3">

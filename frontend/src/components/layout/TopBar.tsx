@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, WifiOff, Globe } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { isNative } from '../../lib/config'
 import { useConnection } from '../../hooks/ServerConnectionContext'
@@ -22,11 +22,13 @@ function ConnectionPill({
   status,
   serverInfo,
   scanProgress,
+  laptopHasInternet,
   onRetry,
 }: {
   status: ConnectionStatus
   serverInfo: ServerInfo | null
   scanProgress: string | null
+  laptopHasInternet: boolean
   onRetry: () => void
 }) {
   const [popoverOpen, setPopoverOpen] = useState(false)
@@ -50,10 +52,11 @@ function ConnectionPill({
       <button
         onClick={onRetry}
         className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-white/10 active:bg-white/20 transition-colors"
-        aria-label="Offline - tap to retry"
+        aria-label="Phone Only - tap to retry"
       >
-        <span className="w-1.5 h-1.5 rounded-full bg-red-400 shrink-0" />
-        <span className="text-white/80 leading-none" style={{ fontSize: '11px' }}>Offline</span>
+        <span className="w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0" />
+        <WifiOff size={10} className="text-white/80 shrink-0" />
+        <span className="text-white/80 leading-none" style={{ fontSize: '11px' }}>Phone Only</span>
       </button>
     )
   }
@@ -69,7 +72,7 @@ function ConnectionPill({
         ref={pillRef}
         onClick={() => setPopoverOpen((v) => !v)}
         className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-white/10 active:bg-white/20 transition-colors"
-        aria-label={`Connected to ${label}`}
+        aria-label={`Connected to ${label}${laptopHasInternet ? ' — laptop online, LLM local' : ' — LLM local'}`}
         aria-expanded={popoverOpen}
       >
         <span className="relative flex w-1.5 h-1.5 shrink-0">
@@ -79,6 +82,9 @@ function ConnectionPill({
         <span className="text-white/90 leading-none max-w-[80px] truncate" style={{ fontSize: '11px' }}>
           {label}
         </span>
+        {laptopHasInternet && (
+          <Globe size={9} className="text-white/70 shrink-0" aria-label="Laptop online" />
+        )}
       </button>
 
       {popoverOpen && serverInfo && (
@@ -107,6 +113,20 @@ function ConnectionPill({
               <div className="flex justify-between gap-3">
                 <span className="text-xs text-text-muted">Ollama</span>
                 <span className="text-xs text-text font-medium">{serverInfo.ollama}</span>
+              </div>
+              <div className="flex justify-between gap-3">
+                <span className="text-xs text-text-muted">Internet</span>
+                <span className="text-xs font-medium flex items-center gap-1">
+                  {laptopHasInternet ? (
+                    <><Globe size={10} className="text-green-500" /><span className="text-text">Online</span></>
+                  ) : (
+                    <><WifiOff size={10} className="text-text-muted" /><span className="text-text-muted">Offline</span></>
+                  )}
+                </span>
+              </div>
+              <div className="flex justify-between gap-3 pt-1 border-t border-surface-dark">
+                <span className="text-xs text-text-muted">Inference</span>
+                <span className="text-xs text-text font-medium">Local</span>
               </div>
             </div>
           </div>
@@ -182,6 +202,7 @@ export default function TopBar({
             status={connection.status}
             serverInfo={connection.serverInfo}
             scanProgress={connection.scanProgress}
+            laptopHasInternet={connection.laptopHasInternet}
             onRetry={connection.retry}
           />
         )}

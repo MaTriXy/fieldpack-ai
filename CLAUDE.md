@@ -147,7 +147,7 @@ JAVA_HOME="/c/fieldpack-ai/jdk-21.0.10+7" ANDROID_SDK_ROOT="/c/fieldpack-ai/.and
 # Record SHA256 in README after each rebuild
 ```
 
-Current release SHA256 (2026-04-23): `a33adef13ef37412582d5cea9115e255fbf31156c620e9dd9c011759b683348f`.
+Current release SHA256 (2026-04-23): `419f2fcd7a6ec60e4017dfa6e2aef520e7a8f54bf00cfde65db3bb56e89d91fc`.
 
 ---
 

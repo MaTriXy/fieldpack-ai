@@ -5,6 +5,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
+from app import internet_probe
 from app.logger import Step, pipeline_logger as log
 from app.routers import chat, conversations, health, mission, observations, pack, upload
 
@@ -55,8 +56,9 @@ async def lifespan(app: FastAPI):
         log.log_step(Step.PACK_LOAD, "demo_mode", details={"demo": True})
     else:
         _auto_load_first_pack()
+    internet_probe.start_probe()
     yield
-    # Shutdown: cleanup if needed
+    await internet_probe.stop_probe()
 
 
 app = FastAPI(
