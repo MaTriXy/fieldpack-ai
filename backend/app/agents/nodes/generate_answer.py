@@ -24,7 +24,7 @@ from app.logger import Step, pipeline_logger as log
 from app.models.offline_llm import get_field_llm
 
 
-MAX_CONTEXT_WORDS = 2000
+MAX_CONTEXT_WORDS = 800
 
 LANGUAGE_INSTRUCTIONS = {
     "fr": "IMPORTANT: Respond entirely in French (Francais).",
@@ -124,8 +124,8 @@ async def generate_answer(state: FieldAssistantState) -> dict:
 
     lang_instruction = LANGUAGE_INSTRUCTIONS.get(language) if language and language != "en" else None
 
-    # Assemble context
-    context_text = _assemble_context(ranked_results)
+    # Assemble context (top-3 only to keep prompt small for E2B on CPU)
+    context_text = _assemble_context(ranked_results[:3])
 
     # Distinguish "user is chatting" from "search failed after retries"
     retrieval_attempts = state.get("retrieval_attempts", 0)
@@ -257,7 +257,7 @@ async def generate_answer(state: FieldAssistantState) -> dict:
     temperature = 0.1
     # 256 for search_exhausted: deliberate cap to limit hallucination length
     # when the model has no real context to ground on
-    max_tokens = 128 if is_conversational else 256 if search_exhausted else 512
+    max_tokens = 128 if is_conversational else 256 if search_exhausted else 300
     fmt = None
 
     is_fallback = False
